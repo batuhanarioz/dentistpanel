@@ -1,0 +1,235 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/app/lib/supabaseAdminClient";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+async function requireAdmin(req: NextRequest) {
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { error: "unauthorized" as const };
+  }
+
+  const token = authHeader.slice("Bearer ".length);
+
+  const authClient = createClient(supabaseUrl, supabaseAnonKey);
+  const {
+    data: { user },
+    error,
+  } = await authClient.auth.getUser(token);
+
+  if (error || !user) {
+    return { error: "unauthorized" as const };
+  }
+
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError || !profile || profile.role !== "ADMIN") {
+    return { error: "forbidden" as const };
+  }
+
+  return { user };
+}
+
+export async function POST(req: NextRequest) {
+  const auth = await requireAdmin(req);
+  if ("error" in auth) {
+    return NextResponse.json(
+      { error: auth.error },
+      { status: auth.error === "unauthorized" ? 401 : 403 }
+    );
+  }
+
+  const body = await req.json().catch(() => null);
+  const email = body?.email as string | undefined;
+  const password = body?.password as string | undefined;
+  const fullName = (body?.fullName as string | undefined) ?? null;
+  const role = (body?.role as string | undefined) ?? "ASSISTANT";
+
+  if (!email || !password) {
+    return NextResponse.json(
+      { error: "email ve password zorunludur" },
+      { status: 400 }
+    );
+  }
+
+  const allowedRoles = ["ADMIN", "DOCTOR", "ASSISTANT", "RECEPTION", "FINANCE"];
+  if (!allowedRoles.includes(role)) {
+    return NextResponse.json(
+      { error: "Geçersiz rol değeri" },
+      { status: 400 }
+    );
+  }
+
+  const { data: created, error: createError } =
+    await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+
+  if (createError || !created.user) {
+    return NextResponse.json(
+      { error: createError?.message ?? "Kullanıcı oluşturulamadı" },
+      { status: 400 }
+    );
+  }
+
+  const { error: insertError, data: appUser } = await supabaseAdmin
+    .from("users")
+    .insert({
+      id: created.user.id,
+      full_name: fullName,
+      email,
+      role,
+    })
+    .select("id, full_name, email, role, created_at")
+    .maybeSingle();
+
+  if (insertError || !appUser) {
+    // Auth tarafında oluşturulmuş kullanıcıyı geri almak isteyebilirsin,
+    // basit prototip için sadece hata döndürüyoruz.
+    return NextResponse.json(
+      { error: insertError?.message ?? "Profil kaydı oluşturulamadı" },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json({ user: appUser }, { status: 201 });
+}
+
+export async function PATCH(req: NextRequest) {
+  const auth = await requireAdmin(req);
+  if ("error" in auth) {
+    return NextResponse.json(
+      { error: auth.error },
+      { status: auth.error === "unauthorized" ? 401 : 403 }
+    );
+  }
+
+  const body = await req.json().catch(() => null);
+  const id = body?.id as string | undefined;
+  const fullName = body?.fullName as string | undefined;
+  const role = body?.role as string | undefined;
+
+  if (!id) {
+    return NextResponse.json(
+      { error: "id zorunludur" },
+      { status: 400 }
+    );
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (typeof fullName === "string") {
+    updateData.full_name = fullName;
+  }
+  if (typeof role === "string") {
+    const allowedRoles = [
+      "ADMIN",
+      "DOCTOR",
+      "ASSISTANT",
+      "RECEPTION",
+      "FINANCE",
+    ];
+    if (!allowedRoles.includes(role)) {
+      return NextResponse.json(
+        { error: "Geçersiz rol değeri" },
+        { status: 400 }
+      );
+    }
+    updateData.role = role;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json(
+      { error: "Güncellenecek alan yok" },
+      { status: 400 }
+    );
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("users")
+    .update(updateData)
+    .eq("id", id)
+    .select("id, full_name, email, role, created_at")
+    .maybeSingle();
+
+  if (error || !data) {
+    return NextResponse.json(
+      { error: error?.message ?? "Kullanıcı güncellenemedi" },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json({ user: data });
+}
+
+export async function DELETE(req: NextRequest) {
+  const auth = await requireAdmin(req);
+  if ("error" in auth) {
+    return NextResponse.json(
+      { error: auth.error },
+      { status: auth.error === "unauthorized" ? 401 : 403 }
+    );
+  }
+
+  const body = await req.json().catch(() => null);
+  const id = body?.id as string | undefined;
+
+  if (!id) {
+    return NextResponse.json(
+      { error: "id zorunludur" },
+      { status: 400 }
+    );
+  }
+
+  // Admin hesaplar silinemez
+  const { data: target, error: targetError } = await supabaseAdmin
+    .from("users")
+    .select("role")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (targetError || !target) {
+    return NextResponse.json(
+      { error: targetError?.message ?? "Kullanıcı bulunamadı" },
+      { status: 400 }
+    );
+  }
+
+  if (target.role === "ADMIN") {
+    return NextResponse.json(
+      { error: "ADMIN rolüne sahip kullanıcılar silinemez" },
+      { status: 400 }
+    );
+  }
+
+  // Önce auth tarafında kullanıcıyı sil
+  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+  if (authError) {
+    return NextResponse.json(
+      { error: authError.message ?? "Auth kullanıcısı silinemedi" },
+      { status: 400 }
+    );
+  }
+
+  const { error: deleteError } = await supabaseAdmin
+    .from("users")
+    .delete()
+    .eq("id", id);
+
+  if (deleteError) {
+    return NextResponse.json(
+      { error: deleteError.message ?? "Profil kaydı silinemedi" },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json({ success: true });
+}
+
