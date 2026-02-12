@@ -59,7 +59,7 @@ export default function NotFound() {
             Giriş ekranına dön
           </Link>
           <Link
-            href="/"
+            href="/login"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-md hover:from-teal-700 hover:to-emerald-600 transition-all"
           >
             <svg
