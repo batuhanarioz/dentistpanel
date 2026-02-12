@@ -25,15 +25,22 @@ async function requireAdmin(req: NextRequest) {
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from("users")
-    .select("role")
+    .select("role, clinic_id")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profileError || !profile || profile.role !== "ADMIN") {
+  if (profileError || !profile) {
     return { error: "forbidden" as const };
   }
 
-  return { user };
+  const isSuperAdmin = profile.role === "SUPER_ADMIN";
+  const isAdmin = profile.role === "ADMIN" || profile.role === "ADMIN_DOCTOR" || isSuperAdmin;
+
+  if (!isAdmin) {
+    return { error: "forbidden" as const };
+  }
+
+  return { user, clinicId: profile.clinic_id as string | null, isSuperAdmin };
 }
 
 export async function POST(req: NextRequest) {
@@ -50,6 +57,10 @@ export async function POST(req: NextRequest) {
   const password = body?.password as string | undefined;
   const fullName = (body?.fullName as string | undefined) ?? null;
   const role = (body?.role as string | undefined) ?? "ASSISTANT";
+  // SUPER_ADMIN klinik belirtebilir; ADMIN kendi klinik ID'sini kullanır
+  const clinicId = auth.isSuperAdmin
+    ? (body?.clinicId as string | undefined) ?? auth.clinicId
+    : auth.clinicId;
 
   if (!email || !password) {
     return NextResponse.json(
@@ -58,10 +69,26 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const allowedRoles = ["ADMIN", "DOCTOR", "ASSISTANT", "RECEPTION", "FINANCE"];
+  const allowedRoles = ["SUPER_ADMIN", "ADMIN", "ADMIN_DOCTOR", "DOCTOR", "ASSISTANT", "RECEPTION", "FINANCE"];
   if (!allowedRoles.includes(role)) {
     return NextResponse.json(
       { error: "Geçersiz rol değeri" },
+      { status: 400 }
+    );
+  }
+
+  // Sadece SUPER_ADMIN, SUPER_ADMIN oluşturabilir
+  if (role === "SUPER_ADMIN" && !auth.isSuperAdmin) {
+    return NextResponse.json(
+      { error: "SUPER_ADMIN rolünü yalnızca SUPER_ADMIN oluşturabilir" },
+      { status: 403 }
+    );
+  }
+
+  // SUPER_ADMIN olmayan roller için clinic_id zorunlu
+  if (role !== "SUPER_ADMIN" && !clinicId) {
+    return NextResponse.json(
+      { error: "Klinik seçilmeden kullanıcı oluşturulamaz" },
       { status: 400 }
     );
   }
@@ -84,16 +111,15 @@ export async function POST(req: NextRequest) {
     .from("users")
     .insert({
       id: created.user.id,
+      clinic_id: role === "SUPER_ADMIN" ? null : clinicId,
       full_name: fullName,
       email,
       role,
     })
-    .select("id, full_name, email, role, created_at")
+    .select("id, full_name, email, role, clinic_id, created_at")
     .maybeSingle();
 
   if (insertError || !appUser) {
-    // Auth tarafında oluşturulmuş kullanıcıyı geri almak isteyebilirsin,
-    // basit prototip için sadece hata döndürüyoruz.
     return NextResponse.json(
       { error: insertError?.message ?? "Profil kaydı oluşturulamadı" },
       { status: 400 }
@@ -124,13 +150,31 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
+  // ADMIN yalnızca kendi klinik kullanıcılarını güncelleyebilir
+  if (!auth.isSuperAdmin) {
+    const { data: target } = await supabaseAdmin
+      .from("users")
+      .select("clinic_id")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (!target || target.clinic_id !== auth.clinicId) {
+      return NextResponse.json(
+        { error: "Bu kullanıcıyı güncelleme yetkiniz yok" },
+        { status: 403 }
+      );
+    }
+  }
+
   const updateData: Record<string, unknown> = {};
   if (typeof fullName === "string") {
     updateData.full_name = fullName;
   }
   if (typeof role === "string") {
     const allowedRoles = [
+      "SUPER_ADMIN",
       "ADMIN",
+      "ADMIN_DOCTOR",
       "DOCTOR",
       "ASSISTANT",
       "RECEPTION",
@@ -140,6 +184,12 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json(
         { error: "Geçersiz rol değeri" },
         { status: 400 }
+      );
+    }
+    if (role === "SUPER_ADMIN" && !auth.isSuperAdmin) {
+      return NextResponse.json(
+        { error: "SUPER_ADMIN rolünü yalnızca SUPER_ADMIN atayabilir" },
+        { status: 403 }
       );
     }
     updateData.role = role;
@@ -156,7 +206,7 @@ export async function PATCH(req: NextRequest) {
     .from("users")
     .update(updateData)
     .eq("id", id)
-    .select("id, full_name, email, role, created_at")
+    .select("id, full_name, email, role, clinic_id, created_at")
     .maybeSingle();
 
   if (error || !data) {
@@ -188,10 +238,10 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
-  // Admin hesaplar silinemez
+  // ADMIN yalnızca kendi klinik kullanıcılarını silebilir
   const { data: target, error: targetError } = await supabaseAdmin
     .from("users")
-    .select("role")
+    .select("role, clinic_id")
     .eq("id", id)
     .maybeSingle();
 
@@ -202,9 +252,24 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
-  if (target.role === "ADMIN") {
+  if (!auth.isSuperAdmin && target.clinic_id !== auth.clinicId) {
     return NextResponse.json(
-      { error: "ADMIN rolüne sahip kullanıcılar silinemez" },
+      { error: "Bu kullanıcıyı silme yetkiniz yok" },
+      { status: 403 }
+    );
+  }
+
+  // ADMIN, ADMIN_DOCTOR ve SUPER_ADMIN hesaplar silinemez (SUPER_ADMIN hariç)
+  if ((target.role === "ADMIN" || target.role === "ADMIN_DOCTOR") && !auth.isSuperAdmin) {
+    return NextResponse.json(
+      { error: "ADMIN rolüne sahip kullanıcıları yalnızca SUPER_ADMIN silebilir" },
+      { status: 400 }
+    );
+  }
+
+  if (target.role === "SUPER_ADMIN") {
+    return NextResponse.json(
+      { error: "SUPER_ADMIN rolüne sahip kullanıcılar silinemez" },
       { status: 400 }
     );
   }
@@ -232,4 +297,3 @@ export async function DELETE(req: NextRequest) {
 
   return NextResponse.json({ success: true });
 }
-

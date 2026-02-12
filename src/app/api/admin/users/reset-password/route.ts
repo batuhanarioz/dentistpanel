@@ -25,15 +25,22 @@ async function requireAdmin(req: NextRequest) {
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from("users")
-    .select("role")
+    .select("role, clinic_id")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profileError || !profile || profile.role !== "ADMIN") {
+  if (profileError || !profile) {
     return { error: "forbidden" as const };
   }
 
-  return { user };
+  const isSuperAdmin = profile.role === "SUPER_ADMIN";
+  const isAdmin = profile.role === "ADMIN" || profile.role === "ADMIN_DOCTOR" || isSuperAdmin;
+
+  if (!isAdmin) {
+    return { error: "forbidden" as const };
+  }
+
+  return { user, clinicId: profile.clinic_id as string | null, isSuperAdmin };
 }
 
 export async function POST(req: NextRequest) {
@@ -56,6 +63,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // ADMIN yalnızca kendi klinik kullanıcılarının şifresini sıfırlayabilir
+  if (!auth.isSuperAdmin) {
+    const { data: target } = await supabaseAdmin
+      .from("users")
+      .select("clinic_id")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (!target || target.clinic_id !== auth.clinicId) {
+      return NextResponse.json(
+        { error: "Bu kullanıcının şifresini sıfırlama yetkiniz yok" },
+        { status: 403 }
+      );
+    }
+  }
+
   const { error } = await supabaseAdmin.auth.admin.updateUserById(id, {
     password: newPassword,
   });
@@ -69,4 +92,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ success: true });
 }
-

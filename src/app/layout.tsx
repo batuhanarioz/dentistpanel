@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AppShell } from "./components/AppShell";
 
 export const metadata: Metadata = {
-  title: "NextGency Diş Kliniği Paneli",
-  description: "NextGency Diş Kliniği için yönetim paneli.",
+  title: "Klinik Yönetim Paneli",
+  description: "Multi-tenant diş klinik yönetim paneli.",
 };
 
 export default function RootLayout({
@@ -15,7 +14,7 @@ export default function RootLayout({
   return (
     <html lang="tr">
       <body className="antialiased bg-slate-50 text-slate-900">
-        <AppShell>{children}</AppShell>
+        {children}
       </body>
     </html>
   );
