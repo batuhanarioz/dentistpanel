@@ -193,7 +193,7 @@ function ShellInner({ children }: Props) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.replace("/login");
+    router.replace("/");
   };
 
   // Sayfaya göre üst bar başlığı
@@ -498,7 +498,7 @@ export function AppShell({ children }: Props) {
   const pathname = usePathname();
 
   // Login ve root yönlendirme sayfaları çerçevesiz
-  if (pathname === "/login" || pathname === "/") {
+  if (pathname === "/") {
     return <>{children}</>;
   }
 

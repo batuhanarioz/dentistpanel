@@ -40,7 +40,7 @@ export default function NotFound() {
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            href="/login"
+            href="/"
             className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-teal-200 bg-white px-5 py-3 text-sm font-semibold text-teal-700 shadow-sm hover:bg-teal-50 hover:border-teal-300 transition-colors"
           >
             <svg
@@ -59,7 +59,7 @@ export default function NotFound() {
             Giriş ekranına dön
           </Link>
           <Link
-            href="/login"
+            href="/"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-md hover:from-teal-700 hover:to-emerald-600 transition-all"
           >
             <svg

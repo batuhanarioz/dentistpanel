@@ -112,8 +112,8 @@ export function AuthGuard({ children }: Props) {
   });
 
   useEffect(() => {
-    // Login sayfası ve public rotalar için guard devre dışı
-    if (pathname === "/login") {
+    // Ana sayfa (giriş ekranı) için guard devre dışı
+    if (pathname === "/") {
       setAllowed(true);
       setChecking(false);
       return;
@@ -126,7 +126,7 @@ export function AuthGuard({ children }: Props) {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace("/login");
+        router.replace("/");
         return;
       }
 
@@ -140,7 +140,7 @@ export function AuthGuard({ children }: Props) {
 
       if (error || !appUser) {
         await supabase.auth.signOut();
-        router.replace("/login?error=unauthorized");
+        router.replace("/?error=unauthorized");
         return;
       }
 
@@ -160,7 +160,7 @@ export function AuthGuard({ children }: Props) {
 
         if (!clinic || !clinic.is_active) {
           await supabase.auth.signOut();
-          router.replace("/login?error=inactive");
+          router.replace("/?error=inactive");
           return;
         }
 
@@ -207,7 +207,7 @@ export function AuthGuard({ children }: Props) {
       } else {
         // Klinik atanmamış, SUPER_ADMIN değil -> yetkisiz
         await supabase.auth.signOut();
-        router.replace("/login?error=unauthorized");
+        router.replace("/?error=unauthorized");
         return;
       }
 
