@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/app/lib/supabaseClient";
@@ -427,46 +427,56 @@ export default function PaymentsPage() {
       </div>
 
       {/* Araç Çubuğu */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 font-medium">{rangeLabel}</span>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="hidden md:flex items-center gap-2">
+          <span className="text-sm text-slate-500 font-medium">{rangeLabel}</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <PremiumDatePicker
-            value={selectedDate}
-            onChange={(d) => { setSelectedDate(d); setCurrentPage(1); }}
-            today={today}
-          />
-          <button
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm hover:bg-slate-50 transition-colors"
-            onClick={() => { setSelectedDate(today); setCurrentPage(1); }}
-          >
-            Bugün
-          </button>
-          <div className="flex rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
-            {(["day", "week", "month"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => { setViewMode(mode); setCurrentPage(1); }}
-                className={[
-                  "px-3 py-2 text-xs font-medium transition-colors border-r last:border-r-0 border-slate-200",
-                  viewMode === mode
-                    ? "bg-gradient-to-r from-teal-600 to-emerald-500 text-white"
-                    : "text-slate-600 hover:bg-slate-50",
-                ].join(" ")}
-              >
-                {mode === "day" ? "Gün" : mode === "week" ? "Hafta" : "Ay"}
-              </button>
-            ))}
+
+        <div className="flex flex-col gap-3 md:flex-row md:items-center w-full md:w-auto">
+          {/* Mobil: Tarih ve Bugün */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex-1 md:w-auto">
+              <PremiumDatePicker
+                value={selectedDate}
+                onChange={(d) => { setSelectedDate(d); setCurrentPage(1); }}
+                today={today}
+              />
+            </div>
+            <button
+              className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-sm hover:bg-slate-50 transition-colors whitespace-nowrap"
+              onClick={() => { setSelectedDate(today); setCurrentPage(1); }}
+            >
+              Bugün
+            </button>
           </div>
-          <button
-            className="rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:from-emerald-700 hover:to-teal-600 transition-all flex items-center gap-1.5"
-            onClick={() => setIsModalOpen(true)}
-          >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-            Ödeme Ekle
-          </button>
+
+          {/* Mobil: Görünüm ve Ekle */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex-1 md:flex-none">
+              {(["day", "week", "month"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => { setViewMode(mode); setCurrentPage(1); }}
+                  className={[
+                    "flex-1 md:flex-none px-3 py-2.5 text-xs font-medium transition-colors border-r last:border-r-0 border-slate-200",
+                    viewMode === mode
+                      ? "bg-gradient-to-r from-teal-600 to-emerald-500 text-white"
+                      : "text-slate-600 hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  {mode === "day" ? "Gün" : mode === "week" ? "Hafta" : "Ay"}
+                </button>
+              ))}
+            </div>
+            <button
+              className="flex-1 md:flex-none h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-4 text-xs font-semibold text-white shadow-sm hover:from-emerald-700 hover:to-teal-600 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+              onClick={() => setIsModalOpen(true)}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+              <span>Ödeme Ekle</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -864,8 +874,8 @@ export default function PaymentsPage() {
                       Tarih:{" "}
                       {selectedPayment.due_date
                         ? new Date(
-                            selectedPayment.due_date
-                          ).toLocaleDateString("tr-TR")
+                          selectedPayment.due_date
+                        ).toLocaleDateString("tr-TR")
                         : "-"}
                     </p>
                     <p className="text-[11px] text-slate-500">

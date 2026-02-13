@@ -10,6 +10,7 @@ type DashboardAppointment = {
   startsAt: string;
   endsAt: string;
   patientName: string;
+  patientPhone: string | null;
   doctorName: string;
   doctorId: string | null;
   channel: string;
@@ -169,13 +170,13 @@ export default function Home() {
       const [patientsRes, doctorsRes] = await Promise.all([
         patientIds.length
           ? supabase
-              .from("patients")
-              .select("id, full_name")
-              .in("id", patientIds)
+            .from("patients")
+            .select("id, full_name, phone")
+            .in("id", patientIds)
           : Promise.resolve({ data: [], error: null } as {
-              data: any[];
-              error: any;
-            }),
+            data: any[];
+            error: any;
+          }),
         supabase
           .from("users")
           .select("id, full_name")
@@ -183,7 +184,10 @@ export default function Home() {
       ]);
 
       const patientsMap = Object.fromEntries(
-        (patientsRes.data || []).map((p: any) => [p.id, p.full_name])
+        (patientsRes.data || []).map((p: any) => [
+          p.id,
+          { full_name: p.full_name, phone: p.phone },
+        ])
       );
       const doctorsMap = Object.fromEntries(
         (doctorsRes.data || []).map((d: any) => [d.id, d.full_name])
@@ -197,7 +201,8 @@ export default function Home() {
         id: row.id,
         startsAt: row.starts_at,
         endsAt: row.ends_at,
-        patientName: patientsMap[row.patient_id] ?? "Hasta",
+        patientName: patientsMap[row.patient_id]?.full_name ?? "Hasta",
+        patientPhone: patientsMap[row.patient_id]?.phone ?? null,
         doctorName: doctorsMap[row.doctor_id] ?? "Doktor atanmadı",
         doctorId: row.doctor_id ?? null,
         channel: row.channel,
@@ -268,11 +273,14 @@ export default function Home() {
 
       const { data: patientsData } = await supabase
         .from("patients")
-        .select("id, full_name")
+        .select("id, full_name, phone")
         .in("id", patientIds);
 
       const patientsMap = Object.fromEntries(
-        (patientsData || []).map((p: any) => [p.id, p.full_name])
+        (patientsData || []).map((p: any) => [
+          p.id,
+          { full_name: p.full_name, phone: p.phone },
+        ])
       );
 
       const now = new Date();
@@ -281,7 +289,8 @@ export default function Home() {
         id: row.id,
         startsAt: row.starts_at,
         endsAt: row.ends_at,
-        patientName: patientsMap[row.patient_id] ?? "Hasta",
+        patientName: patientsMap[row.patient_id]?.full_name ?? "Hasta",
+        patientPhone: patientsMap[row.patient_id]?.phone ?? null,
         doctorName: "",
         doctorId: row.doctor_id ?? null,
         channel: row.channel,
@@ -436,10 +445,10 @@ export default function Home() {
       prev.map((appt) =>
         appt.id === appointmentId
           ? {
-              ...appt,
-              doctorId,
-              doctorName: selectedDoctor?.full_name ?? appt.doctorName,
-            }
+            ...appt,
+            doctorId,
+            doctorName: selectedDoctor?.full_name ?? appt.doctorName,
+          }
           : appt
       )
     );
@@ -465,9 +474,21 @@ export default function Home() {
   };
 
   const handleReminderClick = (appointmentId: string) => {
-    // Otomasyon entegrasyonu burada devreye girecek.
-    // Şimdilik placeholder.
-    console.log("Hatırlatma akışı tetiklenecek:", appointmentId);
+    const appt = appointments.find((a) => a.id === appointmentId);
+    if (!appt || !appt.patientPhone) {
+      alert("Hasta telefonu kayıtlı değil!");
+      return;
+    }
+
+    // Telefon numarasını temizle (sadece rakamlar)
+    const phone = appt.patientPhone.replace(/\D/g, "");
+
+    // Basit bir selamlama/hatırlatma mesajı şablonu
+    const text = `Merhaba Sayın ${appt.patientName}, randevunuzu hatırlatmak isteriz.`;
+
+    // WhatsApp linkini aç
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
   };
 
   const handleControlItemClick = (item: ControlItem) => {

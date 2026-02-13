@@ -88,12 +88,12 @@ function ClinicNav({
         <span>Randevular</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
-      <a href={`${base}/payments`} className={linkClass(`${base}/payments`)} onClick={handleClick}>
-        <span>Ödeme Takvimi</span>
+      <a href={`${base}/payment-management`} className={linkClass(`${base}/payment-management`)} onClick={handleClick}>
+        <span>Ödeme Yönetimi</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
-      <a href={`${base}/appointments/calendar`} className={linkClass(`${base}/appointments/calendar`)} onClick={handleClick}>
-        <span>Randevu Takvimi</span>
+      <a href={`${base}/appointment-management`} className={linkClass(`${base}/appointment-management`)} onClick={handleClick}>
+        <span>Randevu Yönetimi</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
       <a href={`${base}/patients`} className={linkClass(`${base}/patients`)} onClick={handleClick}>
@@ -105,7 +105,7 @@ function ClinicNav({
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
       <a href={`${base}/admin/users`} className={linkClass(`${base}/admin/users`)} onClick={handleClick}>
-        <span>Yönetim · Kullanıcılar</span>
+        <span>Kullanıcı Ayarları</span>
       </a>
     </>
   );
@@ -163,13 +163,13 @@ function ShellInner({ children }: Props) {
   const brandInitials = clinic.isSuperAdmin
     ? "NG"
     : (clinic.clinicName || "KP")
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean)
-        .map((w) => w[0])
-        .join("")
-        .slice(0, 3)
-        .toUpperCase();
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 3)
+      .toUpperCase();
   const userInitials = (displayName || "K")
     .split(" ")
     .map((w: string) => w[0])
@@ -218,14 +218,14 @@ function ShellInner({ children }: Props) {
           "Günlük takvim, doktor bazlı görünüm ve kanal dağılımı."
         );
         break;
-      case subPath === "/appointments/calendar":
-        setHeaderTitle("Randevu Takvimi");
+      case subPath === "/appointment-management":
+        setHeaderTitle("Randevu Yönetimi");
         setHeaderSubtitle(
           "Gün boyu 09:00 - 19:00 arasındaki randevuları çizelge üzerinde görüntüleyip yönetebilirsiniz."
         );
         break;
-      case subPath === "/payments":
-        setHeaderTitle("Ödeme Takvimi");
+      case subPath === "/payment-management":
+        setHeaderTitle("Ödeme Yönetimi");
         setHeaderSubtitle(
           "Hastalar için ödeme planlarını tarih bazlı olarak yönetin."
         );
@@ -243,7 +243,7 @@ function ShellInner({ children }: Props) {
         );
         break;
       case subPath === "/admin/users":
-        setHeaderTitle("Kullanıcı Yönetimi");
+        setHeaderTitle("Kullanıcı Ayarları");
         setHeaderSubtitle(
           "Admin kullanıcılar, klinik personelini buradan ekleyip güncelleyebilir."
         );
@@ -328,7 +328,7 @@ function ShellInner({ children }: Props) {
         </nav>
       </aside>
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="border-b bg-white relative z-10">
+        <header className="border-b bg-white relative z-50">
           {/* Marka satırı – sadece mobilde */}
           <div className="relative bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-500 px-4 md:px-6 py-3 flex items-center justify-between md:hidden">
             <a
