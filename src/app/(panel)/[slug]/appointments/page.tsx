@@ -2,7 +2,7 @@
 
 import CalendarView from "../../components/CalendarView";
 
-export default function AppointmentsPage({ params }: { params: { slug: string } }) {
+export default function AppointmentsPage({ params }: { params: Promise<{ slug: string }> }) {
   // We can eventually use the slug to get the clinic ID if needed contextually, 
   // currently CalendarView manages its own data fetching based on authenticated user's clinic.
   return (
