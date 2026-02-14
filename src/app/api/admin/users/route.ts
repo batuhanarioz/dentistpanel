@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const email = body?.email as string | undefined;
   const password = body?.password as string | undefined;
   const fullName = (body?.fullName as string | undefined) ?? null;
-  const role = (body?.role as string | undefined) ?? "SEKRETER";
+  const role = (body?.role as string | undefined) ?? "RECEPTION";
   // SUPER_ADMIN klinik belirtebilir; ADMIN kendi klinik ID'sini kullanır
   const clinicId = auth.isSuperAdmin
     ? (body?.clinicId as string | undefined) ?? auth.clinicId
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const allowedRoles = ["SUPER_ADMIN", "ADMIN", "DOKTOR", "SEKRETER", "FINANS"];
+  const allowedRoles = ["SUPER_ADMIN", "ADMIN", "DOCTOR", "RECEPTION", "FINANCE"];
   if (!allowedRoles.includes(role)) {
     return NextResponse.json(
       { error: "Geçersiz rol değeri" },
@@ -174,9 +174,9 @@ export async function PATCH(req: NextRequest) {
     const allowedRoles = [
       "SUPER_ADMIN",
       "ADMIN",
-      "DOKTOR",
-      "SEKRETER",
-      "FINANS",
+      "DOCTOR",
+      "RECEPTION",
+      "FINANCE",
     ];
     if (!allowedRoles.includes(role)) {
       return NextResponse.json(

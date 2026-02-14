@@ -15,6 +15,12 @@ export interface ClinicContextValue {
   userName: string | null;
   userEmail: string | null;
   workingHours: WorkingHours;
+  planId: string | null;
+  credits: number;
+  trialEndsAt: string | null;
+  automationsEnabled: boolean;
+  n8nWorkflowId: string | null;
+  n8nWorkflows: Array<{ id: string; name: string; enabled: boolean }>;
 }
 
 const defaultValue: ClinicContextValue = {
@@ -28,6 +34,12 @@ const defaultValue: ClinicContextValue = {
   userName: null,
   userEmail: null,
   workingHours: DEFAULT_WORKING_HOURS,
+  planId: null,
+  credits: 0,
+  trialEndsAt: null,
+  automationsEnabled: false,
+  n8nWorkflowId: null,
+  n8nWorkflows: [],
 };
 
 export const ClinicContext = createContext<ClinicContextValue>(defaultValue);

@@ -67,7 +67,7 @@ export default function ClinicSettingsPage() {
                 ...prev[defId],
                 task_definition_id: defId,
                 is_enabled: prev[defId] ? !prev[defId].is_enabled : false, // Default was true, toggling empty means false
-                assigned_role: prev[defId]?.assigned_role || taskDefs.find(d => d.id === defId)?.default_role || "SEKRETER"
+                assigned_role: prev[defId]?.assigned_role || taskDefs.find(d => d.id === defId)?.default_role || "RECEPTION"
             }
         }));
     };
@@ -176,9 +176,9 @@ export default function ClinicSettingsPage() {
                                             className="text-xs rounded-lg border-slate-200 bg-white px-2 py-1.5 focus:ring-2 focus:ring-teal-500/20"
                                         >
                                             <option value="ADMIN">ADMIN</option>
-                                            <option value="DOKTOR">DOKTOR</option>
-                                            <option value="SEKRETER">SEKRETER</option>
-                                            <option value="FINANS">FINANS</option>
+                                            <option value="DOCTOR">DOCTOR</option>
+                                            <option value="RECEPTION">RECEPTION</option>
+                                            <option value="FINANCE">FINANCE</option>
                                         </select>
                                     </div>
 

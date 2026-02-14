@@ -391,7 +391,7 @@ export default function ReportsPage() {
   }, [filtered]);
 
   /* ================================================================
-     4) DOKTOR BAZLI RANDEVU DAĞILIMI
+     4) DOCTOR BAZLI RANDEVU DAĞILIMI
      ================================================================ */
   const doctorStats = useMemo(() => {
     const map: Record<
@@ -922,7 +922,7 @@ export default function ReportsPage() {
             )}
           </ReportCard>
 
-          {/* ─── RAPOR 4: DOKTOR BAZLI DAĞILIM ─── */}
+          {/* ─── RAPOR 4: DOCTOR BAZLI DAĞILIM ─── */}
           <ReportCard
             title="Doktor Bazlı Randevu Dağılımı"
             subtitle="Doktor performans karşılaştırması"

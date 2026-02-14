@@ -109,6 +109,12 @@ export function AuthGuard({ children }: Props) {
     userName: null,
     userEmail: null,
     workingHours: DEFAULT_WORKING_HOURS,
+    planId: null,
+    credits: 0,
+    trialEndsAt: null,
+    automationsEnabled: false,
+    n8nWorkflowId: null,
+    n8nWorkflows: [],
   });
 
   useEffect(() => {
@@ -152,11 +158,25 @@ export function AuthGuard({ children }: Props) {
 
       // SUPER_ADMIN olmayan kullanıcılar için klinik aktifliği ve slug kontrolü
       if (!isSuperAdmin && appUser.clinic_id) {
-        const { data: clinic } = await supabase
-          .from("clinics")
-          .select("id, name, slug, is_active, working_hours")
-          .eq("id", appUser.clinic_id)
-          .maybeSingle();
+        let clinic;
+        try {
+          const { data, error: clinicError } = await supabase
+            .from("clinics")
+            .select("id, name, slug, is_active, working_hours, plan_id, credits, trial_ends_at, automations_enabled, n8n_workflow_id, n8n_workflows")
+            .eq("id", appUser.clinic_id)
+            .maybeSingle();
+
+          if (clinicError) throw clinicError;
+          clinic = data;
+        } catch (e) {
+          console.warn("Klinik detayları (yeni kolonlar) yüklenemedi, temel bilgilerle devam ediliyor:", e);
+          const { data: basicClinic } = await supabase
+            .from("clinics")
+            .select("id, name, slug, is_active, working_hours")
+            .eq("id", appUser.clinic_id)
+            .maybeSingle();
+          clinic = basicClinic;
+        }
 
         if (!clinic || !clinic.is_active) {
           await supabase.auth.signOut();
@@ -175,6 +195,12 @@ export function AuthGuard({ children }: Props) {
           userName: appUser.full_name,
           userEmail: appUser.email,
           workingHours: (clinic.working_hours as WorkingHours) || DEFAULT_WORKING_HOURS,
+          planId: (clinic as any).plan_id || "starter",
+          credits: (clinic as any).credits || 0,
+          trialEndsAt: (clinic as any).trial_ends_at || null,
+          automationsEnabled: (clinic as any).automations_enabled || false,
+          n8nWorkflowId: (clinic as any).n8n_workflow_id || null,
+          n8nWorkflows: (clinic as any).n8n_workflows || [],
         });
 
         // URL'deki slug kontrolü: klinik kullanıcıları doğru slug altında olmalı
@@ -197,6 +223,12 @@ export function AuthGuard({ children }: Props) {
           userName: appUser.full_name,
           userEmail: appUser.email,
           workingHours: DEFAULT_WORKING_HOURS,
+          planId: "enterprise", // Super admin için tam yetki
+          credits: 999999,
+          trialEndsAt: null,
+          automationsEnabled: true,
+          n8nWorkflowId: null,
+          n8nWorkflows: [],
         });
 
         // SUPER_ADMIN /platform dışında bir sayfaya girerse platforme yönlendir

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/app/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
-import type { Clinic, WorkingHours, DayOfWeek } from "@/app/types/database";
+import type { Clinic, WorkingHours, DayOfWeek, SubscriptionPlan } from "@/app/types/database";
 import { DEFAULT_WORKING_HOURS, DAY_LABELS, ORDERED_DAYS } from "@/app/types/database";
 
 type SuperAdminUser = { id: string; full_name: string | null; email: string | null; created_at: string };
@@ -12,9 +12,11 @@ type ClinicStaffUser = { id: string; full_name: string | null; email: string | n
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
   ADMIN: "Yönetici",
-  DOKTOR: "Doktor",
-  SEKRETER: "Sekreter",
-  FINANS: "Finans",
+  ADMIN_DOCTOR: "Yönetici Doktor",
+  DOCTOR: "Doktor",
+  ASSISTANT: "Asistan",
+  RECEPTION: "Sekreter",
+  FINANCE: "Finans",
 };
 
 export default function PlatformClinicsPage() {
@@ -38,6 +40,16 @@ export default function PlatformClinicsPage() {
   const [formEmail, setFormEmail] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formWorkingHours, setFormWorkingHours] = useState<WorkingHours>(DEFAULT_WORKING_HOURS);
+  const [formPlanId, setFormPlanId] = useState("starter");
+  const [formCredits, setFormCredits] = useState(0);
+  const [formTrialEndsAt, setFormTrialEndsAt] = useState("");
+  const [formAutomationsEnabled, setFormAutomationsEnabled] = useState(false);
+  const [formN8nWorkflowId, setFormN8nWorkflowId] = useState("");
+  const [formN8nWorkflows, setFormN8nWorkflows] = useState<{ id: string, name: string, enabled: boolean }[]>([]);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [n8nWorkflows, setN8nWorkflows] = useState<{ id: string, name: string, active: boolean }[]>([]);
+  const [n8nSearch, setN8nSearch] = useState("");
+  const [formAdminPassword, setFormAdminPassword] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Sadece SUPER_ADMIN erişebilir
@@ -53,9 +65,10 @@ export default function PlatformClinicsPage() {
     setLoading(true);
     setError(null);
 
-    const [clinicsRes, superRes] = await Promise.all([
+    const [clinicsRes, superRes, plansRes] = await Promise.all([
       supabase.from("clinics").select("*").order("created_at", { ascending: false }),
       supabase.from("users").select("id, full_name, email, created_at").eq("role", "SUPER_ADMIN").order("created_at", { ascending: false }),
+      supabase.from("subscription_plans").select("*").order("monthly_price", { ascending: true }),
     ]);
 
     if (clinicsRes.error) {
@@ -66,6 +79,19 @@ export default function PlatformClinicsPage() {
     setClinics(clinicsRes.data || []);
 
     if (!superRes.error) setSuperAdmins(superRes.data || []);
+    if (!plansRes.error) setPlans(plansRes.data || []);
+
+    // n8n workflowlarını çek
+    try {
+      const wfRes = await fetch("/api/admin/n8n/workflows");
+      if (wfRes.ok) {
+        const wfData = await wfRes.json();
+        setN8nWorkflows(wfData);
+      }
+    } catch (e) {
+      console.error("Workflow fetch error:", e);
+    }
+
     setLoading(false);
   }, []);
 
@@ -98,39 +124,54 @@ export default function PlatformClinicsPage() {
     e.preventDefault();
     setSaving(true);
     setError(null);
-
     const slug = formSlug.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-    if (!formName.trim() || !slug) {
-      setError("Klinik adı ve slug zorunludur.");
+    if (!formName.trim() || !slug || !formEmail.trim() || !formAdminPassword.trim()) {
+      setError("Klinik adı, slug, e-posta ve admin şifresi zorunludur.");
       setSaving(false);
       return;
     }
 
-    const { error } = await supabase.from("clinics").insert({
-      name: formName.trim(),
-      slug,
-      phone: formPhone || null,
-      email: formEmail || null,
-      address: formAddress || null,
-      working_hours: formWorkingHours,
-    });
+    try {
+      const res = await fetch("/api/admin/clinics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formName.trim(),
+          slug,
+          phone: formPhone || null,
+          email: formEmail.trim(),
+          address: formAddress || null,
+          working_hours: formWorkingHours,
+          plan_id: formPlanId,
+          credits: formCredits,
+          trial_ends_at: formTrialEndsAt || null,
+          automations_enabled: formAutomationsEnabled,
+          n8n_workflow_id: formN8nWorkflowId || null,
+          n8n_workflows: formN8nWorkflows,
+          adminPassword: formAdminPassword,
+        }),
+      });
 
-    if (error) {
-      setError(error.message || "Klinik oluşturulamadı.");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Klinik oluşturulamadı.");
+      }
+
+      setFormName("");
+      setFormSlug("");
+      setFormPhone("");
+      setFormEmail("");
+      setFormAdminPassword("");
+      setFormAddress("");
+      setFormWorkingHours(DEFAULT_WORKING_HOURS);
       setSaving(false);
-      return;
+      setShowCreateModal(false);
+      await loadClinics();
+    } catch (err: any) {
+      setError(err.message);
+      setSaving(false);
     }
-
-    setFormName("");
-    setFormSlug("");
-    setFormPhone("");
-    setFormEmail("");
-    setFormAddress("");
-    setFormWorkingHours(DEFAULT_WORKING_HOURS);
-    setSaving(false);
-    setShowCreateModal(false);
-    await loadClinics();
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -141,28 +182,66 @@ export default function PlatformClinicsPage() {
 
     const slug = formSlug.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-    const { error } = await supabase
-      .from("clinics")
-      .update({
-        name: formName.trim(),
-        slug,
-        phone: formPhone || null,
-        email: formEmail || null,
-        address: formAddress || null,
-        working_hours: formWorkingHours,
-      })
-      .eq("id", selectedClinic.id);
+    try {
+      const { error } = await supabase
+        .from("clinics")
+        .update({
+          name: formName.trim(),
+          slug,
+          phone: formPhone || null,
+          email: formEmail || null,
+          address: formAddress || null,
+          working_hours: formWorkingHours,
+          plan_id: formPlanId,
+          credits: formCredits,
+          trial_ends_at: formTrialEndsAt || null,
+          automations_enabled: formAutomationsEnabled,
+          n8n_workflow_id: formN8nWorkflowId || null,
+          n8n_workflows: formN8nWorkflows,
+        })
+        .eq("id", selectedClinic.id);
 
-    if (error) {
-      setError(error.message || "Klinik güncellenemedi.");
+      if (error) throw error;
+
       setSaving(false);
-      return;
+      setShowEditModal(false);
+      setSelectedClinic(null);
+      await loadClinics();
+    } catch (err: any) {
+      setError(err.message || "Klinik güncellenemedi.");
+      setSaving(false);
     }
+  };
 
-    setSaving(false);
-    setShowEditModal(false);
-    setSelectedClinic(null);
-    await loadClinics();
+  const toggleAutomation = async (enabled: boolean, workflowId: string) => {
+    if (!selectedClinic || !workflowId) return;
+
+    // UI'da hemen güncelle
+    setFormN8nWorkflows(prev => prev.map(wf => wf.id === workflowId ? { ...wf, enabled } : wf));
+
+    try {
+      const res = await fetch("/api/admin/clinics/automation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clinicId: selectedClinic.id,
+          enabled,
+          workflowId
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Otomasyon güncellenemedi.");
+        // Geri al
+        setFormN8nWorkflows(prev => prev.map(wf => wf.id === workflowId ? { ...wf, enabled: !enabled } : wf));
+      } else {
+        await loadClinics();
+      }
+    } catch (err) {
+      setError("Bağlantı hatası oluştu.");
+      setFormN8nWorkflows(prev => prev.map(wf => wf.id === workflowId ? { ...wf, enabled: !enabled } : wf));
+    }
   };
 
   const handleToggleActive = async (clinicItem: Clinic) => {
@@ -191,6 +270,14 @@ export default function PlatformClinicsPage() {
     setFormEmail(clinicItem.email || "");
     setFormAddress(clinicItem.address || "");
     setFormWorkingHours(clinicItem.working_hours || DEFAULT_WORKING_HOURS);
+    setFormPlanId(clinicItem.plan_id || "starter");
+    setFormCredits(clinicItem.credits || 0);
+    setFormTrialEndsAt(clinicItem.trial_ends_at ? new Date(clinicItem.trial_ends_at).toISOString().slice(0, 16) : "");
+    setFormAutomationsEnabled(clinicItem.automations_enabled || false);
+    setFormN8nWorkflowId(clinicItem.n8n_workflow_id || "");
+    setFormN8nWorkflows(clinicItem.n8n_workflows || []);
+    setN8nSearch("");
+    setSaving(false);
     setShowEditModal(true);
   };
 
@@ -199,8 +286,17 @@ export default function PlatformClinicsPage() {
     setFormSlug("");
     setFormPhone("");
     setFormEmail("");
+    setFormAdminPassword("");
     setFormAddress("");
     setFormWorkingHours(DEFAULT_WORKING_HOURS);
+    setFormPlanId("trial");
+    setFormCredits(100); // Trial için 100 kredi (3 modül testi için uygun)
+    setFormTrialEndsAt(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)); // 1 hafta deneme
+    setFormAutomationsEnabled(false);
+    setFormN8nWorkflowId("");
+    setFormN8nWorkflows([]);
+    setN8nSearch("");
+    setSaving(false);
     setShowCreateModal(true);
   };
 
@@ -211,52 +307,227 @@ export default function PlatformClinicsPage() {
     }));
   };
 
-  const WorkingHoursEditor = () => (
-    <div className="space-y-1">
-      <label className="block text-[11px] font-medium text-slate-800">
-        Çalışma Günleri ve Saatleri
-      </label>
-      <div className="rounded-lg border border-slate-200 divide-y divide-slate-100">
-        {ORDERED_DAYS.map((day) => {
-          const schedule = formWorkingHours[day];
-          return (
-            <div
-              key={day}
-              className={[
-                "flex items-center gap-2 px-3 py-2 text-[11px]",
-                schedule.enabled ? "" : "opacity-50 bg-slate-50",
-              ].join(" ")}
-            >
-              <label className="flex items-center gap-2 w-24 shrink-0 cursor-pointer">
+  function renderWorkingHoursEditor() {
+    return (
+      <div className="space-y-1">
+        <label className="block text-[11px] font-medium text-slate-800">
+          Çalışma Günleri ve Saatleri
+        </label>
+        <div className="rounded-lg border border-slate-200 divide-y divide-slate-100">
+          {ORDERED_DAYS.map((day) => {
+            const schedule = formWorkingHours[day];
+            return (
+              <div
+                key={day}
+                className={[
+                  "flex items-center gap-2 px-3 py-2 text-[11px]",
+                  schedule.enabled ? "" : "opacity-50 bg-slate-50",
+                ].join(" ")}
+              >
+                <label className="flex items-center gap-2 w-24 shrink-0 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={schedule.enabled}
+                    onChange={(e) => updateDaySchedule(day, "enabled", e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  <span className="font-medium text-slate-800">{DAY_LABELS[day]}</span>
+                </label>
                 <input
-                  type="checkbox"
-                  checked={schedule.enabled}
-                  onChange={(e) => updateDaySchedule(day, "enabled", e.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                  type="time"
+                  value={schedule.open}
+                  onChange={(e) => updateDaySchedule(day, "open", e.target.value)}
+                  disabled={!schedule.enabled}
+                  className="rounded-md border px-1.5 py-0.5 text-[11px] w-20"
                 />
-                <span className="font-medium text-slate-800">{DAY_LABELS[day]}</span>
-              </label>
+                <span className="text-slate-400">-</span>
+                <input
+                  type="time"
+                  value={schedule.close}
+                  onChange={(e) => updateDaySchedule(day, "close", e.target.value)}
+                  disabled={!schedule.enabled}
+                  className="rounded-md border px-1.5 py-0.5 text-[11px] w-20"
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  function renderSubscriptionEditor() {
+    return (
+      <div className="space-y-3 pt-3 border-t border-slate-100">
+        <h4 className="text-[11px] font-semibold text-slate-900 uppercase tracking-wider">Abonelik ve Plan</h4>
+        <div className="grid grid-cols-1 gap-3">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-slate-700">Paket</label>
+            <select
+              value={formPlanId}
+              onChange={(e) => {
+                const newPlanId = e.target.value;
+                setFormPlanId(newPlanId);
+                // Krediyi otomatik planın limitine çek
+                const plan = plans.find(p => p.id === newPlanId);
+                if (plan) setFormCredits(plan.monthly_credits);
+              }}
+              className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+            >
+              {plans.map((p) => (
+                <option key={p.id} value={p.id}>{p.name} ({p.monthly_price} ₺/ay)</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-slate-700">Kredi</label>
               <input
-                type="time"
-                value={schedule.open}
-                onChange={(e) => updateDaySchedule(day, "open", e.target.value)}
-                disabled={!schedule.enabled}
-                className="rounded-md border px-1.5 py-0.5 text-[11px] w-20"
-              />
-              <span className="text-slate-400">-</span>
-              <input
-                type="time"
-                value={schedule.close}
-                onChange={(e) => updateDaySchedule(day, "close", e.target.value)}
-                disabled={!schedule.enabled}
-                className="rounded-md border px-1.5 py-0.5 text-[11px] w-20"
+                type="number"
+                value={formCredits}
+                onChange={(e) => setFormCredits(parseInt(e.target.value) || 0)}
+                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
               />
             </div>
-          );
-        })}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-slate-700">Deneme Bitiş</label>
+              <input
+                type="datetime-local"
+                value={formTrialEndsAt}
+                onChange={(e) => setFormTrialEndsAt(e.target.value)}
+                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+              />
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  function renderAutomationEditor() {
+    const searchResults = n8nSearch.trim().length >= 3
+      ? n8nWorkflows.filter(wf =>
+        wf.name.toLowerCase().includes(n8nSearch.toLowerCase()) ||
+        wf.id.toLowerCase().includes(n8nSearch.toLowerCase())
+      ).filter(wf => !formN8nWorkflows.some(existing => existing.id === wf.id))
+      : [];
+
+    return (
+      <div className="space-y-3 pt-3 border-t border-slate-100">
+        <h4 className="text-[11px] font-semibold text-slate-900 uppercase tracking-wider">Otomasyonlar (n8n)</h4>
+
+        {/* Arama Barı */}
+        <div className="space-y-1.5">
+          <div className="relative">
+            <input
+              type="text"
+              autoComplete="off"
+              placeholder="Workflow ara (en az 3 harf)..."
+              value={n8nSearch}
+              onChange={(e) => setN8nSearch(e.target.value)}
+              className="w-full rounded-lg border px-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+            />
+            <svg className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+
+          {/* Arama Sonuçları (Inline) */}
+          {n8nSearch.trim().length >= 3 && (
+            <div className="max-h-40 overflow-y-auto border border-slate-200 rounded-lg bg-white divide-y divide-slate-50 shadow-sm animate-in fade-in slide-in-from-top-1 duration-200">
+              {searchResults.length === 0 ? (
+                <div className="px-3 py-2 text-[11px] text-slate-500 italic text-center">Eşleşen sonuç bulunamadı.</div>
+              ) : (
+                searchResults.map(wf => (
+                  <div key={wf.id} className="flex items-center justify-between p-2 hover:bg-slate-50 transition-colors">
+                    <div className="flex flex-col min-w-0 pr-2">
+                      <span className="text-[11px] font-medium text-slate-800 truncate">{wf.name}</span>
+                      <span className="text-[9px] text-slate-400">ID: {wf.id}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormN8nWorkflows(prev => [...prev, { id: wf.id, name: wf.name, enabled: false }]);
+                        setN8nSearch("");
+                      }}
+                      className="text-[10px] font-bold text-teal-600 hover:text-teal-700 px-3 py-1.5 bg-teal-50 rounded-lg transition-colors border border-teal-100"
+                    >
+                      EKLE
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Kayıtlı Workflow Listesi */}
+        <div className="space-y-2">
+          {formN8nWorkflows.length === 0 ? (
+            <div className="text-center py-4 border-2 border-dashed border-slate-100 rounded-xl">
+              <p className="text-[10px] text-slate-400 italic">Henüz bir otomasyon eklenmedi.</p>
+            </div>
+          ) : (
+            formN8nWorkflows.map((wf) => (
+              <div
+                key={wf.id}
+                className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-white shadow-sm"
+              >
+                <div className="flex flex-col min-w-0 pr-2">
+                  <span className="text-[11px] font-bold text-slate-800 truncate">{wf.name}</span>
+                  <span className="text-[9px] text-slate-400 tabular-nums">ID: {wf.id}</span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  {/* Aktif/Pasif Switch */}
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[9px] font-medium ${wf.enabled ? 'text-teal-600' : 'text-slate-400'}`}>
+                      {wf.enabled ? 'AKTİF' : 'PASİF'}
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={wf.enabled}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          if (showEditModal) {
+                            toggleAutomation(val, wf.id);
+                          } else {
+                            setFormN8nWorkflows(prev => prev.map(w => w.id === wf.id ? { ...w, enabled: val } : w));
+                          }
+                        }}
+                      />
+                      <div className="w-8 h-4.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-teal-600"></div>
+                    </label>
+                  </div>
+
+                  {/* Kaldır Butonu */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (wf.enabled && showEditModal) {
+                        toggleAutomation(false, wf.id);
+                      }
+                      setFormN8nWorkflows(prev => prev.filter(w => w.id !== wf.id));
+                    }}
+                    className="p-1.5 hover:bg-rose-50 rounded-lg group transition-colors"
+                  >
+                    <svg className="h-3.5 w-3.5 text-slate-300 group-hover:text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <p className="text-[10px] text-slate-500 italic">
+          * Arama yaparak (en az 3 harf) otomasyon bağlayabilirsiniz.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
@@ -393,6 +664,9 @@ export default function PlatformClinicsPage() {
                     <span className={["inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium", c.is_active ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"].join(" ")}>
                       {c.is_active ? "Aktif" : "Pasif"}
                     </span>
+                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100 italic">
+                      {plans.find(p => p.id === c.plan_id)?.name || c.plan_id}
+                    </span>
                     <span className="text-[10px] text-slate-400">Kayıt: {new Date(c.created_at).toLocaleDateString("tr-TR")}</span>
                   </div>
                 </div>
@@ -491,15 +765,30 @@ export default function PlatformClinicsPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-medium text-slate-700">E-posta</label>
+                    <label className="block text-xs font-medium text-slate-700">E-posta (Admin)</label>
                     <input
                       type="email"
+                      required
                       value={formEmail}
                       onChange={(e) => setFormEmail(e.target.value)}
                       className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                      placeholder="info@klinik.com"
+                      placeholder="admin@klinik.com"
                     />
                   </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-slate-700">Admin Şifresi</label>
+                  <input
+                    type="password"
+                    required
+                    value={formAdminPassword}
+                    onChange={(e) => setFormAdminPassword(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    placeholder="••••••••"
+                  />
+                  <p className="text-[10px] text-slate-500 italic block">
+                    * Klinik yöneticisi bu şifre ile giriş yapacaktır.
+                  </p>
                 </div>
                 <div className="space-y-1.5">
                   <label className="block text-xs font-medium text-slate-700">Adres</label>
@@ -511,7 +800,9 @@ export default function PlatformClinicsPage() {
                     placeholder="Klinik adresi..."
                   />
                 </div>
-                <WorkingHoursEditor />
+                {renderWorkingHoursEditor()}
+                {renderSubscriptionEditor()}
+                {renderAutomationEditor()}
                 {/* Footer */}
                 <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                   <button
@@ -617,7 +908,9 @@ export default function PlatformClinicsPage() {
                     rows={2}
                   />
                 </div>
-                <WorkingHoursEditor />
+                {renderWorkingHoursEditor()}
+                {renderSubscriptionEditor()}
+                {renderAutomationEditor()}
                 <div className="space-y-1.5">
                   <label className="block text-xs font-medium text-slate-700">Klinik ID</label>
                   <input

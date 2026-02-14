@@ -203,7 +203,7 @@ export default function Home() {
         supabase
           .from("users")
           .select("id, full_name")
-          .in("role", ["DOKTOR"]),
+          .in("role", ["DOCTOR", "ADMIN_DOCTOR"]),
       ]);
 
       const patientsMap = Object.fromEntries(
@@ -339,7 +339,7 @@ export default function Home() {
 
       // Kontrol listesi öğelerini üret
       const controls: ControlItem[] = [];
-      const userRole = clinic.userRole || "SEKRETER";
+      const userRole = clinic.userRole || "RECEPTION";
       const userId = clinic.userId;
 
       const canShowTask = (code: string, apptDoctorId?: string | null) => {
@@ -349,7 +349,7 @@ export default function Home() {
         if (clinic.isAdmin) return true;
 
         // Eğer görev doktor içinse ve randevu doktoru bu kullanıcıysa görsün
-        if (config.role === "DOKTOR" && apptDoctorId === userId) return true;
+        if (config.role === "DOCTOR" && apptDoctorId === userId) return true;
 
         return config.role === userRole;
       };
@@ -364,7 +364,7 @@ export default function Home() {
           appt.treatmentType?.trim() || "Genel muayene";
 
         // 1) Geldi gitti (durum) güncellemesi: süresi geçmiş ama final durumuna alınmamış
-        // ADMIN ve SEKRETER hepsini görür, DOKTOR sadece kendisininkini
+        // ADMIN ve RECEPTION hepsini görür, DOCTOR sadece kendisininkini
         if (
           endDate < now &&
           appt.status !== "completed" &&
@@ -388,7 +388,7 @@ export default function Home() {
         }
 
         // 2) Onay bekleyen randevular
-        // Sadece ADMIN ve SEKRETER
+        // Sadece ADMIN ve RECEPTION
         if (appt.status === "pending") {
           if (canShowTask("PENDING_APPROVAL", appt.doctorId)) {
             controls.push({
@@ -407,7 +407,7 @@ export default function Home() {
         }
 
         // 3) Doktor ataması yapılmamış randevular
-        // Sadece ADMIN ve SEKRETER
+        // Sadece ADMIN ve RECEPTION
         if (!appt.doctorId) {
           if (canShowTask("MISSING_DOCTOR", appt.doctorId)) {
             controls.push({
@@ -426,7 +426,7 @@ export default function Home() {
         }
 
         // 4) Tedavisi tamamlanmış ama ödeme girişi olmayan randevular
-        // Sadece ADMIN ve FINANS
+        // Sadece ADMIN ve FINANCE
         if (appt.status === "completed" && !paymentsMap[appt.id]) {
           if (canShowTask("MISSING_PAYMENT", appt.doctorId)) {
             controls.push({

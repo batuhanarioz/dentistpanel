@@ -19,6 +19,20 @@ type ClinicRow = {
   name: string;
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: "Yönetici",
+  DOCTOR: "DOKTOR",
+  RECEPTION: "SEKRETER",
+  FINANCE: "FİNANS",
+  SUPER_ADMIN: "Süper Admin",
+};
+
+const DOCTOR_LIMITS: Record<string, number> = {
+  starter: 1,
+  pro: 5,
+  enterprise: 999,
+};
+
 export default function AdminUsersPage() {
   const clinic = useClinic();
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -29,13 +43,13 @@ export default function AdminUsersPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newFullName, setNewFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState("SEKRETER");
+  const [newRole, setNewRole] = useState("RECEPTION");
   const [saving, setSaving] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [editFullName, setEditFullName] = useState("");
-  const [editRole, setEditRole] = useState("SEKRETER");
+  const [editRole, setEditRole] = useState("RECEPTION");
   const [editSaving, setEditSaving] = useState(false);
   const [selfNewEmail, setSelfNewEmail] = useState("");
   const [selfOldPassword, setSelfOldPassword] = useState("");
@@ -162,6 +176,21 @@ export default function AdminUsersPage() {
       return;
     }
 
+    // Doktor sınırı kontrolü
+    if (newRole === "DOCTOR") {
+      const currentDoctors = users.filter((u) => u.role === "DOCTOR").length;
+      const planId = clinic.planId || "starter";
+      const limit = DOCTOR_LIMITS[planId] || 1;
+
+      if (currentDoctors >= limit) {
+        setError(
+          `Mevcut paketinizde (${planId.toUpperCase()}) en fazla ${limit} doktor ekleyebilirsiniz. Lütfen paketinizi yükseltin.`
+        );
+        setSaving(false);
+        return;
+      }
+    }
+
     const res = await fetch("/api/admin/users", {
       method: "POST",
       headers: {
@@ -189,7 +218,7 @@ export default function AdminUsersPage() {
     setNewEmail("");
     setNewFullName("");
     setNewPassword("");
-    setNewRole("SEKRETER");
+    setNewRole("RECEPTION");
     setNewClinicId("");
     setSaving(false);
     await refreshUsers();
@@ -288,7 +317,7 @@ export default function AdminUsersPage() {
     setNewEmail("");
     setNewFullName("");
     setNewPassword("");
-    setNewRole("SEKRETER");
+    setNewRole("RECEPTION");
     setNewClinicId(clinics.length > 0 ? clinics[0].id : "");
     setShowCreateModal(true);
   };
@@ -422,17 +451,17 @@ export default function AdminUsersPage() {
   const roleBadgeColors: Record<string, string> = {
     SUPER_ADMIN: "bg-purple-100 text-purple-700 border-purple-200",
     ADMIN: "bg-teal-100 text-teal-700 border-teal-200",
-    DOKTOR: "bg-blue-100 text-blue-700 border-blue-200",
-    SEKRETER: "bg-amber-100 text-amber-700 border-amber-200",
-    FINANS: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    DOCTOR: "bg-blue-100 text-blue-700 border-blue-200",
+    RECEPTION: "bg-amber-100 text-amber-700 border-amber-200",
+    FINANCE: "bg-emerald-100 text-emerald-700 border-emerald-200",
   };
 
   const roleAvatarColors: Record<string, string> = {
     SUPER_ADMIN: "from-purple-500 to-violet-500",
     ADMIN: "from-teal-500 to-emerald-500",
-    DOKTOR: "from-blue-500 to-cyan-500",
-    SEKRETER: "from-amber-500 to-orange-500",
-    FINANS: "from-emerald-500 to-green-500",
+    DOCTOR: "from-blue-500 to-cyan-500",
+    RECEPTION: "from-amber-500 to-orange-500",
+    FINANCE: "from-emerald-500 to-green-500",
   };
 
   if (!isAdmin) {
@@ -519,7 +548,7 @@ export default function AdminUsersPage() {
   }
 
   const adminCount = users.filter(u => u.role === "ADMIN" || u.role === "SUPER_ADMIN").length;
-  const doctorCount = users.filter(u => u.role === "DOKTOR").length;
+  const doctorCount = users.filter(u => u.role === "DOCTOR").length;
 
   return (
     <div className="space-y-5">
@@ -632,7 +661,7 @@ export default function AdminUsersPage() {
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
                     <span className={["inline-flex items-center rounded-md px-2 py-0.5 text-[9px] font-bold border", roleBadgeColors[user.role] ?? "bg-slate-100 text-slate-600 border-slate-200"].join(" ")}>
-                      {user.role}
+                      {ROLE_LABELS[user.role] || user.role}
                     </span>
                     <span className="text-[10px] text-slate-400">
                       {new Date(user.created_at).toLocaleDateString("tr-TR")}
@@ -656,13 +685,12 @@ export default function AdminUsersPage() {
           </div>
           <div className="px-5 py-4 space-y-3">
             {[
-              { role: "ADMIN", desc: "Klinik yöneticisi: kullanıcı ekleme, silme, raporlara tam erişim" },
-              { role: "DOKTOR", desc: "Tıbbi işlemler: randevular, hasta notları ve tedavi planları" },
-              { role: "SEKRETER", desc: "Operasyon: randevu kayıt, hasta teyit ve resepsiyon işlemleri" },
-              { role: "FINANS", desc: "Maddi işlemler: ödemeler, taksitler ve finansal raporlar" },
+              { role: "DOCTOR", desc: "Tıbbi işlemler: randevular, hasta notları ve tedavi planları" },
+              { role: "RECEPTION", desc: "Operasyon: randevu kayıt, hasta teyit ve resepsiyon işlemleri" },
+              { role: "FINANCE", desc: "Maddi işlemler: ödemeler, taksitler ve finansal raporlar" },
             ].map((r) => (
               <div key={r.role} className="flex items-start gap-2.5">
-                <span className={["inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold border shrink-0 mt-0.5", roleBadgeColors[r.role] ?? "bg-slate-100 text-slate-600 border-slate-200"].join(" ")}>{r.role}</span>
+                <span className={["inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold border shrink-0 mt-0.5", roleBadgeColors[r.role] ?? "bg-slate-100 text-slate-600 border-slate-200"].join(" ")}>{ROLE_LABELS[r.role] || r.role}</span>
                 <span className="text-[11px] text-slate-600 leading-relaxed">{r.desc}</span>
               </div>
             ))}
@@ -737,10 +765,10 @@ export default function AdminUsersPage() {
                   onChange={(e) => setNewRole(e.target.value)}
                   className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                 >
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="DOKTOR">DOKTOR</option>
-                  <option value="SEKRETER">SEKRETER</option>
-                  <option value="FINANS">FINANS</option>
+                  {clinic.isSuperAdmin && <option value="ADMIN">YÖNETİCİ</option>}
+                  <option value="DOCTOR">DOKTOR</option>
+                  <option value="RECEPTION">SEKRETER</option>
+                  <option value="FINANCE">FİNANS</option>
                 </select>
               </div>
               {clinic.isSuperAdmin && newRole !== "SUPER_ADMIN" && (
@@ -868,10 +896,10 @@ export default function AdminUsersPage() {
                     onChange={(e) => setEditRole(e.target.value)}
                     className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
                   >
-                    <option value="ADMIN">ADMIN</option>
-                    <option value="DOKTOR">DOKTOR</option>
-                    <option value="SEKRETER">SEKRETER</option>
-                    <option value="FINANS">FINANS</option>
+                    {(clinic.isSuperAdmin || selectedUser.role === "ADMIN") && <option value="ADMIN">YÖNETİCİ</option>}
+                    <option value="DOCTOR">DOKTOR</option>
+                    <option value="RECEPTION">SEKRETER</option>
+                    <option value="FINANCE">FİNANS</option>
                   </select>
                 </div>
 

@@ -194,9 +194,9 @@ function ShellInner({ children }: Props) {
   const ROLE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
     SUPER_ADMIN: { bg: "bg-gradient-to-r from-violet-500 to-purple-500", text: "text-white", label: "Super Admin" },
     ADMIN: { bg: "bg-gradient-to-r from-indigo-500 to-blue-500", text: "text-white", label: "Yönetici" },
-    DOKTOR: { bg: "bg-gradient-to-r from-sky-500 to-cyan-500", text: "text-white", label: "Doktor" },
-    SEKRETER: { bg: "bg-gradient-to-r from-amber-400 to-orange-400", text: "text-white", label: "Sekreter" },
-    FINANS: { bg: "bg-gradient-to-r from-emerald-400 to-green-400", text: "text-white", label: "Finans" },
+    DOCTOR: { bg: "bg-gradient-to-r from-sky-500 to-cyan-500", text: "text-white", label: "Doktor" },
+    RECEPTION: { bg: "bg-gradient-to-r from-amber-400 to-orange-400", text: "text-white", label: "Sekreter" },
+    FINANCE: { bg: "bg-gradient-to-r from-emerald-400 to-green-400", text: "text-white", label: "Finans" },
   };
   const roleStyle = displayRole ? ROLE_STYLES[displayRole] || { bg: "bg-slate-100", text: "text-slate-600", label: displayRole } : null;
 

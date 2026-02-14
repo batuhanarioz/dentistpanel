@@ -171,7 +171,7 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
             const { data: users } = await supabase
                 .from('users')
                 .select('id, full_name')
-                .in('role', ['DOKTOR']);
+                .in('role', ['DOCTOR']);
 
             if (users) setDoctors(users);
         }

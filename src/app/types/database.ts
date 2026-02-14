@@ -50,6 +50,18 @@ export const ORDERED_DAYS: DayOfWeek[] = [
   "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
 ];
 
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  features: any;
+  monthly_price: number;
+  max_doctors: number;
+  max_staff: number;
+  monthly_credits: number;
+  has_ai_features: boolean;
+  created_at: string;
+}
+
 export interface Clinic {
   id: string;
   name: string;
@@ -60,6 +72,12 @@ export interface Clinic {
   logo_url: string | null;
   is_active: boolean;
   working_hours: WorkingHours;
+  plan_id: string;
+  credits: number;
+  trial_ends_at: string | null;
+  automations_enabled: boolean;
+  n8n_workflow_id: string | null;
+  n8n_workflows: { id: string; name: string; enabled: boolean }[];
   created_at: string;
 }
 

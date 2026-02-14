@@ -20,13 +20,13 @@ export default function AdminUsersPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newFullName, setNewFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState("SEKRETER");
+  const [newRole, setNewRole] = useState("RECEPTION");
   const [saving, setSaving] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [editFullName, setEditFullName] = useState("");
-  const [editRole, setEditRole] = useState("SEKRETER");
+  const [editRole, setEditRole] = useState("RECEPTION");
   const [editSaving, setEditSaving] = useState(false);
   const [selfNewEmail, setSelfNewEmail] = useState("");
   const [selfNewPassword, setSelfNewPassword] = useState("");
@@ -152,7 +152,7 @@ export default function AdminUsersPage() {
     setNewEmail("");
     setNewFullName("");
     setNewPassword("");
-    setNewRole("SEKRETER");
+    setNewRole("RECEPTION");
     setSaving(false);
     await refreshUsers();
     setShowCreateModal(false);
@@ -252,7 +252,7 @@ export default function AdminUsersPage() {
     setNewEmail("");
     setNewFullName("");
     setNewPassword("");
-    setNewRole("SEKRETER");
+    setNewRole("RECEPTION");
     setShowCreateModal(true);
   };
 
@@ -437,15 +437,15 @@ export default function AdminUsersPage() {
               silme, rol atama ve konfigürasyon.
             </li>
             <li>
-              <span className="font-semibold">DOKTOR</span> · Kendi
+              <span className="font-semibold">DOCTOR</span> · Kendi
               randevuları/hastaları odaklı kullanım.
             </li>
             <li>
-              <span className="font-semibold">SEKRETER</span> ·
+              <span className="font-semibold">RECEPTION</span> ·
               Randevu ve hasta kayıt işlemleri.
             </li>
             <li>
-              <span className="font-semibold">FINANS</span> · Finans ve
+              <span className="font-semibold">FINANCE</span> · Finans ve
               raporlama modülleri.
             </li>
           </ul>
@@ -569,9 +569,9 @@ export default function AdminUsersPage() {
                   className="w-full rounded-md border px-2 py-1 text-xs"
                 >
                   <option value="ADMIN">ADMIN</option>
-                  <option value="DOKTOR">DOKTOR</option>
-                  <option value="SEKRETER">SEKRETER</option>
-                  <option value="FINANS">FINANS</option>
+                  <option value="DOCTOR">DOCTOR</option>
+                  <option value="RECEPTION">RECEPTION</option>
+                  <option value="FINANCE">FINANCE</option>
                 </select>
               </div>
               <div className="space-y-1">
@@ -660,9 +660,9 @@ export default function AdminUsersPage() {
                   className="w-full rounded-md border px-2 py-1 text-xs"
                 >
                   <option value="ADMIN">ADMIN</option>
-                  <option value="DOKTOR">DOKTOR</option>
-                  <option value="SEKRETER">SEKRETER</option>
-                  <option value="FINANS">FINANS</option>
+                  <option value="DOCTOR">DOCTOR</option>
+                  <option value="RECEPTION">RECEPTION</option>
+                  <option value="FINANCE">FINANCE</option>
                 </select>
               </div>
               <div className="mt-3 flex justify-between gap-2">
