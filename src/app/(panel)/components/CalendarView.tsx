@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabaseClient";
 import {
     format,
@@ -135,6 +136,8 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
     const [endHour, setEndHour] = useState(20);
 
     const [loading, setLoading] = useState(false);
+    const searchParams = useSearchParams();
+    const appointmentIdParam = searchParams.get("appointmentId");
 
     // --- Helpers for Date Ranges ---
 
@@ -168,7 +171,7 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
             const { data: users } = await supabase
                 .from('users')
                 .select('id, full_name')
-                .in('role', ['DOCTOR', 'ADMIN_DOCTOR']);
+                .in('role', ['DOKTOR']);
 
             if (users) setDoctors(users);
         }
@@ -239,6 +242,20 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
     useEffect(() => {
         fetchEvents();
     }, [fetchEvents]);
+
+    // --- Auto-select appointment from URL ---
+    useEffect(() => {
+        if (appointmentIdParam && events.length > 0) {
+            const found = events.find(e => e.id === appointmentIdParam);
+            if (found) {
+                setSelectedEvent(found);
+                // Eğer gün/hafta dışındaysa o tarihe götür
+                if (!isSameDay(currentDate, found.start)) {
+                    setCurrentDate(found.start);
+                }
+            }
+        }
+    }, [appointmentIdParam, events, currentDate]);
 
     // --- Stats Logic ---
     const stats = useMemo(() => {

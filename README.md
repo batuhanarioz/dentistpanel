@@ -34,3 +34,17 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+🚀 Geliştirme Yol Haritası
+Aşama: Rol Bazlı Dashboard (Hızlı Kazanım)
+Dashboard’daki "Kontrol Listesi" mantığını roller (Admin, Doktor, Finans, Asistan) bazında ayıracağız.
+Kimin neyi görmesi gerektiğini kod seviyesinde filtreleyeceğiz.
+Aşama: Veritabanı Altyapısı (Supabase Migration)
+Klinikler için plan_id, credits, trial_ends_at gibi alanları ekleyeceğiz.
+Ücretli paketlerin (Starter, Pro, Enterprise) yetki setlerini tanımlayacağız.
+Aşama: Lisans ve Özellik Kısıtlama (Feature Gating)
+Mesela: "Başlangıç" paketindeyse "Gelişmiş Raporlar" sayfasına girdiğinde "Paketinizi Yükseltin" uyarısı çıkaracağız.
+Aşama: Mesaj ve Oturum Limitleri
+WhatsApp hatırlatmalarında kredi düşme mantığını kuracağız.
+Eş zamanlı oturum sayısını kontrol eden mekanizmayı ekleyeceğiz.

@@ -34,7 +34,7 @@ async function requireAdmin(req: NextRequest) {
   }
 
   const isSuperAdmin = profile.role === "SUPER_ADMIN";
-  const isAdmin = profile.role === "ADMIN" || profile.role === "ADMIN_DOCTOR" || isSuperAdmin;
+  const isAdmin = profile.role === "ADMIN" || isSuperAdmin;
 
   if (!isAdmin) {
     return { error: "forbidden" as const };

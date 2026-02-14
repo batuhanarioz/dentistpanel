@@ -162,7 +162,7 @@ export default function PatientsPage() {
     setDetailOpen(true);
   };
 
-  const canDownload = clinic.userRole === "ADMIN" || clinic.userRole === "ADMIN_DOCTOR";
+  const canDownload = clinic.userRole === "ADMIN" || clinic.userRole === "SUPER_ADMIN";
 
   const downloadPatientsCsv = () => {
     const escape = (v: string | null | undefined) => {

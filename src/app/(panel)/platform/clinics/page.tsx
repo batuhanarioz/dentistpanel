@@ -12,11 +12,9 @@ type ClinicStaffUser = { id: string; full_name: string | null; email: string | n
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
   ADMIN: "Yönetici",
-  ADMIN_DOCTOR: "Yön. Doktor",
-  DOCTOR: "Doktor",
-  ASSISTANT: "Asistan",
-  RECEPTION: "Resepsiyon",
-  FINANCE: "Finans",
+  DOKTOR: "Doktor",
+  SEKRETER: "Sekreter",
+  FINANS: "Finans",
 };
 
 export default function PlatformClinicsPage() {

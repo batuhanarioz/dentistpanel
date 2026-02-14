@@ -34,7 +34,7 @@ async function requireAdmin(req: NextRequest) {
   }
 
   const isSuperAdmin = profile.role === "SUPER_ADMIN";
-  const isAdmin = profile.role === "ADMIN" || profile.role === "ADMIN_DOCTOR" || isSuperAdmin;
+  const isAdmin = profile.role === "ADMIN" || profile.role === "SUPER_ADMIN";
 
   if (!isAdmin) {
     return { error: "forbidden" as const };
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const email = body?.email as string | undefined;
   const password = body?.password as string | undefined;
   const fullName = (body?.fullName as string | undefined) ?? null;
-  const role = (body?.role as string | undefined) ?? "ASSISTANT";
+  const role = (body?.role as string | undefined) ?? "SEKRETER";
   // SUPER_ADMIN klinik belirtebilir; ADMIN kendi klinik ID'sini kullanır
   const clinicId = auth.isSuperAdmin
     ? (body?.clinicId as string | undefined) ?? auth.clinicId
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const allowedRoles = ["SUPER_ADMIN", "ADMIN", "ADMIN_DOCTOR", "DOCTOR", "ASSISTANT", "RECEPTION", "FINANCE"];
+  const allowedRoles = ["SUPER_ADMIN", "ADMIN", "DOKTOR", "SEKRETER", "FINANS"];
   if (!allowedRoles.includes(role)) {
     return NextResponse.json(
       { error: "Geçersiz rol değeri" },
@@ -174,11 +174,9 @@ export async function PATCH(req: NextRequest) {
     const allowedRoles = [
       "SUPER_ADMIN",
       "ADMIN",
-      "ADMIN_DOCTOR",
-      "DOCTOR",
-      "ASSISTANT",
-      "RECEPTION",
-      "FINANCE",
+      "DOKTOR",
+      "SEKRETER",
+      "FINANS",
     ];
     if (!allowedRoles.includes(role)) {
       return NextResponse.json(
@@ -259,8 +257,8 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
-  // ADMIN, ADMIN_DOCTOR ve SUPER_ADMIN hesaplar silinemez (SUPER_ADMIN hariç)
-  if ((target.role === "ADMIN" || target.role === "ADMIN_DOCTOR") && !auth.isSuperAdmin) {
+  // ADMIN ve SUPER_ADMIN hesaplar silinemez (SUPER_ADMIN hariç)
+  if (target.role === "ADMIN" && !auth.isSuperAdmin) {
     return NextResponse.json(
       { error: "ADMIN rolüne sahip kullanıcıları yalnızca SUPER_ADMIN silebilir" },
       { status: 400 }

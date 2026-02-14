@@ -29,13 +29,13 @@ export default function AdminUsersPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newFullName, setNewFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState("ASSISTANT");
+  const [newRole, setNewRole] = useState("SEKRETER");
   const [saving, setSaving] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [editFullName, setEditFullName] = useState("");
-  const [editRole, setEditRole] = useState("ASSISTANT");
+  const [editRole, setEditRole] = useState("SEKRETER");
   const [editSaving, setEditSaving] = useState(false);
   const [selfNewEmail, setSelfNewEmail] = useState("");
   const [selfOldPassword, setSelfOldPassword] = useState("");
@@ -84,21 +84,19 @@ export default function AdminUsersPage() {
         return;
       }
 
-      const isCurrentAdmin = current.role === "ADMIN" || current.role === "ADMIN_DOCTOR" || current.role === "SUPER_ADMIN";
+      const isCurrentAdmin = current.role === "ADMIN" || current.role === "SUPER_ADMIN";
       setIsAdmin(isCurrentAdmin);
       setCurrentUserId(user.id);
       setCurrentUserEmail(user.email ?? "");
       setSelfNewEmail(user.email ?? "");
 
-      if (!isCurrentAdmin) {
-        // Admin olmayan kullanıcılar için liste yükleme.
-        setLoading(false);
-        return;
-      }
+      // HERKES ekip listesini görebilir.
 
       const { data, error } = await supabase
         .from("users")
         .select("id, full_name, email, role, created_at")
+        .eq("clinic_id", clinic.clinicId)
+        .neq("role", "SUPER_ADMIN")
         .order("created_at", { ascending: true });
 
       if (error) {
@@ -131,6 +129,8 @@ export default function AdminUsersPage() {
     const { data, error } = await supabase
       .from("users")
       .select("id, full_name, email, role, created_at")
+      .eq("clinic_id", clinic.clinicId)
+      .neq("role", "SUPER_ADMIN")
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -189,7 +189,7 @@ export default function AdminUsersPage() {
     setNewEmail("");
     setNewFullName("");
     setNewPassword("");
-    setNewRole("ASSISTANT");
+    setNewRole("SEKRETER");
     setNewClinicId("");
     setSaving(false);
     await refreshUsers();
@@ -223,7 +223,7 @@ export default function AdminUsersPage() {
   };
 
   const openDeleteModal = (user: UserRow) => {
-    const isProtected = user.role === "ADMIN" || user.role === "ADMIN_DOCTOR";
+    const isProtected = user.role === "ADMIN";
     setDeleteTarget(user);
     setDeleteProtected(isProtected);
   };
@@ -288,7 +288,7 @@ export default function AdminUsersPage() {
     setNewEmail("");
     setNewFullName("");
     setNewPassword("");
-    setNewRole("ASSISTANT");
+    setNewRole("SEKRETER");
     setNewClinicId(clinics.length > 0 ? clinics[0].id : "");
     setShowCreateModal(true);
   };
@@ -422,21 +422,17 @@ export default function AdminUsersPage() {
   const roleBadgeColors: Record<string, string> = {
     SUPER_ADMIN: "bg-purple-100 text-purple-700 border-purple-200",
     ADMIN: "bg-teal-100 text-teal-700 border-teal-200",
-    ADMIN_DOCTOR: "bg-indigo-100 text-indigo-700 border-indigo-200",
-    DOCTOR: "bg-blue-100 text-blue-700 border-blue-200",
-    ASSISTANT: "bg-amber-100 text-amber-700 border-amber-200",
-    RECEPTION: "bg-orange-100 text-orange-700 border-orange-200",
-    FINANCE: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    DOKTOR: "bg-blue-100 text-blue-700 border-blue-200",
+    SEKRETER: "bg-amber-100 text-amber-700 border-amber-200",
+    FINANS: "bg-emerald-100 text-emerald-700 border-emerald-200",
   };
 
   const roleAvatarColors: Record<string, string> = {
     SUPER_ADMIN: "from-purple-500 to-violet-500",
     ADMIN: "from-teal-500 to-emerald-500",
-    ADMIN_DOCTOR: "from-indigo-500 to-violet-500",
-    DOCTOR: "from-blue-500 to-cyan-500",
-    ASSISTANT: "from-amber-500 to-orange-500",
-    RECEPTION: "from-orange-500 to-red-400",
-    FINANCE: "from-emerald-500 to-green-500",
+    DOKTOR: "from-blue-500 to-cyan-500",
+    SEKRETER: "from-amber-500 to-orange-500",
+    FINANS: "from-emerald-500 to-green-500",
   };
 
   if (!isAdmin) {
@@ -522,8 +518,8 @@ export default function AdminUsersPage() {
     );
   }
 
-  const adminCount = users.filter(u => u.role === "ADMIN" || u.role === "ADMIN_DOCTOR" || u.role === "SUPER_ADMIN").length;
-  const doctorCount = users.filter(u => u.role === "DOCTOR" || u.role === "ADMIN_DOCTOR").length;
+  const adminCount = users.filter(u => u.role === "ADMIN" || u.role === "SUPER_ADMIN").length;
+  const doctorCount = users.filter(u => u.role === "DOKTOR").length;
 
   return (
     <div className="space-y-5">
@@ -606,48 +602,46 @@ export default function AdminUsersPage() {
             </div>
           )}
 
-          {!loading && users.length === 0 && (
-            <div className="px-5 pb-5 py-8 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mx-auto mb-2">
-                <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
-              </div>
-              <p className="text-sm text-slate-500">Henüz kullanıcı yok</p>
-              <p className="text-xs text-slate-400 mt-0.5">Yeni kullanıcı ekleyerek başlayın</p>
+          {!loading && users.length > 0 && (
+            <div className="px-5 pb-5 grid gap-2 md:grid-cols-2">
+              {users.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => {
+                    if (!isAdmin) return;
+                    setSelectedUser(user);
+                    setEditFullName(user.full_name ?? "");
+                    setEditRole(user.role);
+                    setShowEditModal(true);
+                  }}
+                  className={`flex items-center justify-between rounded-xl border p-4 text-left transition-all ${isAdmin ? 'bg-white border-slate-100 hover:border-teal-200 hover:shadow-md cursor-pointer' : 'bg-slate-50 border-slate-100 cursor-default'} group`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br ${roleAvatarColors[user.role] ?? "from-slate-500 to-slate-600"} text-[11px] font-bold text-white shadow-sm shrink-0`}>
+                      {user.full_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "U"}
+                    </div>
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <span className="text-xs font-semibold text-slate-900 truncate group-hover:text-teal-700 transition-colors">
+                        {user.full_name || "-"}
+                      </span>
+                      <span className="text-[10px] text-slate-400 truncate">
+                        {user.email || "-"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
+                    <span className={["inline-flex items-center rounded-md px-2 py-0.5 text-[9px] font-bold border", roleBadgeColors[user.role] ?? "bg-slate-100 text-slate-600 border-slate-200"].join(" ")}>
+                      {user.role}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {new Date(user.created_at).toLocaleDateString("tr-TR")}
+                    </span>
+                  </div>
+                </button>
+              ))}
             </div>
           )}
-
-          <div className="px-5 pb-5 grid gap-2 md:grid-cols-2">
-            {users.map((user) => (
-              <button
-                key={user.id}
-                type="button"
-                onClick={() => openEditModal(user)}
-                className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-slate-300 hover:shadow-sm transition-all group"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br ${roleAvatarColors[user.role] ?? "from-slate-500 to-slate-600"} text-[11px] font-bold text-white shadow-sm shrink-0`}>
-                    {user.full_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "U"}
-                  </div>
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <span className="text-xs font-semibold text-slate-900 truncate group-hover:text-teal-700 transition-colors">
-                      {user.full_name || "-"}
-                    </span>
-                    <span className="text-[10px] text-slate-400 truncate">
-                      {user.email || "-"}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
-                  <span className={["inline-flex items-center rounded-md px-2 py-0.5 text-[9px] font-bold border", roleBadgeColors[user.role] ?? "bg-slate-100 text-slate-600 border-slate-200"].join(" ")}>
-                    {user.role}
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    {new Date(user.created_at).toLocaleDateString("tr-TR")}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Rol Tanımları */}
@@ -662,12 +656,10 @@ export default function AdminUsersPage() {
           </div>
           <div className="px-5 py-4 space-y-3">
             {[
-              { role: "ADMIN", desc: "Klinik yöneticisi: kullanıcı ekleme, silme, rol atama" },
-              { role: "ADMIN_DOCTOR", desc: "Hem yönetici hem doktor: tüm yetkiler + doktor işlemleri" },
-              { role: "DOCTOR", desc: "Kendi randevuları ve hastaları odaklı kullanım" },
-              { role: "ASSISTANT", desc: "Randevu ve hasta kayıt işlemleri" },
-              { role: "RECEPTION", desc: "Resepsiyon: randevu ve kayıt yönetimi" },
-              { role: "FINANCE", desc: "Finans ve raporlama modülleri" },
+              { role: "ADMIN", desc: "Klinik yöneticisi: kullanıcı ekleme, silme, raporlara tam erişim" },
+              { role: "DOKTOR", desc: "Tıbbi işlemler: randevular, hasta notları ve tedavi planları" },
+              { role: "SEKRETER", desc: "Operasyon: randevu kayıt, hasta teyit ve resepsiyon işlemleri" },
+              { role: "FINANS", desc: "Maddi işlemler: ödemeler, taksitler ve finansal raporlar" },
             ].map((r) => (
               <div key={r.role} className="flex items-start gap-2.5">
                 <span className={["inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold border shrink-0 mt-0.5", roleBadgeColors[r.role] ?? "bg-slate-100 text-slate-600 border-slate-200"].join(" ")}>{r.role}</span>
@@ -676,12 +668,12 @@ export default function AdminUsersPage() {
             ))}
             <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
               <p className="text-[10px] text-amber-700 leading-relaxed">
-                <span className="font-semibold">Not:</span> ADMIN ve ADMIN_DOCTOR rolleri kullanıcı yönetimi yapabilir. Diğer roller listeyi görüntüleyebilir ancak değişiklik yapamaz.
+                <span className="font-semibold">Not:</span> ADMIN rolü kullanıcı yönetimi yapabilir. Diğer roller listeyi görüntüleyebilir ancak değişiklik yapamaz.
               </p>
             </div>
           </div>
-        </div>
-      </section>
+        </div >
+      </section >
 
       {isAdmin && showCreateModal && (
         <div
@@ -745,15 +737,10 @@ export default function AdminUsersPage() {
                   onChange={(e) => setNewRole(e.target.value)}
                   className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                 >
-                  {clinic.isSuperAdmin && (
-                    <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-                  )}
                   <option value="ADMIN">ADMIN</option>
-                  <option value="ADMIN_DOCTOR">ADMIN_DOCTOR</option>
-                  <option value="DOCTOR">DOCTOR</option>
-                  <option value="ASSISTANT">ASSISTANT</option>
-                  <option value="RECEPTION">RECEPTION</option>
-                  <option value="FINANCE">FINANCE</option>
+                  <option value="DOKTOR">DOKTOR</option>
+                  <option value="SEKRETER">SEKRETER</option>
+                  <option value="FINANS">FINANS</option>
                 </select>
               </div>
               {clinic.isSuperAdmin && newRole !== "SUPER_ADMIN" && (
@@ -811,207 +798,183 @@ export default function AdminUsersPage() {
             </form>
           </div>
         </div>
-      )}
+      )
+      }
 
-      {isAdmin && showEditModal && selectedUser && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          onClick={() => {
-            setShowEditModal(false);
-            setSelectedUser(null);
-          }}
-        >
+      {
+        isAdmin && showEditModal && selectedUser && (
           <div
-            className="bg-white rounded-2xl shadow-xl border w-full max-w-md mx-4 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={() => {
+              setShowEditModal(false);
+              setSelectedUser(null);
+            }}
           >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-slate-700 via-slate-600 to-slate-500 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
+            <div
+              className="bg-white rounded-2xl shadow-xl border w-full max-w-md mx-4 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-700 via-slate-600 to-slate-500 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-sm">Kullanıcıyı Düzenle</h3>
+                    <p className="text-slate-200 text-xs mt-0.5">{selectedUser.email || "Kullanıcı bilgilerini güncelleyin"}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-white font-semibold text-sm">Kullanıcıyı Düzenle</h3>
-                  <p className="text-slate-200 text-xs mt-0.5">{selectedUser.email || "Kullanıcı bilgilerini güncelleyin"}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowEditModal(false);
-                  setSelectedUser(null);
-                }}
-                className="text-white/70 hover:text-white transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleUpdateUser} className="px-6 py-5 space-y-4">
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-700">E-posta</label>
-                <input
-                  type="email"
-                  value={selectedUser.email ?? ""}
-                  disabled
-                  className="w-full rounded-lg border px-3 py-2 text-sm bg-slate-50 text-slate-500 cursor-not-allowed"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-700">İsim</label>
-                <input
-                  type="text"
-                  value={editFullName}
-                  onChange={(e) => setEditFullName(e.target.value)}
-                  className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
-                  placeholder="Ad Soyad"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-700">Rol</label>
-                <select
-                  value={editRole}
-                  onChange={(e) => setEditRole(e.target.value)}
-                  className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setSelectedUser(null);
+                  }}
+                  className="text-white/70 hover:text-white transition-colors"
                 >
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="ADMIN_DOCTOR">ADMIN_DOCTOR</option>
-                  <option value="DOCTOR">DOCTOR</option>
-                  <option value="ASSISTANT">ASSISTANT</option>
-                  <option value="RECEPTION">RECEPTION</option>
-                  <option value="FINANCE">FINANCE</option>
-                </select>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
 
-              {error && (
-                <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
-                  {error}
-                </p>
-              )}
+              <form onSubmit={handleUpdateUser} className="px-6 py-5 space-y-4">
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-slate-700">E-posta</label>
+                  <input
+                    type="email"
+                    value={selectedUser.email ?? ""}
+                    disabled
+                    className="w-full rounded-lg border px-3 py-2 text-sm bg-slate-50 text-slate-500 cursor-not-allowed"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-slate-700">İsim</label>
+                  <input
+                    type="text"
+                    value={editFullName}
+                    onChange={(e) => setEditFullName(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
+                    placeholder="Ad Soyad"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-slate-700">Rol</label>
+                  <select
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
+                  >
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="DOKTOR">DOKTOR</option>
+                    <option value="SEKRETER">SEKRETER</option>
+                    <option value="FINANS">FINANS</option>
+                  </select>
+                </div>
 
-              <div className="flex justify-between gap-2 pt-1">
-                <div className="flex gap-2">
-                  {selectedUser.id === currentUserId ? (
+                {error && (
+                  <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+                    {error}
+                  </p>
+                )}
+
+                <div className="flex justify-between gap-2 pt-1">
+                  <div className="flex gap-2">
+                    {selectedUser.id === currentUserId ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordModal(true)}
+                        className="rounded-lg border border-teal-200 px-3 py-2 text-xs font-medium text-teal-700 hover:bg-teal-50 transition-colors flex items-center gap-1.5"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        Şifre Değiştir
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setResetUserId(selectedUser.id);
+                          setResetPassword("");
+                          setResetError(null);
+                          setResetSuccess(false);
+                          setShowResetModal(true);
+                        }}
+                        className="rounded-lg border border-amber-200 px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-50 transition-colors flex items-center gap-1.5"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        Şifre Sıfırla
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => setShowPasswordModal(true)}
-                      className="rounded-lg border border-teal-200 px-3 py-2 text-xs font-medium text-teal-700 hover:bg-teal-50 transition-colors flex items-center gap-1.5"
+                      onClick={() => openDeleteModal(selectedUser)}
+                      className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                      </svg>
-                      Şifre Değiştir
+                      Kullanıcıyı Sil
                     </button>
-                  ) : (
+                  </div>
+                  <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => {
-                        setResetUserId(selectedUser.id);
-                        setResetPassword("");
-                        setResetError(null);
-                        setResetSuccess(false);
-                        setShowResetModal(true);
+                        setShowEditModal(false);
+                        setSelectedUser(null);
                       }}
-                      className="rounded-lg border border-amber-200 px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-50 transition-colors flex items-center gap-1.5"
+                      className="rounded-lg border px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                      </svg>
-                      Şifre Sıfırla
+                      Kapat
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => openDeleteModal(selectedUser)}
-                    className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors"
-                  >
-                    Kullanıcıyı Sil
-                  </button>
+                    <button
+                      type="submit"
+                      disabled={editSaving}
+                      className="rounded-lg bg-gradient-to-r from-slate-700 to-slate-600 px-4 py-2 text-xs font-medium text-white disabled:opacity-60 hover:from-slate-800 hover:to-slate-700 transition-all"
+                    >
+                      {editSaving ? "Kaydediliyor..." : "Kaydet"}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setSelectedUser(null);
-                    }}
-                    className="rounded-lg border px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-                  >
-                    Kapat
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={editSaving}
-                    className="rounded-lg bg-gradient-to-r from-slate-700 to-slate-600 px-4 py-2 text-xs font-medium text-white disabled:opacity-60 hover:from-slate-800 hover:to-slate-700 transition-all"
-                  >
-                    {editSaving ? "Kaydediliyor..." : "Kaydet"}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showResetModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          onClick={() => {
-            setShowResetModal(false);
-            setResetUserId(null);
-            setResetPassword("");
-            setResetError(null);
-            setResetSuccess(false);
-          }}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-xl border w-full max-w-md mx-4 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-white font-semibold text-sm">Şifre Sıfırla</h3>
-                  <p className="text-amber-100 text-xs mt-0.5">Kullanıcı için yeni bir şifre belirleyin</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowResetModal(false);
-                  setResetUserId(null);
-                  setResetPassword("");
-                  setResetError(null);
-                  setResetSuccess(false);
-                }}
-                className="text-white/70 hover:text-white transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              </form>
             </div>
+          </div>
+        )
+      }
 
-            {resetSuccess ? (
-              <div className="px-6 py-8 text-center">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
+      {
+        showResetModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={() => {
+              setShowResetModal(false);
+              setResetUserId(null);
+              setResetPassword("");
+              setResetError(null);
+              setResetSuccess(false);
+            }}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-xl border w-full max-w-md mx-4 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-sm">Şifre Sıfırla</h3>
+                    <p className="text-amber-100 text-xs mt-0.5">Kullanıcı için yeni bir şifre belirleyin</p>
+                  </div>
                 </div>
-                <p className="text-sm font-medium text-slate-900">Şifre başarıyla sıfırlandı!</p>
-                <p className="text-xs text-slate-500 mt-1">Kullanıcı yeni şifresiyle giriş yapabilir.</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -1021,39 +984,23 @@ export default function AdminUsersPage() {
                     setResetError(null);
                     setResetSuccess(false);
                   }}
-                  className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-xs font-medium text-white hover:bg-slate-800 transition-colors"
+                  className="text-white/70 hover:text-white transition-colors"
                 >
-                  Kapat
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
-            ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleResetPassword();
-                }}
-                className="px-6 py-5 space-y-4"
-              >
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-slate-700">Yeni Şifre</label>
-                  <input
-                    type="password"
-                    required
-                    value={resetPassword}
-                    onChange={(e) => setResetPassword(e.target.value)}
-                    className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-                    placeholder="Yeni şifreyi girin"
-                  />
-                  <p className="text-[11px] text-slate-400">Sadece admin görecek, kullanıcı girişte kendi değiştirir.</p>
-                </div>
 
-                {resetError && (
-                  <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
-                    {resetError}
-                  </p>
-                )}
-
-                <div className="flex justify-end gap-2 pt-1">
+              {resetSuccess ? (
+                <div className="px-6 py-8 text-center">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-slate-900">Şifre başarıyla sıfırlandı!</p>
+                  <p className="text-xs text-slate-500 mt-1">Kullanıcı yeni şifresiyle giriş yapabilir.</p>
                   <button
                     type="button"
                     onClick={() => {
@@ -1063,23 +1010,66 @@ export default function AdminUsersPage() {
                       setResetError(null);
                       setResetSuccess(false);
                     }}
-                    className="rounded-lg border px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                    className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-xs font-medium text-white hover:bg-slate-800 transition-colors"
                   >
-                    İptal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={resetSaving}
-                    className="rounded-lg bg-gradient-to-r from-amber-600 to-yellow-500 px-4 py-2 text-xs font-medium text-white disabled:opacity-60 hover:from-amber-700 hover:to-yellow-600 transition-all"
-                  >
-                    {resetSaving ? "Sıfırlanıyor..." : "Şifreyi Sıfırla"}
+                    Kapat
                   </button>
                 </div>
-              </form>
-            )}
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleResetPassword();
+                  }}
+                  className="px-6 py-5 space-y-4"
+                >
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-700">Yeni Şifre</label>
+                    <input
+                      type="password"
+                      required
+                      value={resetPassword}
+                      onChange={(e) => setResetPassword(e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                      placeholder="Yeni şifreyi girin"
+                    />
+                    <p className="text-[11px] text-slate-400">Sadece admin görecek, kullanıcı girişte kendi değiştirir.</p>
+                  </div>
+
+                  {resetError && (
+                    <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+                      {resetError}
+                    </p>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowResetModal(false);
+                        setResetUserId(null);
+                        setResetPassword("");
+                        setResetError(null);
+                        setResetSuccess(false);
+                      }}
+                      className="rounded-lg border px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                    >
+                      İptal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={resetSaving}
+                      className="rounded-lg bg-gradient-to-r from-amber-600 to-yellow-500 px-4 py-2 text-xs font-medium text-white disabled:opacity-60 hover:from-amber-700 hover:to-yellow-600 transition-all"
+                    >
+                      {resetSaving ? "Sıfırlanıyor..." : "Şifreyi Sıfırla"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <ChangePasswordModal
         open={showPasswordModal}
@@ -1094,7 +1084,7 @@ export default function AdminUsersPage() {
         userEmail={deleteTarget?.email ?? null}
         isProtected={deleteProtected}
       />
-    </div>
+    </div >
   );
 }
 

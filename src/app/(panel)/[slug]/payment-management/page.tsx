@@ -1,9 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabaseClient";
 import { localDateStr } from "@/app/lib/dateUtils";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
+
+export default function PaymentsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-500">Yükleniyor...</div>}>
+      <PaymentsInner />
+    </Suspense>
+  );
+}
 
 type Patient = {
   id: string;
@@ -42,7 +51,9 @@ const PAYMENT_METHODS = [
   "Diğer",
 ];
 
-export default function PaymentsPage() {
+function PaymentsInner() {
+  const searchParams = useSearchParams();
+  const appointmentIdParam = searchParams.get("appointmentId");
   const today = useMemo(() => localDateStr(), []);
 
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -76,6 +87,14 @@ export default function PaymentsPage() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const PAGE_SIZE = 10;
+
+  // Auto-open new payment modal if appointmentId is present
+  useEffect(() => {
+    if (appointmentIdParam && !isModalOpen) {
+      setSelectedAppointmentId(appointmentIdParam);
+      setIsModalOpen(true);
+    }
+  }, [appointmentIdParam]);
 
   useEffect(() => {
     const loadPatients = async () => {

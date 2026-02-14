@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabaseClient";
 import { localDateStr } from "@/app/lib/dateUtils";
+import { useClinic } from "@/app/context/ClinicContext";
 
 type DashboardAppointment = {
   id: string;
@@ -140,6 +141,28 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [doctors, setDoctors] = useState<DoctorOption[]>([]);
   const [controlItems, setControlItems] = useState<ControlItem[]>([]);
+  const clinic = useClinic();
+  const [taskAssignments, setTaskAssignments] = useState<Record<string, { role: string; enabled: boolean }>>({});
+
+  useEffect(() => {
+    const fetchTaskLogic = async () => {
+      if (!clinic.clinicId) return;
+
+      const { data: defs } = await supabase.from("dashboard_task_definitions").select("*");
+      const { data: configs } = await supabase.from("clinic_task_configs").select("*").eq("clinic_id", clinic.clinicId);
+
+      const mapping: Record<string, { role: string; enabled: boolean }> = {};
+      defs?.forEach(d => {
+        const config = configs?.find(c => c.task_definition_id === d.id);
+        mapping[d.code] = {
+          role: config ? config.assigned_role : d.default_role,
+          enabled: config ? config.is_enabled : true
+        };
+      });
+      setTaskAssignments(mapping);
+    };
+    fetchTaskLogic();
+  }, [clinic.clinicId]);
 
   useEffect(() => {
     const loadTodayAppointments = async () => {
@@ -180,7 +203,7 @@ export default function Home() {
         supabase
           .from("users")
           .select("id, full_name")
-          .in("role", ["DOCTOR", "ADMIN_DOCTOR"]),
+          .in("role", ["DOKTOR"]),
       ]);
 
       const patientsMap = Object.fromEntries(
@@ -316,6 +339,20 @@ export default function Home() {
 
       // Kontrol listesi öğelerini üret
       const controls: ControlItem[] = [];
+      const userRole = clinic.userRole || "SEKRETER";
+      const userId = clinic.userId;
+
+      const canShowTask = (code: string, apptDoctorId?: string | null) => {
+        const config = taskAssignments[code];
+        if (!config || !config.enabled) return false;
+
+        if (clinic.isAdmin) return true;
+
+        // Eğer görev doktor içinse ve randevu doktoru bu kullanıcıysa görsün
+        if (config.role === "DOKTOR" && apptDoctorId === userId) return true;
+
+        return config.role === userRole;
+      };
 
       mapped.forEach((appt) => {
         const startDate = new Date(appt.startsAt);
@@ -327,72 +364,84 @@ export default function Home() {
           appt.treatmentType?.trim() || "Genel muayene";
 
         // 1) Geldi gitti (durum) güncellemesi: süresi geçmiş ama final durumuna alınmamış
+        // ADMIN ve SEKRETER hepsini görür, DOKTOR sadece kendisininkini
         if (
           endDate < now &&
           appt.status !== "completed" &&
           appt.status !== "cancelled" &&
           appt.status !== "no_show"
         ) {
-          controls.push({
-            id: `${appt.id}-status`,
-            type: "status",
-            tone: "critical",
-            toneLabel: "Acil",
-            appointmentId: appt.id,
-            patientName: appt.patientName,
-            timeLabel,
-            treatmentLabel,
-            actionLabel: "Durum güncellemesi bekliyor.",
-            sortTime: endDate.getTime(),
-          });
+          if (canShowTask("STATUS_UPDATE", appt.doctorId)) {
+            controls.push({
+              id: `${appt.id}-status`,
+              type: "status",
+              tone: "critical",
+              toneLabel: "Acil",
+              appointmentId: appt.id,
+              patientName: appt.patientName,
+              timeLabel,
+              treatmentLabel,
+              actionLabel: "Durum güncellemesi bekliyor.",
+              sortTime: endDate.getTime(),
+            });
+          }
         }
 
         // 2) Onay bekleyen randevular
+        // Sadece ADMIN ve SEKRETER
         if (appt.status === "pending") {
-          controls.push({
-            id: `${appt.id}-approval`,
-            type: "approval",
-            tone: "medium",
-            toneLabel: "Onay",
-            appointmentId: appt.id,
-            patientName: appt.patientName,
-            timeLabel,
-            treatmentLabel,
-            actionLabel: "Onay güncellemesi bekliyor.",
-            sortTime: startDate.getTime(),
-          });
+          if (canShowTask("PENDING_APPROVAL", appt.doctorId)) {
+            controls.push({
+              id: `${appt.id}-approval`,
+              type: "approval",
+              tone: "medium",
+              toneLabel: "Onay",
+              appointmentId: appt.id,
+              patientName: appt.patientName,
+              timeLabel,
+              treatmentLabel,
+              actionLabel: "Onay güncellemesi bekliyor.",
+              sortTime: startDate.getTime(),
+            });
+          }
         }
 
         // 3) Doktor ataması yapılmamış randevular
+        // Sadece ADMIN ve SEKRETER
         if (!appt.doctorId) {
-          controls.push({
-            id: `${appt.id}-doctor`,
-            type: "doctor",
-            tone: "low",
-            toneLabel: "Doktor",
-            appointmentId: appt.id,
-            patientName: appt.patientName,
-            timeLabel,
-            treatmentLabel,
-            actionLabel: "Doktor ataması bekliyor.",
-            sortTime: startDate.getTime(),
-          });
+          if (canShowTask("MISSING_DOCTOR", appt.doctorId)) {
+            controls.push({
+              id: `${appt.id}-doctor`,
+              type: "doctor",
+              tone: "low",
+              toneLabel: "Doktor",
+              appointmentId: appt.id,
+              patientName: appt.patientName,
+              timeLabel,
+              treatmentLabel,
+              actionLabel: "Doktor ataması bekliyor.",
+              sortTime: startDate.getTime(),
+            });
+          }
         }
 
         // 4) Tedavisi tamamlanmış ama ödeme girişi olmayan randevular
+        // Sadece ADMIN ve FINANS
         if (appt.status === "completed" && !paymentsMap[appt.id]) {
-          controls.push({
-            id: `${appt.id}-payment`,
-            type: "payment",
-            tone: "high",
-            toneLabel: "Ödeme",
-            appointmentId: appt.id,
-            patientName: appt.patientName,
-            timeLabel,
-            treatmentLabel,
-            actionLabel: "Ödeme eklemesi bekliyor.",
-            sortTime: endDate.getTime(),
-          });
+          if (canShowTask("MISSING_PAYMENT", appt.doctorId)) {
+            controls.push({
+              id: `${appt.id}-payment`,
+              type: "payment",
+              tone: "high",
+              toneLabel: "Ödeme",
+              appointmentId: appt.id,
+              patientName: appt.patientName,
+              timeLabel,
+              treatmentLabel,
+              actionLabel: "Ödeme eklemesi bekliyor.",
+              sortTime: endDate.getTime(),
+            });
+          }
         }
       });
 
@@ -493,12 +542,12 @@ export default function Home() {
 
   const handleControlItemClick = (item: ControlItem) => {
     if (item.type === "payment") {
-      router.push(`/${slug}/payments?appointmentId=${item.appointmentId}`);
+      router.push(`/${slug}/payment-management?appointmentId=${item.appointmentId}`);
       return;
     }
 
-    // Varsayılan: randevu takviminde kartı aç
-    router.push(`/${slug}/appointments/calendar?appointmentId=${item.appointmentId}`);
+    // Varsayılan: randevu listesinde/takviminde aç
+    router.push(`/${slug}/appointments?appointmentId=${item.appointmentId}`);
   };
 
   const isTodayAppointmentsView = viewOffsetAppointments === 0;

@@ -174,7 +174,7 @@ export default function ReportsPage() {
       supabase
         .from("users")
         .select("id, full_name")
-        .in("role", ["DOCTOR", "ADMIN_DOCTOR"]),
+        .in("role", ["DOKTOR"]),
     ]);
 
     const appts: AppointmentRow[] = (apptRes.data || []).map((r: any) => ({
@@ -464,7 +464,7 @@ export default function ReportsPage() {
 
   const clinic = useClinic();
   const canDownloadReport =
-    clinic.userRole === "ADMIN" || clinic.userRole === "ADMIN_DOCTOR";
+    clinic.userRole === "ADMIN" || clinic.userRole === "SUPER_ADMIN";
 
   const downloadReportCsv = useCallback(() => {
     const sep = ";";

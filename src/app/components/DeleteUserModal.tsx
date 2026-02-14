@@ -8,7 +8,7 @@ type Props = {
   onConfirm: () => Promise<void>;
   userName: string | null;
   userEmail: string | null;
-  /** true ise admin/admin_doctor rolü olduğu için silinemez uyarısı gösterilir */
+  /** true ise ADMIN rolü olduğu için silinemez uyarısı gösterilir */
   isProtected: boolean;
 };
 
@@ -160,7 +160,7 @@ export function DeleteUserModal({
                     Bu kullanıcı silinemez
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
-                    <strong>ADMIN</strong> ve <strong>ADMIN_DOCTOR</strong>{" "}
+                    <strong>ADMIN</strong>{" "}
                     rolüne sahip kullanıcılar sistem güvenliği nedeniyle
                     silinemez. Önce rolünü değiştirmeniz gerekmektedir.
                   </p>

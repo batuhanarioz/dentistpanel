@@ -354,13 +354,14 @@ export default function AppointmentCalendarPage() {
         setPatientMatchInfo("Mevcut hasta seçildi.");
     };
 
-    // Kayıtlı doktorları Supabase'den çek (role = DOCTOR)
+    // Kayıtlı doktorları Supabase'den çek (role = DOKTOR)
     useEffect(() => {
         const loadDoctors = async () => {
             const { data, error } = await supabase
                 .from("users")
                 .select("full_name, role")
-                .in("role", ["DOCTOR", "ADMIN_DOCTOR"])
+                .in("role", ["DOKTOR"])
+
                 .order("full_name", { ascending: true });
 
             if (error || !data) {
@@ -580,7 +581,7 @@ export default function AppointmentCalendarPage() {
                 .from("users")
                 .select("id")
                 .eq("full_name", form.doctor)
-                .in("role", ["DOCTOR", "ADMIN_DOCTOR"])
+                .in("role", ["DOKTOR"])
                 .maybeSingle();
             doctorId = doctorRow?.id ?? null;
         }

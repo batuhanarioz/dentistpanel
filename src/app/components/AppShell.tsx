@@ -67,10 +67,12 @@ function ClinicNav({
   linkClass,
   onNav,
   slug,
+  isAdmin,
 }: {
   linkClass: (href: string) => string;
   onNav?: () => void;
   slug: string;
+  isAdmin: boolean;
 }) {
   const base = `/${slug}`;
 
@@ -105,8 +107,20 @@ function ClinicNav({
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
       <a href={`${base}/admin/users`} className={linkClass(`${base}/admin/users`)} onClick={handleClick}>
-        <span>Kullanıcı Ayarları</span>
+        <span>Ekip ve Yetkiler</span>
       </a>
+      {isAdmin && (
+        <>
+          <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
+          <a href={`${base}/admin/settings`} className={linkClass(`${base}/admin/settings`)} onClick={handleClick}>
+            <span>Klinik Ayarları</span>
+          </a>
+          <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
+          <a href={`${base}/admin/subscription`} className={linkClass(`${base}/admin/subscription`)} onClick={handleClick}>
+            <span>Abonelik & Kullanım</span>
+          </a>
+        </>
+      )}
     </>
   );
 }
@@ -180,11 +194,9 @@ function ShellInner({ children }: Props) {
   const ROLE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
     SUPER_ADMIN: { bg: "bg-gradient-to-r from-violet-500 to-purple-500", text: "text-white", label: "Super Admin" },
     ADMIN: { bg: "bg-gradient-to-r from-indigo-500 to-blue-500", text: "text-white", label: "Yönetici" },
-    ADMIN_DOCTOR: { bg: "bg-gradient-to-r from-teal-500 to-emerald-500", text: "text-white", label: "Yönetici Doktor" },
-    DOCTOR: { bg: "bg-gradient-to-r from-sky-500 to-cyan-500", text: "text-white", label: "Doktor" },
-    ASSISTANT: { bg: "bg-gradient-to-r from-amber-400 to-orange-400", text: "text-white", label: "Asistan" },
-    RECEPTION: { bg: "bg-gradient-to-r from-pink-400 to-rose-400", text: "text-white", label: "Resepsiyon" },
-    FINANCE: { bg: "bg-gradient-to-r from-emerald-400 to-green-400", text: "text-white", label: "Finans" },
+    DOKTOR: { bg: "bg-gradient-to-r from-sky-500 to-cyan-500", text: "text-white", label: "Doktor" },
+    SEKRETER: { bg: "bg-gradient-to-r from-amber-400 to-orange-400", text: "text-white", label: "Sekreter" },
+    FINANS: { bg: "bg-gradient-to-r from-emerald-400 to-green-400", text: "text-white", label: "Finans" },
   };
   const roleStyle = displayRole ? ROLE_STYLES[displayRole] || { bg: "bg-slate-100", text: "text-slate-600", label: displayRole } : null;
 
@@ -243,7 +255,7 @@ function ShellInner({ children }: Props) {
         );
         break;
       case subPath === "/admin/users":
-        setHeaderTitle("Kullanıcı Ayarları");
+        setHeaderTitle("Ekip ve Yetkiler");
         setHeaderSubtitle(
           "Admin kullanıcılar, klinik personelini buradan ekleyip güncelleyebilir."
         );
@@ -299,7 +311,7 @@ function ShellInner({ children }: Props) {
             {clinic.isSuperAdmin ? (
               <SuperAdminNav linkClass={linkClass} />
             ) : (
-              <ClinicNav linkClass={linkClass} slug={clinic.clinicSlug || ""} />
+              <ClinicNav linkClass={linkClass} slug={clinic.clinicSlug || ""} isAdmin={clinic.isAdmin} />
             )}
           </div>
           <div className="mt-auto pt-4 pb-2 flex-shrink-0">
@@ -405,7 +417,12 @@ function ShellInner({ children }: Props) {
                     {clinic.isSuperAdmin ? (
                       <SuperAdminNav linkClass={linkClass} onNav={closeMobileNav} />
                     ) : (
-                      <ClinicNav linkClass={linkClass} onNav={closeMobileNav} slug={clinic.clinicSlug || ""} />
+                      <ClinicNav
+                        linkClass={linkClass}
+                        onNav={closeMobileNav}
+                        slug={clinic.clinicSlug || ""}
+                        isAdmin={clinic.isAdmin}
+                      />
                     )}
                   </nav>
 

@@ -146,7 +146,7 @@ export function AuthGuard({ children }: Props) {
 
       const role = appUser.role as UserRole;
       const isSuperAdmin = role === "SUPER_ADMIN";
-      const isAdmin = role === "ADMIN" || role === "ADMIN_DOCTOR" || role === "SUPER_ADMIN";
+      const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
 
       setLoadingStep("clinic");
 
