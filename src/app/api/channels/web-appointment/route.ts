@@ -1,26 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { webAppointmentSchema } from "@/lib/validations/appointment";
 
 // Web randevu formu için API taslağı.
 // Örn: Klinik web sitesindeki widget bu endpoint'e POST atar.
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null);
-
-  // Beklenen minimal payload (taslak):
-  // {
-  //   clinicSlug: string;
-  //   fullName: string;
-  //   phone: string;
-  //   preferredTime: string;
-  //   notes?: string;
-  // }
-
-  if (!body?.clinicSlug || !body?.fullName || !body?.phone) {
+  const validation = webAppointmentSchema.safeParse(await req.json().catch(() => ({})));
+  if (!validation.success) {
     return NextResponse.json(
-      { ok: false, message: "Zorunlu alanlar eksik." },
+      { ok: false, error: validation.error.issues[0].message },
       { status: 400 }
     );
   }
+
+  const { clinicSlug, fullName, phone, preferredTime, notes } = validation.data;
 
   // Taslak akış:
   // 1) clinicSlug üzerinden ilgili clinic_id bulunur

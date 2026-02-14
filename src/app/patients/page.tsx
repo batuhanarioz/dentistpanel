@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 
 type PatientRow = {
   id: string;
@@ -73,7 +73,6 @@ export default function PatientsPage() {
     };
 
     loadPatients();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -101,22 +100,22 @@ export default function PatientsPage() {
           .order("due_date", { ascending: false }),
       ]);
 
-      const mapped: PatientAppointment[] = (apptRes.data || []).map(
-        (row: any) => ({
-          id: row.id,
-          starts_at: row.starts_at,
-          ends_at: row.ends_at,
-          status: row.status,
-          treatment_type: row.treatment_type,
-          doctor_name: row.doctor?.full_name ?? null,
-          patient_note: row.patient_note,
-          internal_note: row.internal_note,
-        })
-      );
-
+      const mapped: PatientAppointment[] = (apptRes.data || []).map((row) => {
+        const r = row as Record<string, unknown>;
+        return {
+          id: r.id as string,
+          starts_at: r.starts_at as string,
+          ends_at: r.ends_at as string,
+          status: r.status as PatientAppointment["status"],
+          treatment_type: r.treatment_type as string | null,
+          doctor_name: (r.doctor as { full_name: string }[])?.[0]?.full_name ?? null,
+          patient_note: r.patient_note as string | null,
+          internal_note: r.internal_note as string | null,
+        };
+      });
       setAppointments(mapped);
       setPayments(
-        (payRes.data || []).map((r: any) => ({
+        (payRes.data || []).map((r) => ({
           id: r.id,
           amount: Number(r.amount),
           method: r.method,

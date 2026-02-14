@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 import { ClinicContext, type ClinicContextValue } from "../context/ClinicContext";
-import type { UserRole, WorkingHours } from "../types/database";
-import { DEFAULT_WORKING_HOURS } from "../types/database";
+import { UserRole, type WorkingHours, type Clinic } from "@/types/database";
+import { DEFAULT_WORKING_HOURS } from "@/types/database";
 
 type Props = {
   children: React.ReactNode;
@@ -151,8 +151,8 @@ export function AuthGuard({ children }: Props) {
       }
 
       const role = appUser.role as UserRole;
-      const isSuperAdmin = role === "SUPER_ADMIN";
-      const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
+      const isSuperAdmin = role === UserRole.SUPER_ADMIN;
+      const isAdmin = role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
 
       setLoadingStep("clinic");
 
@@ -195,12 +195,12 @@ export function AuthGuard({ children }: Props) {
           userName: appUser.full_name,
           userEmail: appUser.email,
           workingHours: (clinic.working_hours as WorkingHours) || DEFAULT_WORKING_HOURS,
-          planId: (clinic as any).plan_id || "starter",
-          credits: (clinic as any).credits || 0,
-          trialEndsAt: (clinic as any).trial_ends_at || null,
-          automationsEnabled: (clinic as any).automations_enabled || false,
-          n8nWorkflowId: (clinic as any).n8n_workflow_id || null,
-          n8nWorkflows: (clinic as any).n8n_workflows || [],
+          planId: (clinic as unknown as Clinic).plan_id || "starter",
+          credits: (clinic as unknown as Clinic).credits || 0,
+          trialEndsAt: (clinic as unknown as Clinic).trial_ends_at || null,
+          automationsEnabled: (clinic as unknown as Clinic).automations_enabled || false,
+          n8nWorkflowId: (clinic as unknown as Clinic).n8n_workflow_id || null,
+          n8nWorkflows: (clinic as unknown as Clinic).n8n_workflows || [],
         });
 
         // URL'deki slug kontrolü: klinik kullanıcıları doğru slug altında olmalı

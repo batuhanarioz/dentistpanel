@@ -1,4 +1,4 @@
-// src/app/lib/supabaseAdminClient.ts
+// src/lib/supabaseAdminClient.ts
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 // Lazy singleton — build sırasında env var'lar mevcut olmayabilir,

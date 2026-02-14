@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabaseClient";
-import { localDateStr } from "../lib/dateUtils";
+import { supabase } from "@/lib/supabaseClient";
+import { localDateStr } from "@/lib/dateUtils";
+import { UserRole } from "@/types/database";
 import {
   BarChart,
   Bar,
@@ -77,7 +78,7 @@ const CHART_COLORS = [
   "#0ea5e9", // sky-500
 ];
 
-const PIE_COLORS = ["#0d9488", "#f59e0b", "#e11d48", "#6366f1", "#64748b"];
+// const PIE_COLORS = ["#0d9488", "#f59e0b", "#e11d48", "#6366f1", "#64748b"];
 
 /* ================================================================
    COMPONENT
@@ -170,10 +171,10 @@ export default function ReportsPage() {
       supabase
         .from("users")
         .select("id, full_name")
-        .eq("role", "DOCTOR"),
+        .eq("role", UserRole.DOKTOR),
     ]);
 
-    const appts: AppointmentRow[] = (apptRes.data || []).map((r: any) => ({
+    const appts: AppointmentRow[] = (apptRes.data || []).map((r) => ({
       id: r.id,
       starts_at: r.starts_at,
       ends_at: r.ends_at,
@@ -186,7 +187,7 @@ export default function ReportsPage() {
 
     setAppointments(appts);
     setPayments(
-      (payRes.data || []).map((r: any) => ({
+      (payRes.data || []).map((r) => ({
         id: r.id,
         amount: Number(r.amount),
         status: r.status,
@@ -194,7 +195,7 @@ export default function ReportsPage() {
       }))
     );
     setDoctors(
-      (docRes.data || []).map((r: any) => ({
+      (docRes.data || []).map((r) => ({
         id: r.id,
         full_name: r.full_name,
       }))
@@ -212,7 +213,7 @@ export default function ReportsPage() {
         .in("id", patientIds);
 
       const map: Record<string, string> = {};
-      (patientData || []).forEach((p: any) => {
+      (patientData || []).forEach((p) => {
         map[p.id] = p.created_at?.slice(0, 10) ?? "";
       });
       setPatientFirstDates(map);
@@ -256,9 +257,11 @@ export default function ReportsPage() {
   const paidTotal = payments
     .filter((p) => p.status === "paid")
     .reduce((s, p) => s + p.amount, 0);
+  /*
   const unpaidTotal = payments
     .filter((p) => p.status !== "paid")
     .reduce((s, p) => s + p.amount, 0);
+  */
 
   // Tamamlanmış ama ödemesi girilmemiş randevular
   const completedApptIds = new Set(
@@ -289,7 +292,7 @@ export default function ReportsPage() {
       .in("id", ids)
       .then(({ data }) => {
         const map: Record<string, string> = {};
-        (data || []).forEach((p: any) => {
+        (data || []).forEach((p) => {
           map[p.id] = p.full_name;
         });
         setPatientNames(map);
@@ -342,8 +345,16 @@ export default function ReportsPage() {
           cancelled: 0,
           no_show: 0,
         };
-      const s = a.status as keyof (typeof map)[string];
-      if (s in map[day]) (map[day] as any)[s]++;
+      const s = a.status;
+      if (
+        s === "completed" ||
+        s === "confirmed" ||
+        s === "pending" ||
+        s === "cancelled" ||
+        s === "no_show"
+      ) {
+        map[day][s]++;
+      }
     });
 
     return Object.values(map).sort((a, b) => a.day.localeCompare(b.day));
@@ -657,8 +668,8 @@ export default function ReportsPage() {
                         a.status === "completed"
                           ? "bg-emerald-100 text-emerald-800"
                           : a.status === "cancelled" || a.status === "no_show"
-                          ? "bg-rose-100 text-rose-800"
-                          : "bg-slate-100 text-slate-700",
+                            ? "bg-rose-100 text-rose-800"
+                            : "bg-slate-100 text-slate-700",
                       ].join(" ")}
                     >
                       {STATUS_LABELS[a.status] || a.status}
@@ -857,8 +868,8 @@ export default function ReportsPage() {
                             (%
                             {totalUniquePatients > 0
                               ? Math.round(
-                                  (p.value / totalUniquePatients) * 100
-                                )
+                                (p.value / totalUniquePatients) * 100
+                              )
                               : 0}
                             )
                           </span>

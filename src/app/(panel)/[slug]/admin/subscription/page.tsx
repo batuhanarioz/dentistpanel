@@ -246,7 +246,6 @@ export default function SubscriptionPage() {
                                     title={wf.name}
                                     desc=""
                                     enabled={wf.enabled}
-                                    target="Otomatik Akış"
                                     schedule="Real-time"
                                 />
                             ))}
@@ -264,7 +263,6 @@ function AutomationCard({
     title,
     desc,
     enabled,
-    target,
     schedule,
 }: {
     icon: React.ReactNode;
@@ -272,7 +270,6 @@ function AutomationCard({
     title: string;
     desc: string;
     enabled: boolean;
-    target: string;
     schedule: string;
 }) {
     return (

@@ -2,7 +2,8 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "./lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
+import { UserRole } from "@/types/database";
 
 function LoginForm() {
   const router = useRouter();
@@ -29,7 +30,7 @@ function LoginForm() {
           .eq("id", user.id)
           .maybeSingle();
 
-        if (profile?.role === "SUPER_ADMIN") {
+        if (profile?.role === UserRole.SUPER_ADMIN) {
           router.replace("/platform/clinics");
         } else if (profile?.clinic_id) {
           const { data: clinic } = await supabase
@@ -87,7 +88,7 @@ function LoginForm() {
         .eq("id", user.id)
         .maybeSingle();
 
-      if (profile?.role === "SUPER_ADMIN") {
+      if (profile?.role === UserRole.SUPER_ADMIN) {
         router.replace("/platform/clinics");
         return;
       }

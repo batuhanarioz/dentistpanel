@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { supabase } from "@/app/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
-import { localDateStr } from "@/app/lib/dateUtils";
+import { localDateStr } from "@/lib/dateUtils";
+import { UserRole } from "@/types/database";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
 import {
   BarChart,
@@ -79,7 +80,7 @@ const CHART_COLORS = [
   "#0ea5e9", // sky-500
 ];
 
-const PIE_COLORS = ["#0d9488", "#f59e0b", "#e11d48", "#6366f1", "#64748b"];
+// const PIE_COLORS = ["#0d9488", "#f59e0b", "#e11d48", "#6366f1", "#64748b"];
 
 /* ================================================================
    COMPONENT
@@ -174,10 +175,10 @@ export default function ReportsPage() {
       supabase
         .from("users")
         .select("id, full_name")
-        .in("role", ["DOCTOR"]),
+        .in("role", [UserRole.DOKTOR]),
     ]);
 
-    const appts: AppointmentRow[] = (apptRes.data || []).map((r: any) => ({
+    const appts: AppointmentRow[] = (apptRes.data || []).map((r) => ({
       id: r.id,
       starts_at: r.starts_at,
       ends_at: r.ends_at,
@@ -190,7 +191,7 @@ export default function ReportsPage() {
 
     setAppointments(appts);
     setPayments(
-      (payRes.data || []).map((r: any) => ({
+      (payRes.data || []).map((r) => ({
         id: r.id,
         amount: Number(r.amount),
         status: r.status,
@@ -198,7 +199,7 @@ export default function ReportsPage() {
       }))
     );
     setDoctors(
-      (docRes.data || []).map((r: any) => ({
+      (docRes.data || []).map((r) => ({
         id: r.id,
         full_name: r.full_name,
       }))
@@ -216,7 +217,7 @@ export default function ReportsPage() {
         .in("id", patientIds);
 
       const map: Record<string, string> = {};
-      (patientData || []).forEach((p: any) => {
+      (patientData || []).forEach((p) => {
         map[p.id] = p.created_at?.slice(0, 10) ?? "";
       });
       setPatientFirstDates(map);
@@ -260,9 +261,11 @@ export default function ReportsPage() {
   const paidTotal = payments
     .filter((p) => p.status === "paid")
     .reduce((s, p) => s + p.amount, 0);
+  /*
   const unpaidTotal = payments
     .filter((p) => p.status !== "paid")
     .reduce((s, p) => s + p.amount, 0);
+  */
 
   // Tamamlanmış ama ödemesi girilmemiş randevular
   const completedApptIds = new Set(
@@ -293,7 +296,7 @@ export default function ReportsPage() {
       .in("id", ids)
       .then(({ data }) => {
         const map: Record<string, string> = {};
-        (data || []).forEach((p: any) => {
+        (data || []).forEach((p) => {
           map[p.id] = p.full_name;
         });
         setPatientNames(map);
@@ -346,8 +349,16 @@ export default function ReportsPage() {
           cancelled: 0,
           no_show: 0,
         };
-      const s = a.status as keyof (typeof map)[string];
-      if (s in map[day]) (map[day] as any)[s]++;
+      const s = a.status;
+      if (
+        s === "completed" ||
+        s === "confirmed" ||
+        s === "pending" ||
+        s === "cancelled" ||
+        s === "no_show"
+      ) {
+        map[day][s]++;
+      }
     });
 
     return Object.values(map).sort((a, b) => a.day.localeCompare(b.day));
@@ -464,7 +475,7 @@ export default function ReportsPage() {
 
   const clinic = useClinic();
   const canDownloadReport =
-    clinic.userRole === "ADMIN" || clinic.userRole === "SUPER_ADMIN";
+    clinic.userRole === UserRole.ADMIN || clinic.userRole === UserRole.SUPER_ADMIN;
 
   const downloadReportCsv = useCallback(() => {
     const sep = ";";
@@ -519,8 +530,6 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url);
   }, [
     rangeLabel,
-    rangeStart,
-    rangeEnd,
     doctorFilter,
     doctors,
     totalAppts,
@@ -534,6 +543,7 @@ export default function ReportsPage() {
     channelData,
     doctorStats,
     occupancyByDay,
+    clinic.clinicName,
   ]);
 
   /* ================================================================

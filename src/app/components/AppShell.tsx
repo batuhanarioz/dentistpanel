@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { usePathname, useRouter } from "next/navigation";
 import { AuthGuard } from "./AuthGuard";
 import { useClinic } from "../context/ClinicContext";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 
 type Props = {
   children: React.ReactNode;
@@ -111,10 +111,6 @@ function ClinicNav({
       </a>
       {isAdmin && (
         <>
-          <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
-          <a href={`${base}/admin/settings`} className={linkClass(`${base}/admin/settings`)} onClick={handleClick}>
-            <span>Klinik Ayarları</span>
-          </a>
           <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
           <a href={`${base}/admin/subscription`} className={linkClass(`${base}/admin/subscription`)} onClick={handleClick}>
             <span>Abonelik & Kullanım</span>
@@ -392,7 +388,7 @@ function ShellInner({ children }: Props) {
                   <div className="bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-500 px-5 py-4 flex items-center justify-between">
                     <a
                       href={homeHref}
-                      onClick={(e) => { if (!isOnHome) closeMobileNav(); }}
+                      onClick={() => { if (!isOnHome) closeMobileNav(); }}
                       className={`flex items-center gap-3 min-w-0 flex-1 mr-2 transition-opacity hover:opacity-90 active:opacity-80 ${isOnHome ? "cursor-default" : "cursor-pointer"}`}
                     >
                       <div className="h-9 w-9 rounded-xl bg-white/10 border border-white/25 flex items-center justify-center text-[11px] font-semibold uppercase text-white shrink-0">

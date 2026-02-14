@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
-import { localDateStr } from "../../lib/dateUtils";
+import { supabase } from "@/lib/supabaseClient";
+import { UserRole } from "@/types/database";
+import { localDateStr } from "@/lib/dateUtils";
 
 type CalendarAppointment = {
   id: string;
@@ -121,29 +122,23 @@ export default function AppointmentCalendarPage() {
     const [patientsRes, doctorsRes] = await Promise.all([
       patientIds.length
         ? supabase
-            .from("patients")
-            .select("id, full_name, phone, email, birth_date")
-            .in("id", patientIds)
-        : Promise.resolve({ data: [], error: null } as {
-            data: any[];
-            error: any;
-          }),
+          .from("patients")
+          .select("id, full_name, phone, email, birth_date")
+          .in("id", patientIds)
+        : Promise.resolve({ data: [], error: null }),
       doctorIds.length
         ? supabase
-            .from("users")
-            .select("id, full_name")
-            .in("id", doctorIds)
-        : Promise.resolve({ data: [], error: null } as {
-            data: any[];
-            error: any;
-          }),
+          .from("users")
+          .select("id, full_name")
+          .in("id", doctorIds)
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
     const patientsMap = Object.fromEntries(
-      (patientsRes.data || []).map((p: any) => [p.id, p])
+      (patientsRes.data || []).map((p) => [p.id, p])
     );
     const doctorsMap = Object.fromEntries(
-      (doctorsRes.data || []).map((d: any) => [d.id, d.full_name])
+      (doctorsRes.data || []).map((d) => [d.id, d.full_name])
     );
 
     const channelMap: Record<string, string> = {
@@ -153,7 +148,7 @@ export default function AppointmentCalendarPage() {
       walk_in: "Yüz yüze",
     };
 
-    const mapped: CalendarAppointment[] = data.map((row: any) => {
+    const mapped: CalendarAppointment[] = data.map((row) => {
       const startDate = new Date(row.starts_at);
       const endDate = new Date(row.ends_at);
       const durationMinutes = Math.max(
@@ -198,7 +193,7 @@ export default function AppointmentCalendarPage() {
 
   useEffect(() => {
     loadAppointmentsForDate(selectedDate);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [selectedDate]);
 
   // Kayıtlı doktorları Supabase'den çek (role = DOCTOR)
@@ -207,7 +202,7 @@ export default function AppointmentCalendarPage() {
       const { data, error } = await supabase
         .from("users")
         .select("full_name, role")
-        .eq("role", "DOCTOR")
+        .eq("role", UserRole.DOKTOR)
         .order("full_name", { ascending: true });
 
       if (error || !data) {
@@ -298,8 +293,8 @@ export default function AppointmentCalendarPage() {
         appt.dbStatus === "completed"
           ? "GERCEKLESTI"
           : appt.dbStatus === "cancelled" || appt.dbStatus === "no_show"
-          ? "IPTAL"
-          : "",
+            ? "IPTAL"
+            : "",
     });
     setModalOpen(true);
   };
@@ -370,6 +365,7 @@ export default function AppointmentCalendarPage() {
       if (existingPatient) {
         patientId = existingPatient.id;
         // Mevcut hastanın bilgilerini güncelle
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updates: Record<string, any> = {};
         if (form.patientName) updates.full_name = form.patientName;
         if (form.email) updates.email = form.email;
@@ -408,7 +404,7 @@ export default function AppointmentCalendarPage() {
         .from("users")
         .select("id")
         .eq("full_name", form.doctor)
-        .eq("role", "DOCTOR")
+        .eq("role", UserRole.DOKTOR)
         .maybeSingle();
       doctorId = doctorRow?.id ?? null;
     }
@@ -440,11 +436,11 @@ export default function AppointmentCalendarPage() {
 
     let dbStatus: "pending" | "confirmed" | "cancelled" | "no_show" | "completed" =
       statusToDb[form.status] as
-        | "pending"
-        | "confirmed"
-        | "cancelled"
-        | "no_show"
-        | "completed";
+      | "pending"
+      | "confirmed"
+      | "cancelled"
+      | "no_show"
+      | "completed";
 
     if (isPast) {
       if (form.result === "IPTAL") {
@@ -454,6 +450,7 @@ export default function AppointmentCalendarPage() {
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload: any = {
       patient_id: patientId,
       doctor_id: doctorId,
@@ -639,33 +636,32 @@ export default function AppointmentCalendarPage() {
                           e.stopPropagation();
                           openEdit(a);
                         }}
-                        className={`rounded-md border px-2 py-1 text-[10px] ${
-                          (() => {
-                            const start = new Date(
-                              `${a.date}T${a.startHour
-                                .toString()
-                                .padStart(2, "0")}:${(a.startMinute ?? 0).toString().padStart(2, "0")}:00`
-                            );
-                            const end = new Date(
-                              start.getTime() + a.durationMinutes * 60000
-                            );
-                            const isPast = end < now;
+                        className={`rounded-md border px-2 py-1 text-[10px] ${(() => {
+                          const start = new Date(
+                            `${a.date}T${a.startHour
+                              .toString()
+                              .padStart(2, "0")}:${(a.startMinute ?? 0).toString().padStart(2, "0")}:00`
+                          );
+                          const end = new Date(
+                            start.getTime() + a.durationMinutes * 60000
+                          );
+                          const isPast = end < now;
 
-                            if (
-                              a.dbStatus === "cancelled" ||
-                              a.dbStatus === "no_show"
-                            ) {
-                              return "border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200";
-                            }
-                            if (isPast) {
-                              return "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800";
-                            }
-                            if (a.dbStatus === "confirmed") {
-                              return "border-emerald-300 bg-emerald-100 text-emerald-900 hover:bg-emerald-200";
-                            }
-                            return "border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200";
-                          })()
-                        }`}
+                          if (
+                            a.dbStatus === "cancelled" ||
+                            a.dbStatus === "no_show"
+                          ) {
+                            return "border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200";
+                          }
+                          if (isPast) {
+                            return "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800";
+                          }
+                          if (a.dbStatus === "confirmed") {
+                            return "border-emerald-300 bg-emerald-100 text-emerald-900 hover:bg-emerald-200";
+                          }
+                          return "border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200";
+                        })()
+                          }`}
                       >
                         <div className="flex justify-between">
                           <span className="font-semibold">
@@ -836,8 +832,8 @@ export default function AppointmentCalendarPage() {
                       return `${Math.floor(totalMin / 60)
                         .toString()
                         .padStart(2, "0")}:${(totalMin % 60)
-                        .toString()
-                        .padStart(2, "0")}`;
+                          .toString()
+                          .padStart(2, "0")}`;
                     })()}
                   </p>
                 )}
@@ -965,7 +961,7 @@ export default function AppointmentCalendarPage() {
                   </p>
                 )}
               </div>
-    
+
               <div className="space-y-1">
                 <label className="block text-[11px] font-medium text-slate-800">
                   Kanal

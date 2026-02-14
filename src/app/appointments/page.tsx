@@ -1,9 +1,9 @@
- "use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabaseClient";
-import { localDateStr } from "../lib/dateUtils";
+import { supabase } from "@/lib/supabaseClient";
+import { localDateStr } from "@/lib/dateUtils";
 
 type ListAppointment = {
   id: string;
@@ -74,32 +74,26 @@ export default function AppointmentsPage() {
       const [patientsRes, doctorsRes] = await Promise.all([
         patientIds.length
           ? supabase
-              .from("patients")
-              .select("id, full_name, phone")
-              .in("id", patientIds)
-          : Promise.resolve({ data: [], error: null } as {
-              data: any[];
-              error: any;
-            }),
+            .from("patients")
+            .select("id, full_name, phone")
+            .in("id", patientIds)
+          : Promise.resolve({ data: [], error: null }),
         doctorIds.length
           ? supabase
-              .from("users")
-              .select("id, full_name")
-              .in("id", doctorIds)
-          : Promise.resolve({ data: [], error: null } as {
-              data: any[];
-              error: any;
-            }),
+            .from("users")
+            .select("id, full_name")
+            .in("id", doctorIds)
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       const patientsMap = Object.fromEntries(
-        (patientsRes.data || []).map((p: any) => [p.id, p])
+        (patientsRes.data || []).map((p) => [p.id, p])
       );
       const doctorsMap = Object.fromEntries(
-        (doctorsRes.data || []).map((d: any) => [d.id, d.full_name])
+        (doctorsRes.data || []).map((d) => [d.id, d.full_name])
       );
 
-      const mapped: ListAppointment[] = data.map((row: any) => {
+      const mapped: ListAppointment[] = data.map((row) => {
         const patient = patientsMap[row.patient_id];
         const doctorName = row.doctor_id ? doctorsMap[row.doctor_id] : "";
         const uiStatus =
@@ -159,9 +153,9 @@ export default function AppointmentsPage() {
               {loading
                 ? "…"
                 : filteredAppointments.filter(
-                    (a) =>
-                      a.dbStatus !== "cancelled" && a.dbStatus !== "no_show"
-                  ).length}
+                  (a) =>
+                    a.dbStatus !== "cancelled" && a.dbStatus !== "no_show"
+                ).length}
             </span>{" "}
             randevu
           </p>
@@ -259,41 +253,41 @@ export default function AppointmentsPage() {
             )}
             {!loading &&
               currentPageAppointments.map((appt) => {
-              const start = new Date(appt.startsAt);
-              const end = new Date(appt.endsAt);
-              const timeRange = `${start
-                .getHours()
-                .toString()
-                .padStart(2, "0")}:${start
-                .getMinutes()
-                .toString()
-                .padStart(2, "0")} - ${end
-                .getHours()
-                .toString()
-                .padStart(2, "0")}:${end
-                .getMinutes()
-                .toString()
-                .padStart(2, "0")}`;
+                const start = new Date(appt.startsAt);
+                const end = new Date(appt.endsAt);
+                const timeRange = `${start
+                  .getHours()
+                  .toString()
+                  .padStart(2, "0")}:${start
+                    .getMinutes()
+                    .toString()
+                    .padStart(2, "0")} - ${end
+                      .getHours()
+                      .toString()
+                      .padStart(2, "0")}:${end
+                        .getMinutes()
+                        .toString()
+                        .padStart(2, "0")}`;
 
-              const now = new Date();
-              const isPast = end < now;
-              let statusLabel =
-                appt.status === "ONAYLI" ? "Onaylı" : "Onay bekliyor";
-              let statusClass =
-                appt.status === "ONAYLI"
-                  ? "bg-emerald-100 text-emerald-800"
-                  : "bg-amber-100 text-amber-800";
+                const now = new Date();
+                const isPast = end < now;
+                let statusLabel =
+                  appt.status === "ONAYLI" ? "Onaylı" : "Onay bekliyor";
+                let statusClass =
+                  appt.status === "ONAYLI"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-amber-100 text-amber-800";
 
-              if (
-                appt.dbStatus === "cancelled" ||
-                appt.dbStatus === "no_show"
-              ) {
-                statusLabel = "İptal edildi";
-                statusClass = "bg-rose-100 text-rose-800";
-              } else if (isPast) {
-                statusLabel = "Randevu gerçekleştirildi";
-                statusClass = "bg-emerald-700 text-white";
-              }
+                if (
+                  appt.dbStatus === "cancelled" ||
+                  appt.dbStatus === "no_show"
+                ) {
+                  statusLabel = "İptal edildi";
+                  statusClass = "bg-rose-100 text-rose-800";
+                } else if (isPast) {
+                  statusLabel = "Randevu gerçekleştirildi";
+                  statusClass = "bg-emerald-700 text-white";
+                }
 
                 return (
                   <div

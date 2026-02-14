@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { supabase } from "@/app/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 import {
     format,
     startOfWeek,
@@ -23,10 +23,7 @@ import {
     differenceInMinutes,
     getHours,
     getMinutes,
-    parseISO,
-    getDay,
-    setHours,
-    setMinutes
+    parseISO
 } from "date-fns";
 import { tr } from "date-fns/locale";
 
@@ -132,8 +129,8 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
     const [selectedDoctorId, setSelectedDoctorId] = useState<string | "all">("all");
 
     const [workingHours, setWorkingHours] = useState<WorkingHours>(DEFAULT_WORKING_HOURS);
-    const [startHour, setStartHour] = useState(8);
-    const [endHour, setEndHour] = useState(20);
+    const [startHour] = useState(8);
+    const [endHour] = useState(20);
 
     const [loading, setLoading] = useState(false);
     const searchParams = useSearchParams();
@@ -206,16 +203,16 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
             }
 
             // Bulk Fetch Details
-            const patientIds = Array.from(new Set(appointmentsRaw.map((a: any) => a.patient_id).filter(Boolean)));
-            const doctorIds = Array.from(new Set(appointmentsRaw.map((a: any) => a.doctor_id).filter(Boolean)));
+            const patientIds = Array.from(new Set(appointmentsRaw.map((a) => a.patient_id).filter(Boolean)));
+            const doctorIds = Array.from(new Set(appointmentsRaw.map((a) => a.doctor_id).filter(Boolean)));
 
             const [patientsRes, doctorsRes] = await Promise.all([
                 patientIds.length > 0 ? supabase.from("patients").select("id, full_name, phone").in("id", patientIds) : { data: [] },
                 doctorIds.length > 0 ? supabase.from("users").select("id, full_name").in("id", doctorIds) : { data: [] }
             ]);
 
-            const patientsMap = Object.fromEntries((patientsRes.data || []).map((p: any) => [p.id, p]));
-            const doctorsMap = Object.fromEntries((doctorsRes.data || []).map((d: any) => [d.id, d.full_name]));
+            const patientsMap = Object.fromEntries((patientsRes.data || []).map((p) => [p.id, p]));
+            const doctorsMap = Object.fromEntries((doctorsRes.data || []).map((d) => [d.id, d.full_name]));
 
             const formatted: CalendarEvent[] = (appointmentsRaw as unknown as AppointmentDB[]).map(appt => ({
                 id: appt.id,

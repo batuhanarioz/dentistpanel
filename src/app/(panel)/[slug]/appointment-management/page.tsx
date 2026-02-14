@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/app/lib/supabaseClient";
-import { localDateStr } from "@/app/lib/dateUtils";
+import { supabase } from "@/lib/supabaseClient";
+import { localDateStr } from "@/lib/dateUtils";
+import { UserRole } from "@/types/database";
 import { useClinic } from "@/app/context/ClinicContext";
-import type { DayOfWeek } from "@/app/types/database";
+import type { DayOfWeek } from "@/types/database";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
 
 type CalendarAppointment = {
@@ -48,16 +49,7 @@ const TREATMENTS: { label: string; value: string; duration: number }[] = [
     { label: "Diş Taşı Temizliği", value: "TEMIZLIK", duration: 40 },
 ];
 
-// Şimdilik sadece UI davranışı için örnek hasta listesi
-const MOCK_PATIENTS = [
-    {
-        id: "p1",
-        phone: "05550000000",
-        name: "Örnek Hasta",
-        email: "hasta@example.com",
-        birthDate: "1990-01-01",
-    },
-];
+
 
 export default function AppointmentCalendarPage() {
     const clinic = useClinic();
@@ -132,9 +124,7 @@ export default function AppointmentCalendarPage() {
         return Array.from({ length: closeHour - openHour }, (_, i) => openHour + i);
     }, [todaySchedule]);
 
-    const workingHoursLabel = todaySchedule?.enabled
-        ? `${todaySchedule.open} - ${todaySchedule.close} çalışma saatleri`
-        : "Bu gün klinik kapalı";
+
 
     const loadAppointmentsForDate = async (date: string) => {
         const start = new Date(`${date}T00:00:00`);
@@ -168,8 +158,8 @@ export default function AppointmentCalendarPage() {
                     .select("id, full_name, phone, email, birth_date, allergies, medical_alerts")
                     .in("id", patientIds)
                 : Promise.resolve({ data: [], error: null } as {
-                    data: any[];
-                    error: any;
+                    data: Record<string, unknown>[];
+                    error: unknown;
                 }),
             doctorIds.length
                 ? supabase
@@ -177,16 +167,16 @@ export default function AppointmentCalendarPage() {
                     .select("id, full_name")
                     .in("id", doctorIds)
                 : Promise.resolve({ data: [], error: null } as {
-                    data: any[];
-                    error: any;
+                    data: Record<string, unknown>[];
+                    error: unknown;
                 }),
         ]);
 
         const patientsMap = Object.fromEntries(
-            (patientsRes.data || []).map((p: any) => [p.id, p])
+            (patientsRes.data || []).map((p) => [p.id as string, p])
         );
         const doctorsMap = Object.fromEntries(
-            (doctorsRes.data || []).map((d: any) => [d.id, d.full_name])
+            (doctorsRes.data || []).map((d) => [d.id as string, d.full_name as string])
         );
 
         const channelMap: Record<string, string> = {
@@ -196,15 +186,17 @@ export default function AppointmentCalendarPage() {
             walk_in: "Yüz yüze",
         };
 
-        const mapped: CalendarAppointment[] = data.map((row: any) => {
-            const startDate = new Date(row.starts_at);
-            const endDate = new Date(row.ends_at);
+        const mapped: CalendarAppointment[] = (data as Record<string, unknown>[]).map((row) => {
+            const startDate = new Date(row.starts_at as string);
+            const endDate = new Date(row.ends_at as string);
             const durationMinutes = Math.max(
                 10,
                 Math.round((endDate.getTime() - startDate.getTime()) / 60000) || 30
             );
-            const patient = patientsMap[row.patient_id];
-            const doctorName = row.doctor_id ? doctorsMap[row.doctor_id] : "";
+            const rowPatientId = row.patient_id as string;
+            const patient = patientsMap[rowPatientId] as Record<string, unknown> | undefined;
+            const rowDoctorId = row.doctor_id as string | null;
+            const doctorName = rowDoctorId ? doctorsMap[rowDoctorId] : "";
 
             const uiStatus: "ONAYLI" | "ONAY_BEKLIYOR" =
                 row.status === "confirmed" || row.status === "completed"
@@ -212,30 +204,30 @@ export default function AppointmentCalendarPage() {
                     : "ONAY_BEKLIYOR";
 
             return {
-                id: row.id,
+                id: row.id as string,
                 date,
                 startHour: startDate.getHours(),
                 startMinute: startDate.getMinutes(),
                 durationMinutes,
-                patientName: patient?.full_name ?? "Hasta",
-                phone: patient?.phone ?? "",
-                email: patient?.email ?? "",
-                birthDate: patient?.birth_date ?? undefined,
+                patientName: (patient?.full_name as string) ?? "Hasta",
+                phone: (patient?.phone as string) ?? "",
+                email: (patient?.email as string) ?? "",
+                birthDate: (patient?.birth_date as string) ?? undefined,
                 doctor: doctorName,
-                channel: channelMap[row.channel] ?? "Web",
-                treatmentType: row.treatment_type ?? "",
+                channel: channelMap[row.channel as string] ?? "Web",
+                treatmentType: (row.treatment_type as string) ?? "",
                 status: uiStatus,
-                dbStatus: row.status,
-                patientNote: row.patient_note ?? undefined,
-                internalNote: row.internal_note ?? undefined,
-                treatmentNote: row.treatment_note ?? row.internal_note ?? undefined,
-                patientAllergies: patient?.allergies ?? undefined,
-                patientMedicalAlerts: patient?.medical_alerts ?? undefined,
-                contactPreference: row.contact_preference ?? "WhatsApp",
-                reminderMinutesBefore: row.reminder_minutes_before ?? undefined,
-                tags: row.tags ?? undefined,
-                sourceConversationId: row.source_conversation_id ?? undefined,
-                sourceMessageId: row.source_message_id ?? undefined,
+                dbStatus: row.status as CalendarAppointment["dbStatus"],
+                patientNote: (row.patient_note as string) ?? undefined,
+                internalNote: (row.internal_note as string) ?? undefined,
+                treatmentNote: (row.treatment_note as string) ?? (row.internal_note as string) ?? undefined,
+                patientAllergies: (patient?.allergies as string) ?? undefined,
+                patientMedicalAlerts: (patient?.medical_alerts as string) ?? undefined,
+                contactPreference: (row.contact_preference as CalendarAppointment["contactPreference"]) ?? "WhatsApp",
+                reminderMinutesBefore: (row.reminder_minutes_before as number) ?? undefined,
+                tags: (row.tags as string[]) ?? undefined,
+                sourceConversationId: (row.source_conversation_id as string) ?? undefined,
+                sourceMessageId: (row.source_message_id as string) ?? undefined,
             };
         });
 
@@ -244,7 +236,6 @@ export default function AppointmentCalendarPage() {
 
     useEffect(() => {
         loadAppointmentsForDate(selectedDate);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate]);
 
     useEffect(() => {
@@ -332,8 +323,8 @@ export default function AppointmentCalendarPage() {
             ...f,
             patientName: patient.full_name,
             phone: patient.phone || "",
-            email: (match as any)?.email || "",
-            birthDate: (match as any)?.birth_date || "",
+            email: (match as { email?: string | null })?.email || "",
+            birthDate: (match as { birth_date?: string | null })?.birth_date || "",
         }));
 
         const rawPhone = patient.phone || "";
@@ -360,7 +351,7 @@ export default function AppointmentCalendarPage() {
             const { data, error } = await supabase
                 .from("users")
                 .select("full_name, role")
-                .in("role", ["DOCTOR"])
+                .in("role", [UserRole.DOKTOR])
 
                 .order("full_name", { ascending: true });
 
@@ -541,7 +532,7 @@ export default function AppointmentCalendarPage() {
             if (existingPatient) {
                 patientId = existingPatient.id;
                 // Mevcut hastanın bilgilerini güncelle
-                const updates: Record<string, any> = {};
+                const updates: Record<string, unknown> = {};
                 if (form.patientName) updates.full_name = form.patientName;
                 if (form.email) updates.email = form.email;
                 if (form.birthDate) updates.birth_date = form.birthDate;
@@ -581,7 +572,7 @@ export default function AppointmentCalendarPage() {
                 .from("users")
                 .select("id")
                 .eq("full_name", form.doctor)
-                .in("role", ["DOCTOR"])
+                .in("role", [UserRole.DOKTOR])
                 .maybeSingle();
             doctorId = doctorRow?.id ?? null;
         }
@@ -627,7 +618,7 @@ export default function AppointmentCalendarPage() {
             }
         }
 
-        const payload: any = {
+        const payload = {
             patient_id: patientId,
             doctor_id: doctorId,
             channel: channelToDb[form.channel] ?? "web",
@@ -679,60 +670,7 @@ export default function AppointmentCalendarPage() {
 
     const displayDate = new Date(selectedDate);
 
-    const handleFindPatient = () => {
-        const run = async () => {
-            const phoneTrimmed = form.phone.replace(/\s+/g, "");
-            if (!phoneTrimmed) return;
 
-            // Önce Supabase hastalarından ara
-            const { data, error } = await supabase
-                .from("patients")
-                .select("full_name, phone, email, birth_date, tc_identity_no, allergies, medical_alerts")
-                .eq("phone", phoneTrimmed)
-                .maybeSingle();
-
-            if (!error && data) {
-                setForm((f) => ({
-                    ...f,
-                    patientName: data.full_name,
-                    email: data.email ?? "",
-                    birthDate: data.birth_date ?? "",
-                    tcIdentityNo: data.tc_identity_no ?? "",
-                    allergies: data.allergies ?? "",
-                    medicalAlerts: data.medical_alerts ?? "",
-                }));
-                setMatchedPatientAllergies(data.allergies ?? null);
-                setMatchedPatientMedicalAlerts(data.medical_alerts ?? null);
-                setIsNewPatient(false);
-                setPatientMatchInfo("Mevcut hasta eşleştirildi.");
-                return;
-            }
-
-            // Supabase'de yoksa mock listeyi dene
-            const match = MOCK_PATIENTS.find((p) => p.phone === phoneTrimmed);
-            if (match) {
-                setForm((f) => ({
-                    ...f,
-                    patientName: match.name,
-                    email: match.email,
-                    birthDate: match.birthDate,
-                }));
-                setMatchedPatientAllergies(null);
-                setMatchedPatientMedicalAlerts(null);
-                setIsNewPatient(false);
-                setPatientMatchInfo("Mevcut hasta eşleştirildi.");
-            } else {
-                setIsNewPatient(true);
-                setMatchedPatientAllergies(null);
-                setMatchedPatientMedicalAlerts(null);
-                setPatientMatchInfo(
-                    "Bu numara ile kayıtlı hasta bulunamadı. Yeni hasta olarak kaydedilecek."
-                );
-            }
-        };
-
-        run();
-    };
 
     return (
         <div className="space-y-6">

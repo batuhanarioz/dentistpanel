@@ -1,11 +1,14 @@
 // Merkezi veritabanı tip tanımları – multi-tenant yapı
 
-export type UserRole =
-  | "SUPER_ADMIN"
-  | "ADMIN"
-  | "DOKTOR"
-  | "SEKRETER"
-  | "FINANS";
+export enum UserRole {
+  SUPER_ADMIN = "SUPER_ADMIN",
+  ADMIN = "ADMIN",
+  DOKTOR = "DOKTOR",
+  SEKRETER = "SEKRETER",
+  FINANS = "FINANS",
+}
+
+export const USER_ROLES = Object.values(UserRole);
 
 export type AppointmentStatus =
   | "pending"
@@ -50,10 +53,15 @@ export const ORDERED_DAYS: DayOfWeek[] = [
   "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
 ];
 
+export interface SubscriptionPlanFeatures {
+  description?: string;
+  duration_days?: number;
+}
+
 export interface SubscriptionPlan {
   id: string;
   name: string;
-  features: any;
+  features: SubscriptionPlanFeatures;
   monthly_price: number;
   max_doctors: number;
   max_staff: number;

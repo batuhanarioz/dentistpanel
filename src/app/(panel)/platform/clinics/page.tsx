@@ -1,22 +1,20 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/app/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
-import type { Clinic, WorkingHours, DayOfWeek, SubscriptionPlan } from "@/app/types/database";
-import { DEFAULT_WORKING_HOURS, DAY_LABELS, ORDERED_DAYS } from "@/app/types/database";
+import type { Clinic, WorkingHours, DayOfWeek, SubscriptionPlan } from "@/types/database";
+import { DEFAULT_WORKING_HOURS, DAY_LABELS, ORDERED_DAYS, UserRole } from "@/types/database";
 
 type SuperAdminUser = { id: string; full_name: string | null; email: string | null; created_at: string };
 type ClinicStaffUser = { id: string; full_name: string | null; email: string | null; role: string; created_at: string };
 
 const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: "Super Admin",
-  ADMIN: "Yönetici",
-  ADMIN_DOCTOR: "Yönetici Doktor",
-  DOCTOR: "Doktor",
-  ASSISTANT: "Asistan",
-  RECEPTION: "Sekreter",
-  FINANCE: "Finans",
+  [UserRole.SUPER_ADMIN]: "Super Admin",
+  [UserRole.ADMIN]: "Yönetici",
+  [UserRole.DOKTOR]: "Doktor",
+  [UserRole.SEKRETER]: "Sekreter",
+  [UserRole.FINANS]: "Finans",
 };
 
 export default function PlatformClinicsPage() {
@@ -52,14 +50,7 @@ export default function PlatformClinicsPage() {
   const [formAdminPassword, setFormAdminPassword] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Sadece SUPER_ADMIN erişebilir
-  if (!clinic.isSuperAdmin) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-slate-600">
-        Bu sayfaya erişim yetkiniz yok.
-      </div>
-    );
-  }
+
 
   const loadClinics = useCallback(async () => {
     setLoading(true);
@@ -67,7 +58,7 @@ export default function PlatformClinicsPage() {
 
     const [clinicsRes, superRes, plansRes] = await Promise.all([
       supabase.from("clinics").select("*").order("created_at", { ascending: false }),
-      supabase.from("users").select("id, full_name, email, created_at").eq("role", "SUPER_ADMIN").order("created_at", { ascending: false }),
+      supabase.from("users").select("id, full_name, email, created_at").eq("role", UserRole.SUPER_ADMIN).order("created_at", { ascending: false }),
       supabase.from("subscription_plans").select("*").order("monthly_price", { ascending: true }),
     ]);
 
@@ -112,8 +103,10 @@ export default function PlatformClinicsPage() {
   }, []);
 
   useEffect(() => {
-    loadClinics();
-  }, [loadClinics]);
+    if (clinic.isSuperAdmin) {
+      loadClinics();
+    }
+  }, [loadClinics, clinic.isSuperAdmin]);
 
   useEffect(() => {
     if (selectedClinic) loadClinicStaff(selectedClinic.id);
@@ -168,8 +161,10 @@ export default function PlatformClinicsPage() {
       setSaving(false);
       setShowCreateModal(false);
       await loadClinics();
-    } catch (err: any) {
-      setError(err.message);
+      await loadClinics();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu";
+      setError(message);
       setSaving(false);
     }
   };
@@ -207,8 +202,10 @@ export default function PlatformClinicsPage() {
       setShowEditModal(false);
       setSelectedClinic(null);
       await loadClinics();
-    } catch (err: any) {
-      setError(err.message || "Klinik güncellenemedi.");
+      await loadClinics();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Klinik güncellenemedi.";
+      setError(message);
       setSaving(false);
     }
   };
@@ -238,7 +235,7 @@ export default function PlatformClinicsPage() {
       } else {
         await loadClinics();
       }
-    } catch (err) {
+    } catch {
       setError("Bağlantı hatası oluştu.");
       setFormN8nWorkflows(prev => prev.map(wf => wf.id === workflowId ? { ...wf, enabled: !enabled } : wf));
     }
@@ -525,6 +522,15 @@ export default function PlatformClinicsPage() {
         <p className="text-[10px] text-slate-500 italic">
           * Arama yaparak (en az 3 harf) otomasyon bağlayabilirsiniz.
         </p>
+      </div>
+    );
+  }
+
+  // Sadece SUPER_ADMIN erişebilir (Hooks çağrıldıktan sonra kontrol)
+  if (!clinic.isSuperAdmin) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-slate-600">
+        Bu sayfaya erişim yetkiniz yok.
       </div>
     );
   }

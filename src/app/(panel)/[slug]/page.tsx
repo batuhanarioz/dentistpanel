@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { supabase } from "@/app/lib/supabaseClient";
-import { localDateStr } from "@/app/lib/dateUtils";
+import { supabase } from "@/lib/supabaseClient";
+import { localDateStr } from "@/lib/dateUtils";
 import { useClinic } from "@/app/context/ClinicContext";
+import { UserRole } from "@/types/database";
 
 type DashboardAppointment = {
   id: string;
@@ -71,28 +72,28 @@ const statusLabelMap: Record<string, string> = {
   no_show: "Gelmedi",
 };
 
-const statusClassMap: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-900",
-  // Onaylandı: koyu yeşil
-  confirmed: "bg-emerald-700 text-white",
-  completed: "bg-emerald-700 text-white",
-  // İptal edildi: koyu kırmızı
-  cancelled: "bg-red-700 text-white",
-  no_show: "bg-red-700 text-white",
-};
+// const statusClassMap: Record<string, string> = {
+//   pending: "bg-amber-100 text-amber-900",
+//   // Onaylandı: koyu yeşil
+//   confirmed: "bg-emerald-700 text-white",
+//   completed: "bg-emerald-700 text-white",
+//   // İptal edildi: koyu kırmızı
+//   cancelled: "bg-red-700 text-white",
+//   no_show: "bg-red-700 text-white",
+// };
 
-const statusCardClassMap: Record<string, string> = {
-  // Bekliyor: daha turuncuya yakın
-  pending: "bg-amber-100 border-amber-200",
-  // Onaylı: aynı kalsın (yumuşak yeşil)
-  confirmed: "bg-emerald-50 border-emerald-100",
-  // Tamamlandı: daha koyu yeşil ton
-  completed: "bg-emerald-100 border-emerald-300",
-  // İptal: aynı kalsın
-  cancelled: "bg-rose-50 border-rose-100",
-  // Gelmedi: daha kırmızıya yakın
-  no_show: "bg-red-100 border-red-200",
-};
+// const statusCardClassMap: Record<string, string> = {
+//   // Bekliyor: daha turuncuya yakın
+//   pending: "bg-amber-100 border-amber-200",
+//   // Onaylı: aynı kalsın (yumuşak yeşil)
+//   confirmed: "bg-emerald-50 border-emerald-100",
+//   // Tamamlandı: daha koyu yeşil ton
+//   completed: "bg-emerald-100 border-emerald-300",
+//   // İptal: aynı kalsın
+//   cancelled: "bg-rose-50 border-rose-100",
+//   // Gelmedi: daha kırmızıya yakın
+//   no_show: "bg-red-100 border-red-200",
+// };
 
 function formatTime(dateString: string) {
   const d = new Date(dateString);
@@ -196,58 +197,56 @@ export default function Home() {
             .from("patients")
             .select("id, full_name, phone")
             .in("id", patientIds)
-          : Promise.resolve({ data: [], error: null } as {
-            data: any[];
-            error: any;
-          }),
+          : Promise.resolve({ data: [], error: null } as { data: Record<string, unknown>[]; error: unknown }),
         supabase
           .from("users")
           .select("id, full_name")
-          .in("role", ["DOCTOR", "ADMIN_DOCTOR"]),
+          .in("role", [UserRole.DOKTOR]),
       ]);
 
       const patientsMap = Object.fromEntries(
-        (patientsRes.data || []).map((p: any) => [
-          p.id,
-          { full_name: p.full_name, phone: p.phone },
-        ])
+        (patientsRes.data || []).map((p) => {
+          const item = p as Record<string, unknown>;
+          return [item.id as string, { full_name: item.full_name as string, phone: item.phone as string }];
+        })
       );
       const doctorsMap = Object.fromEntries(
-        (doctorsRes.data || []).map((d: any) => [d.id, d.full_name])
+        (doctorsRes.data || []).map((d) => {
+          const item = d as Record<string, unknown>;
+          return [item.id as string, item.full_name as string];
+        })
       );
 
       setDoctors((doctorsRes.data || []) as DoctorOption[]);
 
       const now = new Date();
 
-      const mapped: DashboardAppointment[] = data.map((row: any) => ({
-        id: row.id,
-        startsAt: row.starts_at,
-        endsAt: row.ends_at,
-        patientName: patientsMap[row.patient_id]?.full_name ?? "Hasta",
-        patientPhone: patientsMap[row.patient_id]?.phone ?? null,
-        doctorName: doctorsMap[row.doctor_id] ?? "Doktor atanmadı",
-        doctorId: row.doctor_id ?? null,
-        channel: row.channel,
-        status: row.status,
-        treatmentType: row.treatment_type ?? null,
-        estimatedAmount:
-          row.estimated_amount !== null ? Number(row.estimated_amount) : null,
-      }));
+      const mapped: DashboardAppointment[] = (data || []).map((row) => {
+        const r = row as Record<string, unknown>;
+        return {
+          id: r.id as string,
+          startsAt: r.starts_at as string,
+          endsAt: r.ends_at as string,
+          patientName: (patientsMap[r.patient_id as string] as { full_name: string } | undefined)?.full_name ?? "Hasta",
+          patientPhone: (patientsMap[r.patient_id as string] as { phone: string | null } | undefined)?.phone ?? null,
+          doctorName: doctorsMap[r.doctor_id as string] ?? "Doktor atanmadı",
+          doctorId: (r.doctor_id as string) ?? null,
+          channel: r.channel as string,
+          status: r.status as DashboardAppointment["status"],
+          treatmentType: (r.treatment_type as string) ?? null,
+          estimatedAmount:
+            r.estimated_amount !== null ? Number(r.estimated_amount) : null,
+        };
+      });
 
       // Ödemeleri çek (tamamlanmış fakat ödemesi olmayan randevular için)
       const appointmentIds = mapped.map((a) => a.id);
-      let paymentsMap: Record<string, boolean> = {};
 
       if (appointmentIds.length) {
-        const { data: paymentsData } = await supabase
+        await supabase
           .from("payments")
           .select("id, appointment_id")
           .in("appointment_id", appointmentIds);
-
-        paymentsMap = Object.fromEntries(
-          (paymentsData || []).map((p: any) => [p.appointment_id, true])
-        );
       }
 
       // Yalnızca seçili gün için, tamamlanmamış ve (bugünse) saati gelmemiş randevuları göster
@@ -300,27 +299,30 @@ export default function Home() {
         .in("id", patientIds);
 
       const patientsMap = Object.fromEntries(
-        (patientsData || []).map((p: any) => [
-          p.id,
-          { full_name: p.full_name, phone: p.phone },
-        ])
+        (patientsData || []).map((p) => {
+          const item = p as Record<string, unknown>;
+          return [item.id as string, { full_name: item.full_name as string, phone: item.phone as string }];
+        })
       );
 
       const now = new Date();
 
-      const mapped: DashboardAppointment[] = data.map((row: any) => ({
-        id: row.id,
-        startsAt: row.starts_at,
-        endsAt: row.ends_at,
-        patientName: patientsMap[row.patient_id]?.full_name ?? "Hasta",
-        patientPhone: patientsMap[row.patient_id]?.phone ?? null,
-        doctorName: "",
-        doctorId: row.doctor_id ?? null,
-        channel: row.channel,
-        status: row.status,
-        treatmentType: row.treatment_type ?? null,
-        estimatedAmount: null,
-      }));
+      const mapped: DashboardAppointment[] = (data || []).map((row) => {
+        const r = row as Record<string, unknown>;
+        return {
+          id: r.id as string,
+          startsAt: r.starts_at as string,
+          endsAt: r.ends_at as string,
+          patientName: (patientsMap[r.patient_id as string] as { full_name: string } | undefined)?.full_name ?? "Hasta",
+          patientPhone: (patientsMap[r.patient_id as string] as { phone: string | null } | undefined)?.phone ?? null,
+          doctorName: "",
+          doctorId: (r.doctor_id as string) ?? null,
+          channel: r.channel as string,
+          status: r.status as DashboardAppointment["status"],
+          treatmentType: (r.treatment_type as string) ?? null,
+          estimatedAmount: null,
+        };
+      });
 
       // Ödemeleri çek (tamamlanmış fakat ödemesi olmayan randevular için)
       const appointmentIds = mapped.map((a) => a.id);
@@ -333,13 +335,13 @@ export default function Home() {
           .in("appointment_id", appointmentIds);
 
         paymentsMap = Object.fromEntries(
-          (paymentsData || []).map((p: any) => [p.appointment_id, true])
+          (paymentsData || []).map((p) => [(p as Record<string, unknown>).appointment_id as string, true])
         );
       }
 
       // Kontrol listesi öğelerini üret
       const controls: ControlItem[] = [];
-      const userRole = clinic.userRole || "RECEPTION";
+      const userRole = clinic.userRole || UserRole.SEKRETER;
       const userId = clinic.userId;
 
       const canShowTask = (code: string, apptDoctorId?: string | null) => {
@@ -349,7 +351,7 @@ export default function Home() {
         if (clinic.isAdmin) return true;
 
         // Eğer görev doktor içinse ve randevu doktoru bu kullanıcıysa görsün
-        if (config.role === "DOCTOR" && apptDoctorId === userId) return true;
+        if (config.role === UserRole.DOKTOR && apptDoctorId === userId) return true;
 
         return config.role === userRole;
       };
@@ -451,7 +453,7 @@ export default function Home() {
     };
 
     loadControlItems();
-  }, [viewDateControls, viewOffsetControls]);
+  }, [viewDateControls, viewOffsetControls, clinic.isAdmin, clinic.userId, clinic.userRole, taskAssignments]);
 
   const totalToday = appointments.length;
 

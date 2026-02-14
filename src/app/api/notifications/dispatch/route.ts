@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 // Notification dispatch taslağı:
 // - notifications tablosundaki "pending" kayıtları alır
 // - her birini kanalına göre ilgili sağlayıcıya iletir (WhatsApp, e-posta, SMS)
 // - başarı/başarısızlık durumuna göre kaydı günceller
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   // Taslak:
   // 1) Supabase'den status = 'pending' notifications çek
   // 2) Kanal tipine göre switch-case benzeri bir yönlendirme yap

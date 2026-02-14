@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { supabaseAdmin } from "@/app/lib/supabaseAdminClient";
+import { supabaseAdmin } from "@/lib/supabaseAdminClient";
+import { changePasswordSchema } from "@/lib/validations/auth";
 
 /**
  * Kullanıcının kendi şifresini değiştirmesi.
@@ -33,23 +34,15 @@ export async function POST(req: NextRequest) {
   }
 
   // 2) Body'den eski ve yeni şifreyi al
-  const body = await req.json().catch(() => null);
-  const oldPassword = body?.oldPassword as string | undefined;
-  const newPassword = body?.newPassword as string | undefined;
-
-  if (!oldPassword || !newPassword) {
+  const validation = changePasswordSchema.safeParse(await req.json().catch(() => ({})));
+  if (!validation.success) {
     return NextResponse.json(
-      { error: "Eski şifre ve yeni şifre zorunludur" },
+      { error: validation.error.issues[0].message },
       { status: 400 }
     );
   }
 
-  if (newPassword.length < 6) {
-    return NextResponse.json(
-      { error: "Yeni şifre en az 6 karakter olmalıdır" },
-      { status: 400 }
-    );
-  }
+  const { oldPassword, newPassword } = validation.data;
 
   // 3) Eski şifreyi doğrulamak için kullanıcıyı tekrar giriş yaptır
   const verifyClient = createClient(

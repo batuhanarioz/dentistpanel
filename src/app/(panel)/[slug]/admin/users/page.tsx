@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/app/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
 import { ChangePasswordModal } from "@/app/components/ChangePasswordModal";
 import { DeleteUserModal } from "@/app/components/DeleteUserModal";
+import { DashboardChecklistModal } from "@/app/components/DashboardChecklistModal";
+import { UserRole } from "@/types/database";
 
 type UserRow = {
   id: string;
@@ -20,11 +22,11 @@ type ClinicRow = {
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Yönetici",
-  DOCTOR: "DOKTOR",
-  RECEPTION: "SEKRETER",
-  FINANCE: "FİNANS",
-  SUPER_ADMIN: "Süper Admin",
+  [UserRole.ADMIN]: "Yönetici",
+  [UserRole.DOKTOR]: "Doktor",
+  [UserRole.SEKRETER]: "Sekreter",
+  [UserRole.FINANS]: "Finans",
+  [UserRole.SUPER_ADMIN]: "Süper Admin",
 };
 
 const DOCTOR_LIMITS: Record<string, number> = {
@@ -43,13 +45,13 @@ export default function AdminUsersPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newFullName, setNewFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState("RECEPTION");
+  const [newRole, setNewRole] = useState<string>(UserRole.SEKRETER);
   const [saving, setSaving] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [editFullName, setEditFullName] = useState("");
-  const [editRole, setEditRole] = useState("RECEPTION");
+  const [editRole, setEditRole] = useState<string>(UserRole.SEKRETER);
   const [editSaving, setEditSaving] = useState(false);
   const [selfNewEmail, setSelfNewEmail] = useState("");
   const [selfOldPassword, setSelfOldPassword] = useState("");
@@ -69,6 +71,7 @@ export default function AdminUsersPage() {
   const [resetSaving, setResetSaving] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [showChecklistModal, setShowChecklistModal] = useState(false);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -98,7 +101,7 @@ export default function AdminUsersPage() {
         return;
       }
 
-      const isCurrentAdmin = current.role === "ADMIN" || current.role === "SUPER_ADMIN";
+      const isCurrentAdmin = current.role === UserRole.ADMIN || current.role === UserRole.SUPER_ADMIN;
       setIsAdmin(isCurrentAdmin);
       setCurrentUserId(user.id);
       setCurrentUserEmail(user.email ?? "");
@@ -110,7 +113,7 @@ export default function AdminUsersPage() {
         .from("users")
         .select("id, full_name, email, role, created_at")
         .eq("clinic_id", clinic.clinicId)
-        .neq("role", "SUPER_ADMIN")
+        .neq("role", UserRole.SUPER_ADMIN)
         .order("created_at", { ascending: true });
 
       if (error) {
@@ -123,7 +126,7 @@ export default function AdminUsersPage() {
       setLoading(false);
 
       // SUPER_ADMIN ise klinik listesini yükle
-      if (current.role === "SUPER_ADMIN") {
+      if (current.role === UserRole.SUPER_ADMIN) {
         const { data: clinicData } = await supabase
           .from("clinics")
           .select("id, name")
@@ -134,7 +137,7 @@ export default function AdminUsersPage() {
     };
 
     loadUsers();
-  }, []);
+  }, [clinic.clinicId]);
 
   const refreshUsers = async () => {
     setLoading(true);
@@ -144,7 +147,7 @@ export default function AdminUsersPage() {
       .from("users")
       .select("id, full_name, email, role, created_at")
       .eq("clinic_id", clinic.clinicId)
-      .neq("role", "SUPER_ADMIN")
+      .neq("role", UserRole.SUPER_ADMIN)
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -177,8 +180,8 @@ export default function AdminUsersPage() {
     }
 
     // Doktor sınırı kontrolü
-    if (newRole === "DOCTOR") {
-      const currentDoctors = users.filter((u) => u.role === "DOCTOR").length;
+    if (newRole === UserRole.DOKTOR) {
+      const currentDoctors = users.filter((u) => u.role === UserRole.DOKTOR).length;
       const planId = clinic.planId || "starter";
       const limit = DOCTOR_LIMITS[planId] || 1;
 
@@ -202,7 +205,7 @@ export default function AdminUsersPage() {
         fullName: newFullName,
         password: newPassword,
         role: newRole,
-        ...(clinic.isSuperAdmin && newRole !== "SUPER_ADMIN" && newClinicId
+        ...(clinic.isSuperAdmin && newRole !== UserRole.SUPER_ADMIN && newClinicId
           ? { clinicId: newClinicId }
           : {}),
       }),
@@ -218,41 +221,17 @@ export default function AdminUsersPage() {
     setNewEmail("");
     setNewFullName("");
     setNewPassword("");
-    setNewRole("RECEPTION");
+    setNewRole(UserRole.SEKRETER);
     setNewClinicId("");
     setSaving(false);
     await refreshUsers();
     setShowCreateModal(false);
   };
 
-  const handleRoleChange = async (id: string, role: string) => {
-    setError(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setError("Oturum bulunamadı.");
-      return;
-    }
 
-    const res = await fetch("/api/admin/users", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ id, role }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || "Rol güncellenemedi.");
-      return;
-    }
-
-    await refreshUsers();
-  };
 
   const openDeleteModal = (user: UserRow) => {
-    const isProtected = user.role === "ADMIN";
+    const isProtected = user.role === UserRole.ADMIN;
     setDeleteTarget(user);
     setDeleteProtected(isProtected);
   };
@@ -317,7 +296,7 @@ export default function AdminUsersPage() {
     setNewEmail("");
     setNewFullName("");
     setNewPassword("");
-    setNewRole("RECEPTION");
+    setNewRole(UserRole.SEKRETER);
     setNewClinicId(clinics.length > 0 ? clinics[0].id : "");
     setShowCreateModal(true);
   };
@@ -449,19 +428,19 @@ export default function AdminUsersPage() {
   };
 
   const roleBadgeColors: Record<string, string> = {
-    SUPER_ADMIN: "bg-purple-100 text-purple-700 border-purple-200",
-    ADMIN: "bg-teal-100 text-teal-700 border-teal-200",
-    DOCTOR: "bg-blue-100 text-blue-700 border-blue-200",
-    RECEPTION: "bg-amber-100 text-amber-700 border-amber-200",
-    FINANCE: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    [UserRole.SUPER_ADMIN]: "bg-purple-100 text-purple-700 border-purple-200",
+    [UserRole.ADMIN]: "bg-teal-100 text-teal-700 border-teal-200",
+    [UserRole.DOKTOR]: "bg-blue-100 text-blue-700 border-blue-200",
+    [UserRole.SEKRETER]: "bg-amber-100 text-amber-700 border-amber-200",
+    [UserRole.FINANS]: "bg-emerald-100 text-emerald-700 border-emerald-200",
   };
 
   const roleAvatarColors: Record<string, string> = {
-    SUPER_ADMIN: "from-purple-500 to-violet-500",
-    ADMIN: "from-teal-500 to-emerald-500",
-    DOCTOR: "from-blue-500 to-cyan-500",
-    RECEPTION: "from-amber-500 to-orange-500",
-    FINANCE: "from-emerald-500 to-green-500",
+    [UserRole.SUPER_ADMIN]: "from-purple-500 to-violet-500",
+    [UserRole.ADMIN]: "from-teal-500 to-emerald-500",
+    [UserRole.DOKTOR]: "from-blue-500 to-cyan-500",
+    [UserRole.SEKRETER]: "from-amber-500 to-orange-500",
+    [UserRole.FINANS]: "from-emerald-500 to-green-500",
   };
 
   if (!isAdmin) {
@@ -547,8 +526,8 @@ export default function AdminUsersPage() {
     );
   }
 
-  const adminCount = users.filter(u => u.role === "ADMIN" || u.role === "SUPER_ADMIN").length;
-  const doctorCount = users.filter(u => u.role === "DOCTOR").length;
+  const adminCount = users.filter(u => u.role === UserRole.ADMIN || u.role === UserRole.SUPER_ADMIN).length;
+  const doctorCount = users.filter(u => u.role === UserRole.DOKTOR).length;
 
   return (
     <div className="space-y-5">
@@ -592,10 +571,10 @@ export default function AdminUsersPage() {
             <button
               type="button"
               onClick={openCreateModal}
-              className="rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:from-teal-700 hover:to-emerald-600 transition-all flex items-center gap-1.5 w-full justify-center"
+              className="rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 px-4 py-2.5 text-[11px] font-semibold text-white shadow-sm hover:from-teal-700 hover:to-emerald-600 transition-all flex flex-col items-center gap-1 w-full justify-center"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3 20a6 6 0 0 1 12 0v1H3v-1Z" /></svg>
-              Yeni Kullanıcı Ekle
+              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3 20a6 6 0 0 1 12 0v1H3v-1Z" /></svg>
+              Yeni Kullanıcı
             </button>
           )}
         </div>
@@ -637,13 +616,7 @@ export default function AdminUsersPage() {
                 <button
                   key={user.id}
                   type="button"
-                  onClick={() => {
-                    if (!isAdmin) return;
-                    setSelectedUser(user);
-                    setEditFullName(user.full_name ?? "");
-                    setEditRole(user.role);
-                    setShowEditModal(true);
-                  }}
+                  onClick={() => openEditModal(user)}
                   className={`flex items-center justify-between rounded-xl border p-4 text-left transition-all ${isAdmin ? 'bg-white border-slate-100 hover:border-teal-200 hover:shadow-md cursor-pointer' : 'bg-slate-50 border-slate-100 cursor-default'} group`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -673,6 +646,29 @@ export default function AdminUsersPage() {
           )}
         </div>
 
+        {isAdmin && (
+          <div className="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <h3 className="text-sm font-bold text-slate-900">Dashboard Kontrol Listesi</h3>
+                <p className="text-xs text-slate-500">Kliniğinizdeki görevlerin otomatik dağılımını buradan yönetebilirsiniz.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowChecklistModal(true)}
+              className="rounded-xl bg-indigo-600 px-6 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
+            >
+              Görev Dağılımını Yapılandır
+            </button>
+          </div>
+        )}
+
         {/* Rol Tanımları */}
         <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-slate-50 to-slate-100/50 border-b px-5 py-3">
@@ -685,9 +681,9 @@ export default function AdminUsersPage() {
           </div>
           <div className="px-5 py-4 space-y-3">
             {[
-              { role: "DOCTOR", desc: "Tıbbi işlemler: randevular, hasta notları ve tedavi planları" },
-              { role: "RECEPTION", desc: "Operasyon: randevu kayıt, hasta teyit ve resepsiyon işlemleri" },
-              { role: "FINANCE", desc: "Maddi işlemler: ödemeler, taksitler ve finansal raporlar" },
+              { role: UserRole.DOKTOR, desc: "Tıbbi işlemler: randevular, hasta notları ve tedavi planları" },
+              { role: UserRole.SEKRETER, desc: "Operasyon: randevu kayıt, hasta teyit ve resepsiyon işlemleri" },
+              { role: UserRole.FINANS, desc: "Maddi işlemler: ödemeler, taksitler ve finansal raporlar" },
             ].map((r) => (
               <div key={r.role} className="flex items-start gap-2.5">
                 <span className={["inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold border shrink-0 mt-0.5", roleBadgeColors[r.role] ?? "bg-slate-100 text-slate-600 border-slate-200"].join(" ")}>{ROLE_LABELS[r.role] || r.role}</span>
@@ -703,130 +699,131 @@ export default function AdminUsersPage() {
         </div >
       </section >
 
-      {isAdmin && showCreateModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          onClick={() => setShowCreateModal(false)}
-        >
+      {
+        isAdmin && showCreateModal && (
           <div
-            className="bg-white rounded-2xl shadow-xl border w-full max-w-md mx-4 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowCreateModal(false)}
           >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-500 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
+            <div
+              className="bg-white rounded-2xl shadow-xl border w-full max-w-md mx-4 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-500 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-sm">Yeni Kullanıcı Oluştur</h3>
+                    <p className="text-teal-100 text-xs mt-0.5">Ekibinize yeni bir üye ekleyin</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-white font-semibold text-sm">Yeni Kullanıcı Oluştur</h3>
-                  <p className="text-teal-100 text-xs mt-0.5">Ekibinize yeni bir üye ekleyin</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(false)}
-                className="text-white/70 hover:text-white transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateUser} className="px-6 py-5 space-y-4">
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-700">E-posta</label>
-                <input
-                  type="email"
-                  required
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                  placeholder="ornek@nextgency.com"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-700">İsim</label>
-                <input
-                  type="text"
-                  value={newFullName}
-                  onChange={(e) => setNewFullName(e.target.value)}
-                  className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                  placeholder="Ad Soyad"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-700">Rol</label>
-                <select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                  className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                >
-                  {clinic.isSuperAdmin && <option value="ADMIN">YÖNETİCİ</option>}
-                  <option value="DOCTOR">DOKTOR</option>
-                  <option value="RECEPTION">SEKRETER</option>
-                  <option value="FINANCE">FİNANS</option>
-                </select>
-              </div>
-              {clinic.isSuperAdmin && newRole !== "SUPER_ADMIN" && (
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-slate-700">Klinik</label>
-                  <select
-                    value={newClinicId}
-                    onChange={(e) => setNewClinicId(e.target.value)}
-                    required
-                    className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                  >
-                    <option value="">Klinik seçin...</option>
-                    {clinics.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-700">Geçici Şifre</label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                  placeholder="Geçici şifre"
-                />
-              </div>
-
-              {error && (
-                <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
-                  {error}
-                </p>
-              )}
-
-              <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="rounded-lg border px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="text-white/70 hover:text-white transition-colors"
                 >
-                  Vazgeç
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-lg bg-gradient-to-r from-teal-700 to-emerald-600 px-4 py-2 text-xs font-medium text-white disabled:opacity-60 hover:from-teal-800 hover:to-emerald-700 transition-all"
-                >
-                  {saving ? "Oluşturuluyor..." : "Oluştur"}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleCreateUser} className="px-6 py-5 space-y-4">
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-slate-700">E-posta</label>
+                  <input
+                    type="email"
+                    required
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    placeholder="ornek@nextgency.com"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-slate-700">İsim</label>
+                  <input
+                    type="text"
+                    value={newFullName}
+                    onChange={(e) => setNewFullName(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    placeholder="Ad Soyad"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-slate-700">Rol</label>
+                  <select
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  >
+                    {clinic.isSuperAdmin && <option value={UserRole.ADMIN}>YÖNETİCİ</option>}
+                    <option value={UserRole.DOKTOR}>DOKTOR</option>
+                    <option value={UserRole.SEKRETER}>SEKRETER</option>
+                    <option value={UserRole.FINANS}>FİNANS</option>
+                  </select>
+                </div>
+                {clinic.isSuperAdmin && newRole !== UserRole.SUPER_ADMIN && (
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-700">Klinik</label>
+                    <select
+                      value={newClinicId}
+                      onChange={(e) => setNewClinicId(e.target.value)}
+                      required
+                      className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    >
+                      <option value="">Klinik seçin...</option>
+                      {clinics.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-slate-700">Geçici Şifre</label>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    placeholder="Geçici şifre"
+                  />
+                </div>
+
+                {error && (
+                  <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+                    {error}
+                  </p>
+                )}
+
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="rounded-lg border px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    Vazgeç
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="rounded-lg bg-gradient-to-r from-teal-700 to-emerald-600 px-4 py-2 text-xs font-medium text-white disabled:opacity-60 hover:from-teal-800 hover:to-emerald-700 transition-all"
+                  >
+                    {saving ? "Oluşturuluyor..." : "Oluştur"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )
+        )
       }
 
       {
@@ -896,10 +893,10 @@ export default function AdminUsersPage() {
                     onChange={(e) => setEditRole(e.target.value)}
                     className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
                   >
-                    {(clinic.isSuperAdmin || selectedUser.role === "ADMIN") && <option value="ADMIN">YÖNETİCİ</option>}
-                    <option value="DOCTOR">DOKTOR</option>
-                    <option value="RECEPTION">SEKRETER</option>
-                    <option value="FINANCE">FİNANS</option>
+                    {(clinic.isSuperAdmin || selectedUser.role === UserRole.ADMIN) && <option value={UserRole.ADMIN}>YÖNETİCİ</option>}
+                    <option value={UserRole.DOKTOR}>DOKTOR</option>
+                    <option value={UserRole.SEKRETER}>SEKRETER</option>
+                    <option value={UserRole.FINANS}>FİNANS</option>
                   </select>
                 </div>
 
@@ -1111,6 +1108,10 @@ export default function AdminUsersPage() {
         userName={deleteTarget?.full_name ?? null}
         userEmail={deleteTarget?.email ?? null}
         isProtected={deleteProtected}
+      />
+      <DashboardChecklistModal
+        open={showChecklistModal}
+        onClose={() => setShowChecklistModal(false)}
       />
     </div >
   );

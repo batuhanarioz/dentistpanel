@@ -1,25 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendWhatsAppSchema } from "@/lib/validations/whatsapp";
 
 // WhatsApp üzerinden mesaj/şablon gönderimi için abstraction katmanı taslağı.
 // UI veya otomasyon katmanı yalnızca bu endpoint'i bilir; altta Twilio/360dialog gibi sağlayıcılar saklanır.
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null);
-
-  // Beklenen minimal payload (taslak):
-  // {
-  //   clinicId: string;
-  //   toPhone: string;
-  //   template: string; // örn: "appointment_reminder"
-  //   variables?: Record<string, string>;
-  // }
-
-  if (!body?.clinicId || !body?.toPhone || !body?.template) {
+  const validation = sendWhatsAppSchema.safeParse(await req.json().catch(() => ({})));
+  if (!validation.success) {
     return NextResponse.json(
-      { ok: false, message: "Zorunlu alanlar eksik." },
+      { ok: false, error: validation.error.issues[0].message },
       { status: 400 }
     );
   }
+
+  const { clinicId, toPhone, template, variables } = validation.data;
 
   // Taslak akış:
   // 1) clinicId ve template adına göre message_templates tablosundan içerik çek

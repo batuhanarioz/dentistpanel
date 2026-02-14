@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
+import { UserRole } from "@/types/database";
 
 type UserRow = {
   id: string;
   full_name: string | null;
   email: string | null;
-  role: string;
+  role: UserRole;
   created_at: string;
 };
 
@@ -20,13 +21,13 @@ export default function AdminUsersPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newFullName, setNewFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState("RECEPTION");
+  const [newRole, setNewRole] = useState(UserRole.SEKRETER);
   const [saving, setSaving] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [editFullName, setEditFullName] = useState("");
-  const [editRole, setEditRole] = useState("RECEPTION");
+  const [editRole, setEditRole] = useState(UserRole.SEKRETER);
   const [editSaving, setEditSaving] = useState(false);
   const [selfNewEmail, setSelfNewEmail] = useState("");
   const [selfNewPassword, setSelfNewPassword] = useState("");
@@ -61,7 +62,7 @@ export default function AdminUsersPage() {
         return;
       }
 
-      const isCurrentAdmin = current.role === "ADMIN";
+      const isCurrentAdmin = current.role === UserRole.ADMIN;
       setIsAdmin(isCurrentAdmin);
       setCurrentUserEmail(user.email ?? "");
       setSelfNewEmail(user.email ?? "");
@@ -152,41 +153,17 @@ export default function AdminUsersPage() {
     setNewEmail("");
     setNewFullName("");
     setNewPassword("");
-    setNewRole("RECEPTION");
+    setNewRole(UserRole.SEKRETER);
     setSaving(false);
     await refreshUsers();
     setShowCreateModal(false);
   };
 
-  const handleRoleChange = async (id: string, role: string) => {
-    setError(null);
-    const token = await getAccessToken();
-    if (!token) {
-      setError("Oturum bulunamadı.");
-      return;
-    }
 
-    const res = await fetch("/api/admin/users", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ id, role }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || "Rol güncellenemedi.");
-      return;
-    }
-
-    await refreshUsers();
-  };
 
   const handleDeleteUser = async (id: string) => {
     const userToDelete = users.find((u) => u.id === id);
-    if (userToDelete?.role === "ADMIN") {
+    if (userToDelete?.role === UserRole.ADMIN) {
       alert("ADMIN rolüne sahip kullanıcılar silinemez.");
       return;
     }
@@ -252,7 +229,7 @@ export default function AdminUsersPage() {
     setNewEmail("");
     setNewFullName("");
     setNewPassword("");
-    setNewRole("RECEPTION");
+    setNewRole(UserRole.SEKRETER);
     setShowCreateModal(true);
   };
 
@@ -565,13 +542,13 @@ export default function AdminUsersPage() {
                 </label>
                 <select
                   value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
+                  onChange={(e) => setNewRole(e.target.value as UserRole)}
                   className="w-full rounded-md border px-2 py-1 text-xs"
                 >
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="DOCTOR">DOCTOR</option>
-                  <option value="RECEPTION">RECEPTION</option>
-                  <option value="FINANCE">FINANCE</option>
+                  <option value={UserRole.ADMIN}>ADMIN</option>
+                  <option value={UserRole.DOKTOR}>DOKTOR</option>
+                  <option value={UserRole.SEKRETER}>SEKRETER</option>
+                  <option value={UserRole.FINANS}>FINANS</option>
                 </select>
               </div>
               <div className="space-y-1">
@@ -656,13 +633,13 @@ export default function AdminUsersPage() {
                 </label>
                 <select
                   value={editRole}
-                  onChange={(e) => setEditRole(e.target.value)}
+                  onChange={(e) => setEditRole(e.target.value as UserRole)}
                   className="w-full rounded-md border px-2 py-1 text-xs"
                 >
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="DOCTOR">DOCTOR</option>
-                  <option value="RECEPTION">RECEPTION</option>
-                  <option value="FINANCE">FINANCE</option>
+                  <option value={UserRole.ADMIN}>ADMIN</option>
+                  <option value={UserRole.DOKTOR}>DOKTOR</option>
+                  <option value={UserRole.SEKRETER}>SEKRETER</option>
+                  <option value={UserRole.FINANS}>FINANS</option>
                 </select>
               </div>
               <div className="mt-3 flex justify-between gap-2">

@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { supabase } from "@/app/lib/supabaseClient";
-import { localDateStr } from "@/app/lib/dateUtils";
+import { supabase } from "@/lib/supabaseClient";
+import { localDateStr } from "@/lib/dateUtils";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
 
 export default function PaymentsPage() {
@@ -94,7 +94,7 @@ function PaymentsInner() {
       setSelectedAppointmentId(appointmentIdParam);
       setIsModalOpen(true);
     }
-  }, [appointmentIdParam]);
+  }, [appointmentIdParam, isModalOpen]);
 
   useEffect(() => {
     const loadPatients = async () => {
@@ -131,7 +131,7 @@ function PaymentsInner() {
       return;
     }
 
-    setPayments((data || []) as any);
+    setPayments((data || []) as unknown as PaymentRow[]);
     setLoading(false);
   };
 
@@ -162,7 +162,6 @@ function PaymentsInner() {
     const endStr = localDateStr(endDate);
 
     loadPayments(startStr, endStr);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, viewMode]);
 
   useEffect(() => {
@@ -207,21 +206,23 @@ function PaymentsInner() {
         return;
       }
 
-      const mapped: AppointmentOption[] = (data as any[]).map((row) => ({
-        id: row.id,
-        starts_at: row.starts_at,
-        treatment_type: row.treatment_type ?? null,
-        patient_id: row.patient_id,
-        patient_full_name: row.patients?.full_name ?? "Hasta",
-        patient_phone: row.patients?.phone ?? null,
-      }));
+      const mapped: AppointmentOption[] = (data || []).map((row) => {
+        const r = row as Record<string, unknown>;
+        return {
+          id: r.id as string,
+          starts_at: r.starts_at as string,
+          treatment_type: (r.treatment_type as string) ?? null,
+          patient_id: r.patient_id as string,
+          patient_full_name: (r.patients as { full_name: string } | null)?.full_name ?? "Hasta",
+          patient_phone: (r.patients as { phone: string | null } | null)?.phone ?? null,
+        };
+      });
 
       setModalAppointments(mapped);
       setModalAppointmentsLoading(false);
     };
 
     fetchAppointmentsForSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalPatientSearch, isModalOpen, patients]);
 
   const filteredPayments = payments.filter((p) => {

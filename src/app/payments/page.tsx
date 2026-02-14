@@ -1,8 +1,8 @@
- "use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
-import { localDateStr } from "../lib/dateUtils";
+import { supabase } from "@/lib/supabaseClient";
+import { localDateStr } from "@/lib/dateUtils";
 
 type Patient = {
   id: string;
@@ -111,7 +111,22 @@ export default function PaymentsPage() {
       return;
     }
 
-    setPayments((data || []) as any);
+    const mapped = (data || []).map((p) => {
+      const item = p as Record<string, unknown>;
+      const patient = Array.isArray(item.patient)
+        ? (item.patient[0] as { full_name: string | null; phone: string | null })
+        : (item.patient as { full_name: string | null; phone: string | null });
+      return {
+        id: item.id as string,
+        amount: item.amount as number,
+        method: item.method as string | null,
+        status: item.status as string | null,
+        note: item.note as string | null,
+        due_date: item.due_date as string | null,
+        patient: patient || null,
+      } as PaymentRow;
+    });
+    setPayments(mapped);
     setLoading(false);
   };
 
@@ -142,7 +157,6 @@ export default function PaymentsPage() {
     const endStr = localDateStr(endDate);
 
     loadPayments(startStr, endStr);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, viewMode]);
 
   useEffect(() => {
@@ -187,21 +201,24 @@ export default function PaymentsPage() {
         return;
       }
 
-      const mapped: AppointmentOption[] = (data as any[]).map((row) => ({
-        id: row.id,
-        starts_at: row.starts_at,
-        treatment_type: row.treatment_type ?? null,
-        patient_id: row.patient_id,
-        patient_full_name: row.patients?.full_name ?? "Hasta",
-        patient_phone: row.patients?.phone ?? null,
-      }));
+      const mapped: AppointmentOption[] = (data || []).map((row) => {
+        const r = row as Record<string, unknown>;
+        const patients = r.patients as { full_name: string | null; phone: string | null }[] | null;
+        return {
+          id: r.id as string,
+          starts_at: r.starts_at as string,
+          treatment_type: (r.treatment_type as string) ?? null,
+          patient_id: r.patient_id as string,
+          patient_full_name: patients?.[0]?.full_name ?? "Hasta",
+          patient_phone: patients?.[0]?.phone ?? null,
+        };
+      });
 
       setModalAppointments(mapped);
       setModalAppointmentsLoading(false);
     };
 
     fetchAppointmentsForSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalPatientSearch, isModalOpen, patients]);
 
   const filteredPayments = payments.filter((p) => {
@@ -397,11 +414,10 @@ export default function PaymentsPage() {
                 setViewMode("day");
                 setCurrentPage(1);
               }}
-              className={`rounded-md border px-2 py-1 text-[11px] ${
-                viewMode === "day"
-                  ? "bg-teal-600 text-white border-slate-900"
-                  : "bg-white text-slate-800 hover:bg-slate-50"
-              }`}
+              className={`rounded-md border px-2 py-1 text-[11px] ${viewMode === "day"
+                ? "bg-teal-600 text-white border-slate-900"
+                : "bg-white text-slate-800 hover:bg-slate-50"
+                }`}
             >
               Gün
             </button>
@@ -411,11 +427,10 @@ export default function PaymentsPage() {
                 setViewMode("week");
                 setCurrentPage(1);
               }}
-              className={`rounded-md border px-2 py-1 text-[11px] ${
-                viewMode === "week"
-                  ? "bg-teal-600 text-white border-slate-900"
-                  : "bg-white text-slate-800 hover:bg-slate-50"
-              }`}
+              className={`rounded-md border px-2 py-1 text-[11px] ${viewMode === "week"
+                ? "bg-teal-600 text-white border-slate-900"
+                : "bg-white text-slate-800 hover:bg-slate-50"
+                }`}
             >
               Hafta
             </button>
@@ -425,11 +440,10 @@ export default function PaymentsPage() {
                 setViewMode("month");
                 setCurrentPage(1);
               }}
-              className={`rounded-md border px-2 py-1 text-[11px] ${
-                viewMode === "month"
-                  ? "bg-teal-600 text-white border-slate-900"
-                  : "bg-white text-slate-800 hover:bg-slate-50"
-              }`}
+              className={`rounded-md border px-2 py-1 text-[11px] ${viewMode === "month"
+                ? "bg-teal-600 text-white border-slate-900"
+                : "bg-white text-slate-800 hover:bg-slate-50"
+                }`}
             >
               Ay
             </button>
@@ -782,8 +796,8 @@ export default function PaymentsPage() {
                     Tarih:{" "}
                     {selectedPayment.due_date
                       ? new Date(
-                          selectedPayment.due_date
-                        ).toLocaleDateString("tr-TR")
+                        selectedPayment.due_date
+                      ).toLocaleDateString("tr-TR")
                       : "-"}
                   </p>
                   <p className="text-[11px] text-slate-700">
