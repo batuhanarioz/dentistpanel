@@ -678,60 +678,105 @@ export default function PaymentsPage() {
                   <label className="block text-xs font-medium text-slate-700">
                     Randevu seç
                   </label>
-                  <input
-                    value={modalPatientSearch}
-                    onChange={(e) => setModalPatientSearch(e.target.value)}
-                    className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                    placeholder="Ad soyad veya telefon ile ara..."
-                  />
-                  <div className="max-h-40 overflow-y-auto border rounded-lg">
-                    {modalAppointmentsLoading && (
-                      <div className="px-3 py-2 text-[11px] text-slate-600">
-                        Randevular yükleniyor...
+                  {!selectedAppointmentId ? (
+                    <>
+                      <input
+                        value={modalPatientSearch}
+                        onChange={(e) => setModalPatientSearch(e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        placeholder="Ad soyad veya telefon ile ara..."
+                      />
+                      <div className="max-h-40 overflow-y-auto border rounded-lg bg-white">
+                        {modalAppointmentsLoading && (
+                          <div className="px-3 py-2 text-[11px] text-slate-600">
+                            Randevular yükleniyor...
+                          </div>
+                        )}
+                        {!modalAppointmentsLoading &&
+                          modalPatientSearch.trim() &&
+                          modalAppointments.length === 0 && (
+                            <div className="px-3 py-2 text-[11px] text-slate-600">
+                              Bu arama ile eşleşen randevu bulunamadı.
+                            </div>
+                          )}
+                        {!modalAppointmentsLoading &&
+                          modalAppointments.map((appt) => {
+                            const start = new Date(appt.starts_at);
+                            const startTime = start
+                              .toTimeString()
+                              .slice(0, 5);
+                            return (
+                              <div
+                                key={appt.id}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setSelectedAppointmentId(appt.id);
+                                }}
+                                className="w-full px-3 py-2 text-left text-[11px] flex flex-col gap-0.5 transition-colors cursor-pointer hover:bg-slate-50"
+                              >
+                                <span className="font-medium text-slate-900 pointer-events-none">
+                                  {appt.patient_full_name}{" "}
+                                  {appt.patient_phone ? `· ${appt.patient_phone}` : ""}
+                                </span>
+                                <span className="text-[10px] text-slate-600 pointer-events-none">
+                                  {start.toLocaleDateString("tr-TR")} · {startTime} ·{" "}
+                                  {appt.treatment_type || "Genel muayene"}
+                                </span>
+                              </div>
+                            );
+                          })}
                       </div>
-                    )}
-                    {!modalAppointmentsLoading &&
-                      modalPatientSearch.trim() &&
-                      modalAppointments.length === 0 && (
-                        <div className="px-3 py-2 text-[11px] text-slate-600">
-                          Bu arama ile eşleşen randevu bulunamadı.
-                        </div>
-                      )}
-                    {!modalAppointmentsLoading &&
-                      modalAppointments.map((appt) => {
-                        const start = new Date(appt.starts_at);
-                        const startTime = start
-                          .toTimeString()
-                          .slice(0, 5);
-                        const selected = selectedAppointmentId === appt.id;
+                      <p className="mt-1 text-[10px] text-slate-500">
+                        Önce hastayı arayın, ardından listeden ilgili randevuyu
+                        seçip ödeme planı oluşturun.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      {(() => {
+                        const selectedAppt = modalAppointments.find(a => a.id === selectedAppointmentId);
+                        if (!selectedAppt) return null;
+                        const start = new Date(selectedAppt.starts_at);
+                        const startTime = start.toTimeString().slice(0, 5);
                         return (
-                          <button
-                            type="button"
-                            key={appt.id}
-                            onClick={() => setSelectedAppointmentId(appt.id)}
-                            className={[
-                              "w-full px-3 py-2 text-left text-[11px] flex flex-col gap-0.5 transition-colors",
-                              selected
-                                ? "bg-emerald-50 border-l-2 border-l-emerald-600"
-                                : "hover:bg-slate-50",
-                            ].join(" ")}
-                          >
-                            <span className="font-medium text-slate-900">
-                              {appt.patient_full_name}{" "}
-                              {appt.patient_phone ? `· ${appt.patient_phone}` : ""}
-                            </span>
-                            <span className="text-[10px] text-slate-600">
-                              {start.toLocaleDateString("tr-TR")} · {startTime} ·{" "}
-                              {appt.treatment_type || "Genel muayene"}
-                            </span>
-                          </button>
+                          <div className="relative">
+                            <div className="w-full rounded-lg border border-emerald-500 bg-emerald-50 px-3 py-2.5 text-sm">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-slate-900">
+                                    {selectedAppt.patient_full_name}
+                                  </div>
+                                  <div className="text-[11px] text-slate-600 mt-0.5">
+                                    {selectedAppt.patient_phone && `${selectedAppt.patient_phone} · `}
+                                    {start.toLocaleDateString("tr-TR")} · {startTime}
+                                    {selectedAppt.treatment_type && ` · ${selectedAppt.treatment_type}`}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedAppointmentId("");
+                                    setModalPatientSearch("");
+                                    setModalAppointments([]);
+                                  }}
+                                  className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-200 text-emerald-700 hover:bg-emerald-300 transition-colors"
+                                  title="Seçimi temizle"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         );
-                      })}
-                  </div>
-                  <p className="mt-1 text-[10px] text-slate-500">
-                    Önce hastayı arayın, ardından listeden ilgili randevuyu
-                    seçip ödeme planı oluşturun.
-                  </p>
+                      })()}
+                      <p className="mt-1 text-[10px] text-emerald-600">
+                        ✓ Randevu seçildi. Değiştirmek için X butonuna tıklayın.
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

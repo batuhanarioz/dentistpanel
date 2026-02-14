@@ -73,6 +73,14 @@ export default function AppointmentCalendarPage() {
     const [phoneCountryCode, setPhoneCountryCode] = useState("+90");
     const [phoneNumber, setPhoneNumber] = useState("");
 
+    // Patient search states
+    const [patients, setPatients] = useState<Array<{ id: string; full_name: string; phone: string | null; email: string | null; birth_date: string | null }>>([]);
+    const [patientSearch, setPatientSearch] = useState("");
+    const [patientSearchResults, setPatientSearchResults] = useState<typeof patients>([]);
+    const [patientSearchLoading, setPatientSearchLoading] = useState(false);
+    const [selectedPatientId, setSelectedPatientId] = useState<string>("");
+    const [duplicatePatient, setDuplicatePatient] = useState<{ id: string; full_name: string; phone: string | null } | null>(null);
+
     const [form, setForm] = useState({
         patientName: "",
         phone: "",
@@ -239,6 +247,113 @@ export default function AppointmentCalendarPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate]);
 
+    useEffect(() => {
+        const loadPatients = async () => {
+            const { data, error } = await supabase
+                .from("patients")
+                .select("id, full_name, phone, email, birth_date")
+                .order("full_name", { ascending: true });
+
+            if (!error && data) {
+                setPatients(data);
+            }
+        };
+
+        loadPatients();
+    }, []);
+
+    useEffect(() => {
+        const searchPatients = () => {
+            const term = patientSearch.trim().toLowerCase();
+            if (!modalOpen || !term) {
+                setPatientSearchResults([]);
+                return;
+            }
+
+            setPatientSearchLoading(true);
+
+            const matchingPatients = patients.filter((p) => {
+                const name = p.full_name?.toLowerCase() ?? "";
+                const phone = p.phone?.replace(/\s+/g, "") ?? "";
+                const normalizedTerm = term.replace(/\s+/g, "");
+                return (
+                    name.includes(term) ||
+                    phone.includes(normalizedTerm) ||
+                    phone.includes(term)
+                );
+            });
+
+            setPatientSearchResults(matchingPatients.slice(0, 30));
+            setPatientSearchLoading(false);
+        };
+
+        searchPatients();
+    }, [patientSearch, modalOpen, patients]);
+
+    // Check for duplicate patient by phone number in manual entry
+    useEffect(() => {
+        const checkDuplicate = async () => {
+            let cleanPhone = phoneNumber.replace(/\D/g, "");
+
+            // Normalize: remove leading 0 if 11 digits
+            if (cleanPhone.length === 11 && cleanPhone.startsWith("0")) {
+                cleanPhone = cleanPhone.substring(1);
+            }
+
+            if (cleanPhone.length === 10 && !selectedPatientId) {
+                // Search for patient with this phone (checking both exact and normalized)
+                const match = patients.find(p => {
+                    const dbPhone = p.phone?.replace(/\D/g, "") || "";
+                    // Check if DB phone ends with the typed number (to handle +90 prefix)
+                    return dbPhone.endsWith(cleanPhone);
+                });
+
+                if (match) {
+                    setDuplicatePatient(match);
+                } else {
+                    setDuplicatePatient(null);
+                }
+            } else {
+                setDuplicatePatient(null);
+            }
+        };
+
+        checkDuplicate();
+    }, [phoneNumber, phoneCountryCode, selectedPatientId, patients]);
+
+    const handleUseDuplicate = () => {
+        if (!duplicatePatient) return;
+
+        const patient = duplicatePatient;
+        setSelectedPatientId(patient.id);
+        const match = patients.find(p => p.id === patient.id);
+
+        setForm((f) => ({
+            ...f,
+            patientName: patient.full_name,
+            phone: patient.phone || "",
+            email: (match as any)?.email || "",
+            birthDate: (match as any)?.birth_date || "",
+        }));
+
+        const rawPhone = patient.phone || "";
+        if (rawPhone.startsWith("+90")) {
+            setPhoneCountryCode("+90");
+            setPhoneNumber(rawPhone.substring(3).replace(/\D/g, ""));
+        } else if (rawPhone.startsWith("+")) {
+            const matchCode = rawPhone.match(/^(\+\d{1,2})(.*)$/); // Try 2 digits for other countries
+            setPhoneCountryCode(matchCode?.[1] ?? "+90");
+            setPhoneNumber(matchCode?.[2]?.replace(/\D/g, "") ?? "");
+        } else {
+            setPhoneCountryCode("+90");
+            setPhoneNumber(rawPhone.replace(/\D/g, ""));
+        }
+
+        setIsNewPatient(false);
+        setDuplicatePatient(null);
+        setPatientMatchInfo("Mevcut hasta seçildi.");
+    };
+
     // Kayıtlı doktorları Supabase'den çek (role = DOCTOR)
     useEffect(() => {
         const loadDoctors = async () => {
@@ -273,6 +388,10 @@ export default function AppointmentCalendarPage() {
         setConflictWarning(null);
         setPhoneCountryCode("+90");
         setPhoneNumber("");
+        // Reset patient search states
+        setPatientSearch("");
+        setPatientSearchResults([]);
+        setSelectedPatientId("");
         setForm({
             patientName: "",
             phone: "",
@@ -308,11 +427,18 @@ export default function AppointmentCalendarPage() {
         setMatchedPatientMedicalAlerts(appt.patientMedicalAlerts ?? null);
         setIsNewPatient(false);
         setConflictWarning(null);
+        // Reset patient search states
+        setPatientSearch("");
+        setPatientSearchResults([]);
+        setSelectedPatientId("");
         const rawPhone = appt.phone || "";
-        if (rawPhone.startsWith("+")) {
-            const match = rawPhone.match(/^(\+\d{1,4})(.*)$/);
-            setPhoneCountryCode(match?.[1] ?? "+90");
-            setPhoneNumber(match?.[2]?.replace(/\D/g, "") ?? "");
+        if (rawPhone.startsWith("+90")) {
+            setPhoneCountryCode("+90");
+            setPhoneNumber(rawPhone.substring(3).replace(/\D/g, ""));
+        } else if (rawPhone.startsWith("+")) {
+            const matchCode = rawPhone.match(/^(\+\d{1,2})(.*)$/); // Try 2 digits for other countries
+            setPhoneCountryCode(matchCode?.[1] ?? "+90");
+            setPhoneNumber(matchCode?.[2]?.replace(/\D/g, "") ?? "");
         } else {
             setPhoneCountryCode("+90");
             setPhoneNumber(rawPhone.replace(/\D/g, ""));
@@ -983,9 +1109,159 @@ export default function AppointmentCalendarPage() {
 
                                 <div className="space-y-1 md:col-span-2 border-t pt-3 mt-1">
                                     <label className="block text-xs font-medium text-slate-700">
-                                        Hasta bul / eşleştir
+                                        Hasta seç
                                     </label>
-                                    <div className="grid gap-2 md:grid-cols-[2fr,2fr,auto]">
+                                    {!selectedPatientId ? (
+                                        <>
+                                            <input
+                                                value={patientSearch}
+                                                onChange={(e) => setPatientSearch(e.target.value)}
+                                                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                                placeholder="Ad soyad veya telefon ile ara..."
+                                            />
+                                            <div className="max-h-40 overflow-y-auto border rounded-lg bg-white">
+                                                {patientSearchLoading && (
+                                                    <div className="px-3 py-2 text-[11px] text-slate-600">
+                                                        Hastalar yükleniyor...
+                                                    </div>
+                                                )}
+                                                {!patientSearchLoading &&
+                                                    patientSearch.trim() &&
+                                                    patientSearchResults.length === 0 && (
+                                                        <div className="px-3 py-2 text-[11px] text-slate-600">
+                                                            Bu arama ile eşleşen hasta bulunamadı.
+                                                        </div>
+                                                    )}
+                                                {!patientSearchLoading &&
+                                                    patientSearchResults.map((patient) => {
+                                                        return (
+                                                            <div
+                                                                key={patient.id}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setSelectedPatientId(patient.id);
+                                                                    setForm((f) => ({
+                                                                        ...f,
+                                                                        patientName: patient.full_name,
+                                                                        phone: patient.phone || "",
+                                                                        email: patient.email || "",
+                                                                        birthDate: patient.birth_date || "",
+                                                                    }));
+                                                                    const rawPhone = patient.phone || "";
+                                                                    if (rawPhone.startsWith("+")) {
+                                                                        const match = rawPhone.match(/^(\+\d{1,4})(.*)$/);
+                                                                        setPhoneCountryCode(match?.[1] ?? "+90");
+                                                                        setPhoneNumber(match?.[2]?.replace(/\D/g, "") ?? "");
+                                                                    } else {
+                                                                        setPhoneCountryCode("+90");
+                                                                        setPhoneNumber(rawPhone.replace(/\D/g, ""));
+                                                                    }
+                                                                    setIsNewPatient(false);
+                                                                    setPatientMatchInfo("Mevcut hasta seçildi.");
+                                                                }}
+                                                                className="w-full px-3 py-2 text-left text-[11px] flex flex-col gap-0.5 transition-colors cursor-pointer hover:bg-slate-50"
+                                                            >
+                                                                <span className="font-medium text-slate-900 pointer-events-none">
+                                                                    {patient.full_name}{" "}
+                                                                    {patient.phone ? `· ${patient.phone}` : ""}
+                                                                </span>
+                                                                {patient.email && (
+                                                                    <span className="text-[10px] text-slate-600 pointer-events-none">
+                                                                        {patient.email}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                            </div>
+                                            <p className="mt-1 text-[10px] text-slate-500">
+                                                Hastayı arayın ve listeden seçin. Bulamadıysanız aşağıdaki alanlara manuel girin.
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {(() => {
+                                                const selectedPatient = patients.find(p => p.id === selectedPatientId);
+                                                if (!selectedPatient) return null;
+                                                return (
+                                                    <div className="relative">
+                                                        <div className="w-full rounded-lg border border-indigo-500 bg-indigo-50 px-3 py-2.5 text-sm">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="font-medium text-slate-900">
+                                                                        {selectedPatient.full_name}
+                                                                    </div>
+                                                                    <div className="text-[11px] text-slate-600 mt-0.5">
+                                                                        {selectedPatient.phone && `${selectedPatient.phone}`}
+                                                                        {selectedPatient.email && ` · ${selectedPatient.email}`}
+                                                                    </div>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setSelectedPatientId("");
+                                                                        setPatientSearch("");
+                                                                        setPatientSearchResults([]);
+                                                                        setForm((f) => ({
+                                                                            ...f,
+                                                                            patientName: "",
+                                                                            phone: "",
+                                                                            email: "",
+                                                                            birthDate: "",
+                                                                        }));
+                                                                        setPhoneCountryCode("+90");
+                                                                        setPhoneNumber("");
+                                                                        setIsNewPatient(true);
+                                                                        setPatientMatchInfo(null);
+                                                                    }}
+                                                                    className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-200 text-indigo-700 hover:bg-indigo-300 transition-colors"
+                                                                    title="Seçimi temizle"
+                                                                >
+                                                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                            <p className="mt-1 text-[10px] text-indigo-600">
+                                                ✓ Hasta seçildi. Değiştirmek için X butonuna tıklayın.
+                                            </p>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Manuel hasta bilgileri - Yeni hasta veya düzenleme için */}
+                                <div className="space-y-1 md:col-span-2 border-t pt-3 mt-1">
+                                    <label className="block text-xs font-medium text-slate-700">
+                                        Hasta bilgileri {!selectedPatientId && "(Manuel giriş veya düzenleme)"}
+                                    </label>
+
+                                    {/* Duplicate Patient Warning Alert */}
+                                    {duplicatePatient && (
+                                        <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] animate-in fade-in slide-in-from-top-1 duration-200">
+                                            <div className="flex items-center gap-2 text-amber-800">
+                                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                                                </svg>
+                                                <span>
+                                                    <span className="font-bold">Bu numara kayıtlı:</span> {duplicatePatient.full_name} ({duplicatePatient.phone})
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleUseDuplicate}
+                                                className="shrink-0 rounded-md bg-amber-600 px-2 py-0.5 font-bold text-white hover:bg-amber-700 transition-colors"
+                                            >
+                                                Bu Hastayı Kullan
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <div className="grid gap-2 md:grid-cols-2">
                                         <div className="flex gap-1">
                                             <input
                                                 value={phoneCountryCode}
@@ -1017,14 +1293,8 @@ export default function AppointmentCalendarPage() {
                                             }
                                             className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                                             placeholder="Hasta adı soyadı"
+                                            required
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={handleFindPatient}
-                                            className="rounded-lg border px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                                        >
-                                            Hasta bul
-                                        </button>
                                     </div>
                                     {patientMatchInfo && (
                                         <p className="mt-1 text-[10px] text-slate-600">
@@ -1073,6 +1343,19 @@ export default function AppointmentCalendarPage() {
 
                                 <div className="space-y-1">
                                     <label className="block text-xs font-medium text-slate-700">
+                                        Doğum tarihi
+                                    </label>
+                                    <PremiumDatePicker
+                                        value={form.birthDate || today}
+                                        onChange={(date) =>
+                                            setForm((f) => ({ ...f, birthDate: date }))
+                                        }
+                                        today={today}
+                                        compact
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="block text-xs font-medium text-slate-700">
                                         E-posta
                                     </label>
                                     <input
@@ -1083,19 +1366,6 @@ export default function AppointmentCalendarPage() {
                                         }
                                         className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                                         placeholder="ornek@hasta.com"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="block text-xs font-medium text-slate-700">
-                                        Doğum tarihi
-                                    </label>
-                                    <PremiumDatePicker
-                                        value={form.birthDate || today}
-                                        onChange={(date) =>
-                                            setForm((f) => ({ ...f, birthDate: date }))
-                                        }
-                                        today={today}
-                                        compact
                                     />
                                 </div>
                                 <div className="space-y-1">
