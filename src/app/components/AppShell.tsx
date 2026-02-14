@@ -233,13 +233,13 @@ function ShellInner({ children }: Props) {
       case subPath === "/appointment-management":
         setHeaderTitle("Randevu Yönetimi");
         setHeaderSubtitle(
-          "Gün boyu 09:00 - 19:00 arasındaki randevuları çizelge üzerinde görüntüleyip yönetebilirsiniz."
+          "İstediğiniz tarih aralığında randevuları çizelge üzerinde görüntüleyip yönetebilirsiniz."
         );
         break;
       case subPath === "/payment-management":
         setHeaderTitle("Ödeme Yönetimi");
         setHeaderSubtitle(
-          "Hastalar için ödeme planlarını tarih bazlı olarak yönetin."
+          "Randevuya ait ödeme planlarını tarih bazlı olarak yönetin."
         );
         break;
       case subPath === "/patients":
