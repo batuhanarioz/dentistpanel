@@ -999,57 +999,6 @@ export default function ReportsPage() {
             )}
           </ReportCard>
 
-          {/* ─── OTOMASYON RAPORLARI ─── */}
-          <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-50 to-slate-100/50 border-b px-5 py-3">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-100 to-purple-100">
-                  <svg className="h-4 w-4 text-violet-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-slate-900">Otomasyon Raporları</h3>
-                    <span className="rounded-full bg-gradient-to-r from-amber-400 to-orange-400 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">Yakında</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Otomatik olarak ilgili kişilere gönderilecek</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <AutomationCard
-                icon={<svg className="h-4.5 w-4.5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>}
-                iconBg="bg-blue-50"
-                title="Gün Sonu Özeti"
-                desc="Günlük randevu, no-show ve ödeme durumu"
-                target="Klinik sahibi / yönetici"
-                schedule="Her gün saat 19:30"
-              />
-              <AutomationCard
-                icon={<svg className="h-4.5 w-4.5 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>}
-                iconBg="bg-indigo-50"
-                title="Haftalık Performans Raporu"
-                desc="Randevu, kanal dağılımı, doluluk, no-show trendi"
-                target="Yönetim ekibi"
-                schedule="Her Pazartesi saat 09:00"
-              />
-              <AutomationCard
-                icon={<svg className="h-4.5 w-4.5 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>}
-                iconBg="bg-amber-50"
-                title="Boş Saat / Düşük Doluluk Uyarısı"
-                desc="Düşük doluluklu günler için kampanya tetikleme"
-                target="Otomatik WhatsApp"
-                schedule="Doluluk %40 altına düştüğünde"
-              />
-              <AutomationCard
-                icon={<svg className="h-4.5 w-4.5 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>}
-                iconBg="bg-emerald-50"
-                title="Ödeme Eksikleri Raporu"
-                desc="Tamamlanmış ama ücreti girilmemiş randevular"
-                target="Finans / resepsiyon"
-                schedule="Her gün saat 18:00"
-              />
-            </div>
-          </div>
         </>
       )}
     </div>
@@ -1140,46 +1089,6 @@ function EmptyState() {
       <div className="text-center">
         <p className="text-xs font-medium text-slate-400">Veri bulunamadı</p>
         <p className="text-[10px] text-slate-300 mt-0.5">Seçilen dönemde gösterilecek veri yok</p>
-      </div>
-    </div>
-  );
-}
-
-function AutomationCard({
-  icon,
-  iconBg,
-  title,
-  desc,
-  target,
-  schedule,
-}: {
-  icon: React.ReactNode;
-  iconBg: string;
-  title: string;
-  desc: string;
-  target: string;
-  schedule: string;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 text-[11px] hover:border-slate-300 hover:shadow-sm transition-all group">
-      <div className="flex items-start gap-3">
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
-          {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-slate-900 text-xs">{title}</p>
-          <p className="text-slate-500 mt-0.5 leading-relaxed">{desc}</p>
-          <div className="flex items-center gap-3 mt-2.5">
-            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-500">
-              <svg className="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
-              {target}
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] text-violet-600 font-medium">
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-              {schedule}
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );
