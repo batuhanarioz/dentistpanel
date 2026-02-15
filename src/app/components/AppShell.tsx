@@ -87,7 +87,7 @@ function ClinicNav({
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
       <a href={`${base}/appointments`} className={linkClass(`${base}/appointments`)} onClick={handleClick}>
-        <span>Randevular</span>
+        <span>Randevu Ajandası</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
       <a href={`${base}/payment-management`} className={linkClass(`${base}/payment-management`)} onClick={handleClick}>
@@ -221,15 +221,15 @@ function ShellInner({ children }: Props) {
         );
         break;
       case subPath === "/appointments":
-        setHeaderTitle("Randevu Yönetimi");
+        setHeaderTitle("Randevu Ajandası");
         setHeaderSubtitle(
-          "Günlük takvim, doktor bazlı görünüm ve kanal dağılımı."
+          "Randevuları tarih ve doktor bazlı olarak görüntüleyin ve boşluklarınızı görün."
         );
         break;
       case subPath === "/appointment-management":
         setHeaderTitle("Randevu Yönetimi");
         setHeaderSubtitle(
-          "İstediğiniz tarih aralığında randevuları çizelge üzerinde görüntüleyip yönetebilirsiniz."
+          "İstediğiniz tarih aralığında randevuları çizelge üzerinde ekleyin, düzenleyin ve silin."
         );
         break;
       case subPath === "/payment-management":

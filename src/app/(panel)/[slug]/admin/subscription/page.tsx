@@ -122,24 +122,6 @@ export default function SubscriptionPage() {
                             </div>
                         </div>
                     </div>
-
-                    <div className="rounded-3xl border border-blue-100 bg-blue-50/50 p-6">
-                        <div className="flex gap-4">
-                            <div className="h-10 w-10 shrink-0 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                                <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-bold text-blue-900">Otomasyon Durumu</h4>
-                                <p className="text-xs text-blue-700/80 mt-1 leading-relaxed">
-                                    {clinic.automationsEnabled
-                                        ? "Otomasyon modülü kliniğiniz için aktif edildi. Aşağıdaki listeden aktif servislerinizi görebilirsiniz."
-                                        : "Otomasyon modülü şu an pasif. Etkinleştirmek için lütfen sistem yöneticisi ile iletişime geçin."}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Sağ Kolon: Paket Yükseltme */}
