@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { STATUS_LABEL_MAP, STATUS_BADGE_CLASS } from "@/constants/dashboard";
-import { TREATMENTS } from "@/constants/appointments";
-import { UserRole } from "@/types/database";
 
 interface AppointmentDetailDrawerProps {
     appointmentId: string | null;

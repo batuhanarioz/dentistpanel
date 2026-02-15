@@ -16,9 +16,6 @@ interface CreateUserModalProps {
     setPassword: (v: string) => void;
     role: string;
     setRole: (v: string) => void;
-    clinicId: string;
-    setClinicId: (v: string) => void;
-    clinics: ClinicRow[];
     isSuperAdmin: boolean;
 }
 
@@ -26,7 +23,7 @@ export function CreateUserModal({
     isOpen, onClose, onSubmit, saving, error,
     email, setEmail, fullName, setFullName,
     password, setPassword, role, setRole,
-    clinicId, setClinicId, clinics, isSuperAdmin
+    isSuperAdmin
 }: CreateUserModalProps) {
     if (!isOpen) return null;
 

@@ -25,7 +25,7 @@ export type DoctorRow = { id: string; full_name: string };
 export type DatePreset = "today" | "7d" | "30d" | "custom";
 export type KPIDetailType = "completed" | "cancelled_noshow" | "unpaid" | null;
 
-const WORKING_HOURS = 10;
+
 export const CHANNEL_LABELS: Record<string, string> = { whatsapp: "WhatsApp", web: "Web", phone: "Telefon", walk_in: "Yüz yüze" };
 
 export function useReports() {
@@ -175,11 +175,6 @@ export function useReports() {
 
     const downloadReportCsv = () => {
         const sep = ";";
-        const escape = (v: any) => {
-            if (v == null) return "";
-            const s = String(v).replace(/"/g, '""');
-            return /[";\n\r]/.test(s) ? `"${s}"` : s;
-        };
         const lines = [
             "RAPOR ÖZET", `Dönem${sep}${rangeLabel}`,
             `Doktor${sep}${doctorFilter === "ALL" ? "Tümü" : doctors.find(d => d.id === doctorFilter)?.full_name ?? ""}`,

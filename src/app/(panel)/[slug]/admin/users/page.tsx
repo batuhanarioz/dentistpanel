@@ -3,7 +3,6 @@
 import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { UserRole } from "@/types/database";
 import { UserListTable } from "@/app/components/admin/UserListTable";
-import { SelfProfileCard } from "@/app/components/admin/SelfProfileCard";
 import { CreateUserModal } from "@/app/components/admin/CreateUserModal";
 import { EditUserModal } from "@/app/components/admin/EditUserModal";
 import { ResetPasswordModal } from "@/app/components/admin/ResetPasswordModal";
@@ -13,15 +12,14 @@ import { DashboardChecklistModal } from "@/app/components/DashboardChecklistModa
 
 export default function AdminUsersPage() {
   const {
-    users, loading, error, isAdmin, currentUserId, currentUserEmail, clinics,
-    showCreateModal, setShowCreateModal, showEditModal, setShowEditModal, selectedUser, setSelectedUser,
+    users, loading, error, isAdmin, currentUserId,
+    showCreateModal, setShowCreateModal, showEditModal, setShowEditModal, selectedUser,
     showPasswordModal, setShowPasswordModal, deleteTarget, setDeleteTarget, deleteProtected,
     showResetModal, setShowResetModal, setResetUserId, showChecklistModal, setShowChecklistModal,
-    saving, newEmail, setNewEmail, newFullName, setNewFullName, newPassword, setNewPassword, newRole, setNewRole, newClinicId, setNewClinicId,
+    saving, newEmail, setNewEmail, newFullName, setNewFullName, newPassword, setNewPassword, newRole, setNewRole,
     editFullName, setEditFullName, editRole, setEditRole, editSaving,
     resetPassword, setResetPassword, resetSaving, resetError, resetSuccess, setResetSuccess,
-    selfNewEmail, setSelfNewEmail, selfOldPassword, setSelfOldPassword, selfNewPassword, setSelfNewPassword, selfNewPasswordRepeat, setSelfNewPasswordRepeat, selfSaving, selfMessage,
-    handleCreateUser, handleUpdateUser, handleResetPassword, executeDeleteUser, handleUpdateSelf, openEditModal, openDeleteModal
+    handleCreateUser, handleUpdateUser, handleResetPassword, executeDeleteUser, openEditModal, openDeleteModal
   } = useAdminUsers();
 
   // Calculate statistics
@@ -112,9 +110,6 @@ export default function AdminUsersPage() {
         setPassword={setNewPassword}
         role={newRole}
         setRole={setNewRole}
-        clinicId={newClinicId}
-        setClinicId={setNewClinicId}
-        clinics={clinics}
         isSuperAdmin={isAdmin}
       />
 
