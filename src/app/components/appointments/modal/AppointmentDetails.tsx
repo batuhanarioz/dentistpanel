@@ -1,5 +1,5 @@
 import React from "react";
-import { TREATMENTS, CHANNEL_OPTIONS } from "@/constants/appointments";
+import { CHANNEL_OPTIONS } from "@/constants/appointments";
 import { AppointmentFormState, CalendarAppointment } from "@/hooks/useAppointmentManagement";
 import { AppointmentStatus } from "@/types/database";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
