@@ -15,7 +15,16 @@ export function PaymentStats({ stats }: PaymentStatsProps) {
     );
 }
 
-function StatCard({ label, value, color, bg, icon, isNumber }: any) {
+interface StatCardProps {
+    label: string;
+    value: number;
+    color: string;
+    bg: string;
+    icon: React.ReactNode;
+    isNumber?: boolean;
+}
+
+function StatCard({ label, value, color, bg, icon, isNumber }: StatCardProps) {
     return (
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
             <div className="flex items-center gap-3">

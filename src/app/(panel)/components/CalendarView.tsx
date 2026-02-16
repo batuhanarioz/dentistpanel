@@ -96,8 +96,8 @@ const channelMap: Record<string, string> = {
 };
 
 const statusMap: Record<string, { label: string; class: string }> = {
-    confirmed: { label: "Onaylı", class: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-    completed: { label: "Tamamlandı", class: "bg-blue-100 text-blue-700 border-blue-200" },
+    confirmed: { label: "Planlandı", class: "bg-blue-100 text-blue-700 border-blue-200" },
+    completed: { label: "Tamamlandı", class: "bg-emerald-100 text-emerald-700 border-emerald-200" },
     pending: { label: "Onay Bekliyor", class: "bg-amber-100 text-amber-700 border-amber-200" },
     cancelled: { label: "İptal", class: "bg-rose-100 text-rose-700 border-rose-200" },
     no_show: { label: "Gelmedi", class: "bg-rose-100 text-rose-700 border-rose-200" },

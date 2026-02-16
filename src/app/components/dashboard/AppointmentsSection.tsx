@@ -1,17 +1,12 @@
 import React from "react";
-import { DashboardAppointment, DoctorOption } from "@/hooks/useDashboard";
-import { STATUS_LABEL_MAP, STATUS_BADGE_CLASS } from "@/constants/dashboard";
+import { DashboardAppointment } from "@/hooks/useDashboard";
 
 interface AppointmentsSectionProps {
     isToday: boolean;
     appointments: DashboardAppointment[];
     loading: boolean;
-    doctors: DoctorOption[];
     onOffsetChange: () => void;
-    onStatusChange: (id: string, status: DashboardAppointment["status"]) => void;
-    onAssignDoctor: (appointmentId: string, doctorId: string) => void;
     onReminderClick: (id: string) => void;
-    onAppointmentClick: (id: string) => void;
 }
 
 function formatTime(dateString: string) {
@@ -33,12 +28,8 @@ export function AppointmentsSection({
     isToday,
     appointments,
     loading,
-    doctors,
     onOffsetChange,
-    onStatusChange,
-    onAssignDoctor,
     onReminderClick,
-    onAppointmentClick
 }: AppointmentsSectionProps) {
     return (
         <section className="rounded-2xl border bg-white shadow-sm overflow-hidden">
@@ -77,7 +68,7 @@ export function AppointmentsSection({
                     const timeRange = `${formatTime(appt.startsAt)} - ${formatTime(appt.endsAt)}`;
                     const treatmentLabel = appt.treatmentType?.trim() || "Genel muayene";
                     return (
-                        <div key={appt.id} onClick={() => onAppointmentClick(appt.id)} className="rounded-xl border border-slate-200 bg-white p-3 space-y-2 hover:shadow-sm transition-shadow cursor-pointer">
+                        <div key={appt.id} className="rounded-xl border border-slate-200 bg-white p-3 space-y-2 select-none">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-[9px] font-bold text-white uppercase">{appt.patientName[0]}</div>
@@ -86,41 +77,21 @@ export function AppointmentsSection({
                                         <div className="text-[10px] text-slate-400">{timeRange} · {treatmentLabel}</div>
                                     </div>
                                 </div>
-                                <button type="button" onClick={(e) => { e.stopPropagation(); onReminderClick(appt.id); }} className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">
-                                    <WhatsAppIcon /><span>Hatırlat</span>
+                                <button
+                                    type="button"
+                                    onClick={() => onReminderClick(appt.id)}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                >
+                                    <WhatsAppIcon /><span>İletişime Geç</span>
                                 </button>
                             </div>
                             <div className="flex items-center justify-between">
-                                {appt.status === "pending" ? (
-                                    <select
-                                        className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px]"
-                                        value={appt.status}
-                                        onClick={(e) => e.stopPropagation()}
-                                        onChange={(e) => onStatusChange(appt.id, e.target.value as any)}
-                                    >
-                                        <option value="pending">Onay bekliyor</option>
-                                        <option value="confirmed">Onaylandı</option>
-                                        <option value="cancelled">İptal</option>
-                                    </select>
-                                ) : (
-                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${STATUS_BADGE_CLASS[appt.status]}`}>
-                                        {STATUS_LABEL_MAP[appt.status]}
-                                    </span>
-                                )}
-                                <div>
+                                <div className="text-[10px] font-medium text-slate-500">
                                     {appt.doctorId && appt.doctorName !== "Doktor atanmadı" ? (
-                                        <span className="text-[11px] text-slate-600">{appt.doctorName}</span>
-                                    ) : doctors.length > 0 ? (
-                                        <select
-                                            className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px]"
-                                            defaultValue=""
-                                            onClick={(e) => e.stopPropagation()}
-                                            onChange={(e) => onAssignDoctor(appt.id, e.target.value)}
-                                        >
-                                            <option value="">Doktor atanmadı</option>
-                                            {doctors.map(d => <option key={d.id} value={d.id}>{d.full_name}</option>)}
-                                        </select>
-                                    ) : <span className="text-[11px] text-slate-400">Doktor atanmadı</span>}
+                                        <span>{appt.doctorName}</span>
+                                    ) : (
+                                        <span>Doktor atanmadı</span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -132,11 +103,11 @@ export function AppointmentsSection({
             <div className="hidden md:block">
                 <div className="overflow-x-auto">
                     <div className="min-w-[640px]">
-                        <div className="grid grid-cols-[1fr_1.2fr_1fr_1.5fr] gap-3 items-center px-5 py-2.5 bg-gradient-to-r from-slate-50 to-slate-100/50 border-y text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                        <div className="grid grid-cols-[1fr_1.2fr_1.2fr_1fr] gap-3 items-center px-5 py-2.5 bg-gradient-to-r from-slate-50 to-slate-100/50 border-y text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                             <span>Saat / İşlem</span>
                             <span>Hasta</span>
                             <span>Doktor</span>
-                            <span>Durum & Aksiyonlar</span>
+                            <span>İletişim</span>
                         </div>
                         <div className="divide-y divide-slate-100 h-[320px] overflow-y-auto">
                             {!loading && appointments.length === 0 && (
@@ -146,50 +117,28 @@ export function AppointmentsSection({
                                 const timeRange = `${formatTime(appt.startsAt)} - ${formatTime(appt.endsAt)}`;
                                 const treatmentLabel = appt.treatmentType?.trim() || "Genel muayene";
                                 return (
-                                    <div key={appt.id} onClick={() => onAppointmentClick(appt.id)} className="grid grid-cols-[1fr_1.2fr_1fr_1.5fr] gap-3 items-center px-5 py-3 transition-all hover:bg-slate-50/80 group text-xs cursor-pointer">
+                                    <div key={appt.id} className="grid grid-cols-[1fr_1.2fr_1.2fr_1fr] gap-3 items-center px-5 py-3 text-xs border-b border-slate-50 select-none">
                                         <div>
                                             <div className="font-semibold text-slate-900">{timeRange}</div>
                                             <div className="text-[11px] text-slate-400 mt-0.5">{treatmentLabel}</div>
                                         </div>
                                         <div className="flex items-center gap-2.5 min-w-0">
                                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-bold text-white shadow-sm shrink-0 uppercase">{appt.patientName[0]}</div>
-                                            <span className="text-sm font-semibold text-slate-900 truncate group-hover:text-indigo-700 transition-colors">{appt.patientName}</span>
+                                            <span className="text-sm font-semibold text-slate-900 truncate">{appt.patientName}</span>
                                         </div>
                                         <div>
-                                            {appt.doctorId && appt.doctorName !== "Doktor atanmadı" ? (
-                                                <span className="text-sm text-slate-700">{appt.doctorName}</span>
-                                            ) : (
-                                                <select
-                                                    className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] w-full"
-                                                    defaultValue=""
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    onChange={(e) => onAssignDoctor(appt.id, e.target.value)}
-                                                >
-                                                    <option value="">Doktor atanmadı</option>
-                                                    {doctors.map(d => <option key={d.id} value={d.id}>{d.full_name}</option>)}
-                                                </select>
-                                            )}
+                                            <span className="text-sm text-slate-700">
+                                                {appt.doctorName}
+                                            </span>
                                         </div>
                                         <div className="flex flex-wrap items-center gap-1.5">
-                                            <button type="button" onClick={(e) => { e.stopPropagation(); onReminderClick(appt.id); }} className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700 hover:bg-emerald-100 transition-colors">
-                                                <WhatsAppIcon /><span>Hatırlat</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => onReminderClick(appt.id)}
+                                                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors shadow-sm active:scale-95 whitespace-nowrap"
+                                            >
+                                                <WhatsAppIcon /><span>İletişime Geç</span>
                                             </button>
-                                            {appt.status === "pending" ? (
-                                                <select
-                                                    className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px]"
-                                                    value={appt.status}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    onChange={(e) => onStatusChange(appt.id, e.target.value as any)}
-                                                >
-                                                    <option value="pending">Onay bekliyor</option>
-                                                    <option value="confirmed">Onaylandı</option>
-                                                    <option value="cancelled">İptal</option>
-                                                </select>
-                                            ) : (
-                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${STATUS_BADGE_CLASS[appt.status]}`}>
-                                                    {STATUS_LABEL_MAP[appt.status]}
-                                                </span>
-                                            )}
                                         </div>
                                     </div>
                                 );

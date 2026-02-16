@@ -11,7 +11,6 @@ export enum UserRole {
 export const USER_ROLES = Object.values(UserRole);
 
 export type AppointmentStatus =
-  | "pending"
   | "confirmed"
   | "cancelled"
   | "no_show"
@@ -28,30 +27,6 @@ export interface DaySchedule {
 }
 
 export type WorkingHours = Record<DayOfWeek, DaySchedule>;
-
-export const DEFAULT_WORKING_HOURS: WorkingHours = {
-  monday: { open: "09:00", close: "19:00", enabled: true },
-  tuesday: { open: "09:00", close: "19:00", enabled: true },
-  wednesday: { open: "09:00", close: "19:00", enabled: true },
-  thursday: { open: "09:00", close: "19:00", enabled: true },
-  friday: { open: "09:00", close: "19:00", enabled: true },
-  saturday: { open: "09:00", close: "14:00", enabled: false },
-  sunday: { open: "09:00", close: "14:00", enabled: false },
-};
-
-export const DAY_LABELS: Record<DayOfWeek, string> = {
-  monday: "Pazartesi",
-  tuesday: "Salı",
-  wednesday: "Çarşamba",
-  thursday: "Perşembe",
-  friday: "Cuma",
-  saturday: "Cumartesi",
-  sunday: "Pazar",
-};
-
-export const ORDERED_DAYS: DayOfWeek[] = [
-  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
-];
 
 export interface SubscriptionPlanFeatures {
   description?: string;
@@ -126,14 +101,16 @@ export interface Appointment {
   patient_note: string | null;
   internal_note: string | null;
   treatment_note: string | null;
-  contact_preference: string | null;
-  reminder_minutes_before: number | null;
+
   tags: string[] | null;
   source_conversation_id: string | null;
   source_message_id: string | null;
   estimated_amount: number | null;
   created_by: string | null;
   created_at: string;
+  doctor_name?: string;
+  patient_name?: string;
+  patient?: { full_name: string; phone: string | null };
 }
 
 export interface Payment {
@@ -147,4 +124,5 @@ export interface Payment {
   note: string | null;
   due_date: string | null;
   created_at: string;
+  patients?: { full_name: string; phone: string | null };
 }

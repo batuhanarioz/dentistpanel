@@ -54,37 +54,48 @@ export function PaymentList({ payments, loading, onPaymentClick }: PaymentListPr
                 <button
                     key={p.id}
                     onClick={() => onPaymentClick(p)}
-                    className="w-full grid grid-cols-[1fr_1fr_auto_auto] gap-4 items-center px-5 py-3.5 text-left transition-all hover:bg-slate-50/80 group"
+                    className="w-full grid grid-cols-[2fr_1fr_auto] sm:grid-cols-[1fr_1fr_auto_auto] gap-2 sm:gap-4 items-center px-4 sm:px-5 py-3.5 text-left transition-all hover:bg-slate-50/80 group"
                 >
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600 font-bold border border-teal-100 shadow-sm uppercase tracking-tighter">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600 font-bold border border-teal-100 shadow-sm uppercase tracking-tighter text-[10px] sm:text-xs">
                             {(p.patient?.full_name || "H")[0]}
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-bold text-slate-900 truncate group-hover:text-teal-700 transition-colors">
+                            <span className="text-[13px] sm:text-sm font-bold text-slate-900 truncate group-hover:text-teal-700 transition-colors">
                                 {p.patient?.full_name || "Hasta"}
                             </span>
-                            <span className="text-[11px] text-slate-400 font-medium">
+                            <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
                                 {p.patient?.phone || "-"}
                             </span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-extrabold text-slate-900 whitespace-nowrap">
+
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 min-w-0 sm:justify-start">
+                        <span className="text-[13px] sm:text-sm font-extrabold text-slate-900 whitespace-nowrap text-center sm:text-left">
                             {p.amount.toLocaleString("tr-TR")} ₺
                         </span>
+                        {p.method && (
+                            <span className="inline-flex sm:hidden items-center text-[8px] font-bold text-slate-400 uppercase tracking-tight text-center justify-center">
+                                {p.method}
+                            </span>
+                        )}
                         {p.method && (
                             <span className="hidden sm:inline-flex items-center rounded-md bg-slate-50 px-1.5 py-0.5 text-[9px] font-bold text-slate-500 border border-slate-200">
                                 {p.method}
                             </span>
                         )}
                     </div>
-                    <div>
-                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold border ${statusBadge(p.status)}`}>
+
+                    <div className="flex flex-col items-end gap-1">
+                        <span className={`inline-flex items-center rounded-md px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold border ${statusBadge(p.status)}`}>
                             {statusLabel(p.status)}
                         </span>
+                        <span className="sm:hidden text-[9px] text-slate-400 font-bold">
+                            {p.due_date ? new Date(p.due_date).toLocaleDateString("tr-TR", { day: '2-digit', month: '2-digit' }) : "-"}
+                        </span>
                     </div>
-                    <div className="text-right">
+
+                    <div className="hidden sm:block text-right">
                         <span className="text-[11px] text-slate-500 font-bold">
                             {p.due_date ? new Date(p.due_date).toLocaleDateString("tr-TR") : "-"}
                         </span>

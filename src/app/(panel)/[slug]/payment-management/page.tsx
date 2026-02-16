@@ -34,67 +34,67 @@ function PaymentsInner() {
   const totalPages = Math.max(1, Math.ceil(filteredPayments.length / PAGE_SIZE));
   const currentPagePayments = filteredPayments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const rangeLabel = (() => {
-    const baseDate = new Date(selectedDate);
-    if (viewMode === "day") return baseDate.toLocaleDateString("tr-TR");
-    if (viewMode === "week") {
-      const d = baseDate.getDay(); const diff = (d + 6) % 7;
-      const s = new Date(baseDate); s.setDate(s.getDate() - diff);
-      const e = new Date(s); e.setDate(e.getDate() + 6);
-      return `${s.toLocaleDateString("tr-TR")} - ${e.toLocaleDateString("tr-TR")}`;
-    }
-    return baseDate.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
-  })();
-
   return (
     <div className="space-y-6 pb-20 italic-none">
-      {/* Header & Stats */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Ödeme & Tahsilat</h1>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Finansal akışınızı ve bekleyen ödemeleri yönetin.</p>
-        </div>
-      </div>
 
       <PaymentStats stats={stats} />
 
       {/* Tools */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white/50 p-2 rounded-2xl border-2 border-slate-50">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center w-full">
-          <div className="flex items-center gap-2 w-full md:w-auto">
+      <div className="bg-white p-3 rounded-2xl border shadow-sm space-y-3">
+        {/* Row 1: Date & View Mode */}
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <div className="flex items-center gap-2 grow sm:grow-0">
             <PremiumDatePicker value={selectedDate} onChange={(d) => { setSelectedDate(d); setCurrentPage(1); }} today={today} />
-            <button onClick={() => { setSelectedDate(today); setCurrentPage(1); }} className="h-10 px-4 rounded-xl border-2 border-slate-100 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">Bugün</button>
+            <button onClick={() => { setSelectedDate(today); setCurrentPage(1); }} className="h-10 px-4 rounded-xl border bg-slate-50 text-[11px] font-black text-slate-600 hover:bg-slate-100 transition-all uppercase tracking-tight">Bugün</button>
           </div>
 
-          <div className="flex rounded-xl border-2 border-slate-100 bg-white p-1 shadow-sm">
+          <div className="flex grow sm:grow-0 rounded-xl bg-slate-100 p-1">
             {(["day", "week", "month"] as const).map(m => (
-              <button key={m} onClick={() => { setViewMode(m); setCurrentPage(1); }} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${viewMode === m ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'}`}>
+              <button key={m} onClick={() => { setViewMode(m); setCurrentPage(1); }} className={`flex-1 sm:px-5 py-1.5 text-[11px] font-black rounded-lg transition-all uppercase tracking-tight ${viewMode === m ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
                 {m === 'day' ? 'Gün' : m === 'week' ? 'Hafta' : 'Ay'}
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Row 2: Add & Search (Responsive) */}
+        <div className="flex flex-col sm:flex-row-reverse gap-3 sm:items-center">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="w-full sm:w-auto h-11 sm:h-10 rounded-xl bg-emerald-600 px-6 text-[11px] font-black text-white shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap uppercase tracking-widest"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span>Yeni Ödeme Kaydı</span>
+          </button>
 
           <div className="relative flex-1 group">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
             </svg>
-            <input value={listSearch} onChange={(e) => { setListSearch(e.target.value); setCurrentPage(1); }} className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white pl-10 pr-4 text-xs font-bold focus:border-emerald-500 outline-none transition-all shadow-sm" placeholder="İsim veya telefon ile ara..." />
+            <input
+              value={listSearch}
+              onChange={(e) => { setListSearch(e.target.value); setCurrentPage(1); }}
+              className="w-full h-11 sm:h-10 rounded-xl border bg-slate-50 pl-10 pr-4 text-[11px] font-bold focus:bg-white focus:border-emerald-500 outline-none transition-all"
+              placeholder="İsim veya telefon ile ara..."
+            />
           </div>
-
-          <button onClick={() => setIsModalOpen(true)} className="flex-1 md:flex-none h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-6 text-xs font-bold text-white shadow-lg shadow-emerald-100 hover:from-emerald-700 hover:to-teal-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 whitespace-nowrap">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor"><path d="M12 4.5v15m7.5-7.5h-15" /></svg>
-            Yeni Ödeme
-          </button>
         </div>
       </div>
 
       {/* Main List */}
       <div className="rounded-3xl border bg-white shadow-sm overflow-hidden">
-        <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 items-center px-6 py-3 bg-slate-50/50 border-b text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+        <div className="hidden sm:grid grid-cols-[1fr_1fr_auto_auto] gap-4 items-center px-6 py-3 bg-slate-50/50 border-b text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
           <span>Hasta Bilgisi</span>
           <span>Tutar & Tahsilat</span>
           <span>Durum</span>
           <span className="text-right">Vade</span>
+        </div>
+        <div className="sm:hidden grid grid-cols-[2fr_1fr_auto] gap-2 items-center px-4 py-3 bg-slate-50/50 border-b text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
+          <span>Hasta</span>
+          <span className="text-center">Tutar</span>
+          <span className="text-right">Durum</span>
         </div>
 
         <PaymentList payments={currentPagePayments} loading={loading} onPaymentClick={openDetail} />

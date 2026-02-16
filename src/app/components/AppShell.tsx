@@ -86,20 +86,20 @@ function ClinicNav({
         <span>Genel Bakış</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
-      <a href={`${base}/appointments`} className={linkClass(`${base}/appointments`)} onClick={handleClick}>
-        <span>Randevu Ajandası</span>
+      <a href={`${base}/appointment-management`} className={linkClass(`${base}/appointment-management`)} onClick={handleClick}>
+        <span>Randevu Yönetimi</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
       <a href={`${base}/payment-management`} className={linkClass(`${base}/payment-management`)} onClick={handleClick}>
         <span>Ödeme Yönetimi</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
-      <a href={`${base}/appointment-management`} className={linkClass(`${base}/appointment-management`)} onClick={handleClick}>
-        <span>Randevu Yönetimi</span>
+      <a href={`${base}/patients`} className={linkClass(`${base}/patients`)} onClick={handleClick}>
+        <span>Hasta Kayıtları</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
-      <a href={`${base}/patients`} className={linkClass(`${base}/patients`)} onClick={handleClick}>
-        <span>Hastalar</span>
+      <a href={`${base}/appointments`} className={linkClass(`${base}/appointments`)} onClick={handleClick}>
+        <span>Yoğunluk Ajandası</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
       <a href={`${base}/reports`} className={linkClass(`${base}/reports`)} onClick={handleClick}>
@@ -220,12 +220,6 @@ function ShellInner({ children }: Props) {
           "Bugünkü randevular, doluluk oranı ve kanal performansını tek ekrandan takip edin."
         );
         break;
-      case subPath === "/appointments":
-        setHeaderTitle("Randevu Ajandası");
-        setHeaderSubtitle(
-          "Randevuları tarih ve doktor bazlı olarak görüntüleyin ve boşluklarınızı görün."
-        );
-        break;
       case subPath === "/appointment-management":
         setHeaderTitle("Randevu Yönetimi");
         setHeaderSubtitle(
@@ -239,9 +233,15 @@ function ShellInner({ children }: Props) {
         );
         break;
       case subPath === "/patients":
-        setHeaderTitle("Hastalar");
+        setHeaderTitle("Hasta Kayıtları");
         setHeaderSubtitle(
           "Kliniğe kayıtlı tüm hastalar listelenir; takvimden açılan hastalar da burada görünür."
+        );
+        break;
+      case subPath === "/appointments":
+        setHeaderTitle("Yoğunluk Ajandası");
+        setHeaderSubtitle(
+          "Randevuları tarih ve doktor bazlı olarak görüntüleyin ve boşluklarınızı görün."
         );
         break;
       case subPath === "/reports":

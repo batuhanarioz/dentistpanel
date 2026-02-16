@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { clinicSlug, fullName, phone, preferredTime, notes } = validation.data;
+  const { } = validation.data;
 
   // Taslak akış:
   // 1) clinicSlug üzerinden ilgili clinic_id bulunur

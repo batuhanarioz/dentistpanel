@@ -8,7 +8,6 @@ interface PatientDetailModalProps {
     patient: PatientRow | null;
     appointments: PatientAppointment[];
     payments: PatientPayment[];
-    loading: boolean;
     onDelete: (id: string) => Promise<boolean>;
     onUpdate: (id: string, updates: Partial<PatientRow>) => Promise<boolean>;
 }
@@ -19,7 +18,6 @@ export function PatientDetailModal({
     patient,
     appointments,
     payments,
-    loading,
     onDelete,
     onUpdate
 }: PatientDetailModalProps) {
@@ -141,10 +139,10 @@ export function PatientDetailModal({
         : null;
 
     const statusMap: Record<string, string> = {
-        confirmed: "Onaylandı",
-        pending: "Onay Bekliyor",
+        confirmed: "Planlandı",
         completed: "Tamamlandı",
-        cancelled: "İptal Edildi"
+        cancelled: "İptal Edildi",
+        no_show: "Gelmedi"
     };
 
     return (
@@ -347,7 +345,8 @@ export function PatientDetailModal({
                                             <p className="text-xs font-black text-slate-800 uppercase tracking-tighter">{appt.treatment_type}</p>
                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${appt.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
                                                 appt.status === 'cancelled' ? 'bg-rose-100 text-rose-700' :
-                                                    'bg-indigo-100 text-indigo-700'
+                                                    appt.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
+                                                        'bg-slate-100 text-slate-700'
                                                 }`}>
                                                 {statusMap[appt.status] || appt.status}
                                             </span>

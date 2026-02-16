@@ -1,7 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { UserRole } from "@/types/database";
 import { useClinic } from "@/app/context/ClinicContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getAllPatients, getPatientDetails } from "@/lib/api";
+import { updatePatientSchema } from "@/lib/validations/patient";
+import * as Sentry from "@sentry/nextjs";
 
 export type PatientRow = {
     id: string;
@@ -38,78 +42,41 @@ export type PatientPayment = {
 const PAGE_SIZE = 10;
 
 export function usePatients() {
+    const queryClient = useQueryClient();
     const clinic = useClinic();
-    const [patients, setPatients] = useState<PatientRow[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedPatient, setSelectedPatient] = useState<PatientRow | null>(null);
-    const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
-    const [payments, setPayments] = useState<PatientPayment[]>([]);
-    const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+    const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
 
-    useEffect(() => {
-        const loadPatients = async () => {
-            setLoading(true);
-            setError(null);
-            const { data, error } = await supabase
-                .from("patients")
-                .select("id, full_name, phone, email, birth_date, tc_identity_no, allergies, medical_alerts, created_at")
-                .order("created_at", { ascending: false });
+    // Fetch All Patients
+    const { data: patients = [], isLoading: loading, error: queryError } = useQuery({
+        queryKey: ["patients", clinic.clinicId],
+        queryFn: () => getAllPatients(clinic.clinicId || ""),
+        enabled: !!clinic.clinicId,
+    });
 
-            if (error) {
-                setError(error.message || "Hastalar yüklenemedi.");
-                setLoading(false);
-                return;
-            }
-            setPatients(data || []);
-            setLoading(false);
-        };
-        loadPatients();
-    }, []);
+    const error = queryError ? (queryError as Error).message : null;
 
-    useEffect(() => {
-        const loadPatientDetail = async () => {
-            if (!selectedPatient) {
-                setAppointments([]);
-                setPayments([]);
-                return;
-            }
-            setAppointmentsLoading(true);
-            const [apptRes, payRes] = await Promise.all([
-                supabase.from("appointments").select("id, starts_at, ends_at, status, treatment_type, doctor:doctor_id(full_name), patient_note, internal_note, treatment_note").eq("patient_id", selectedPatient.id).order("starts_at", { ascending: false }),
-                supabase.from("payments").select("id, amount, method, status, due_date").eq("patient_id", selectedPatient.id).order("due_date", { ascending: false }),
-            ]);
+    // Fetch Patient Details
+    const { data: detailData, isLoading: appointmentsLoading } = useQuery({
+        queryKey: ["patientDetails", selectedPatientId],
+        queryFn: () => getPatientDetails(selectedPatientId!),
+        enabled: !!selectedPatientId,
+    });
 
-            setAppointments((apptRes.data || []).map((row: any) => ({
-                id: row.id,
-                starts_at: row.starts_at,
-                ends_at: row.ends_at,
-                status: row.status,
-                treatment_type: row.treatment_type,
-                doctor_name: row.doctor?.full_name ?? null,
-                patient_note: row.patient_note,
-                internal_note: row.internal_note,
-                treatment_note: row.treatment_note,
-            })));
-            setPayments((payRes.data || []).map((row: any) => ({
-                id: row.id,
-                amount: Number(row.amount),
-                method: row.method,
-                status: row.status,
-                due_date: row.due_date,
-            })));
-            setAppointmentsLoading(false);
-        };
-        loadPatientDetail();
-    }, [selectedPatient]);
+    const appointments = detailData?.appointments || [];
+    const payments = detailData?.payments || [];
+
+    const selectedPatient = useMemo(() => {
+        if (!selectedPatientId) return null;
+        return patients.find((p: PatientRow) => p.id === selectedPatientId) || null;
+    }, [patients, selectedPatientId]);
 
     const filteredPatients = useMemo(() => {
         const term = search.trim().toLowerCase();
         if (!term) return patients;
-        return patients.filter((p) => {
+        return patients.filter((p: PatientRow) => {
             const name = p.full_name?.toLowerCase() ?? "";
             const phone = p.phone?.replace(/\s+/g, "") ?? "";
             return name.includes(term) || phone.includes(term.replace(/\s+/g, "")) || phone.includes(term);
@@ -120,7 +87,7 @@ export function usePatients() {
     const currentPagePatients = filteredPatients.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
     const handleSelectPatient = (patient: PatientRow) => {
-        setSelectedPatient(patient);
+        setSelectedPatientId(patient.id);
         setDetailOpen(true);
     };
 
@@ -132,7 +99,7 @@ export function usePatients() {
         };
         const rows = [
             ["Ad Soyad", "Telefon", "E-posta", "Doğum Tarihi", "TC Kimlik No", "Alerjiler", "Tıbbi Uyarılar", "Kayıt Tarihi"],
-            ...filteredPatients.map((p) => [
+            ...filteredPatients.map((p: PatientRow) => [
                 escape(p.full_name), escape(p.phone), escape(p.email),
                 escape(p.birth_date ? p.birth_date.slice(0, 10) : null),
                 escape(p.tc_identity_no), escape(p.allergies), escape(p.medical_alerts),
@@ -152,24 +119,30 @@ export function usePatients() {
     const deletePatient = async (id: string) => {
         const { error } = await supabase.from("patients").delete().eq("id", id);
         if (error) {
-            setError(error.message);
+            Sentry.captureException(error, { tags: { section: "patients", action: "delete" } });
+            alert(error.message);
             return false;
         }
-        setPatients(prev => prev.filter(p => p.id !== id));
+        queryClient.invalidateQueries({ queryKey: ["patients"] });
         setDetailOpen(false);
         return true;
     };
 
     const updatePatient = async (id: string, updates: Partial<PatientRow>) => {
-        const { error } = await supabase.from("patients").update(updates).eq("id", id);
-        if (error) {
-            setError(error.message);
+        const validation = updatePatientSchema.safeParse(updates);
+        if (!validation.success) {
+            alert("Yeni bilgiler geçersiz: " + validation.error.issues[0].message);
             return false;
         }
-        setPatients(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-        if (selectedPatient?.id === id) {
-            setSelectedPatient(prev => prev ? { ...prev, ...updates } : null);
+
+        const { error } = await supabase.from("patients").update(validation.data).eq("id", id);
+        if (error) {
+            Sentry.captureException(error, { tags: { section: "patients", action: "update" } });
+            alert(error.message);
+            return false;
         }
+        queryClient.invalidateQueries({ queryKey: ["patients"] });
+        queryClient.invalidateQueries({ queryKey: ["patientDetails", id] });
         return true;
     };
 

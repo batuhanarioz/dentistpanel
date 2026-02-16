@@ -10,16 +10,6 @@ export const TREATMENTS = [
     { value: "ORTODONTI", label: "Ortodonti Muayene", duration: 30 },
 ];
 
-export const REMINDER_OPTIONS = [
-    { value: 0, label: "Hatırlatma Yok" },
-    { value: 15, label: "15 dakika önce" },
-    { value: 30, label: "30 dakika önce" },
-    { value: 60, label: "1 saat önce" },
-    { value: 180, label: "3 saat önce" },
-    { value: 1440, label: "1 gün önce" },
-    { value: 2880, label: "2 gün önce" },
-];
-
 export const CHANNEL_OPTIONS = [
     { value: "web", label: "Web" },
     { value: "whatsapp", label: "WhatsApp" },
@@ -28,28 +18,20 @@ export const CHANNEL_OPTIONS = [
 ];
 
 export const STATUS_COLORS: Record<string, { card: string; dot: string }> = {
-    pending: {
-        card: "bg-amber-50 border-amber-100 hover:bg-amber-100/50",
-        dot: "bg-amber-500",
+    confirmed: { // Planlandı
+        card: "bg-blue-50 border-blue-100 hover:bg-blue-100/50",
+        dot: "bg-blue-500",
     },
-    confirmed: {
+    completed: { // Tamamlandı
         card: "bg-emerald-50 border-emerald-100 hover:bg-emerald-100/50",
         dot: "bg-emerald-500",
     },
-    past: {
-        card: "bg-slate-50 border-slate-200 hover:bg-slate-100/80",
-        dot: "bg-slate-400",
-    },
-    cancelled: {
+    cancelled: { // İptal Edildi
         card: "bg-rose-50 border-rose-100 hover:bg-rose-100/50 opacity-60",
         dot: "bg-rose-500",
     },
-    no_show: {
-        card: "bg-rose-50 border-rose-100 hover:bg-rose-100/50",
-        dot: "bg-rose-500",
-    },
-    completed: {
-        card: "bg-blue-50 border-blue-100 hover:bg-blue-100/50",
-        dot: "bg-blue-500",
+    no_show: { // Gelmedi
+        card: "bg-slate-100 border-slate-200 hover:bg-slate-200/50",
+        dot: "bg-slate-500",
     },
 };

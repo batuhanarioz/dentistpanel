@@ -68,31 +68,37 @@ export default function ReportsPage() {
           )}
         </div>
 
-        <div className="px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex rounded-xl border-2 border-slate-100 bg-slate-50 p-1">
+        <div className="p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex rounded-xl bg-slate-100 p-1 shrink-0">
               {(['today', '7d', '30d', 'custom'] as const).map(k => (
                 <button
                   key={k}
                   onClick={() => setPreset(k)}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${preset === k ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex-1 sm:px-4 py-1.5 text-[10px] sm:text-xs font-black rounded-lg transition-all uppercase tracking-tight ${preset === k ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                   {k === 'today' ? 'Bugün' : k === '7d' ? '7 Gün' : k === '30d' ? '30 Gün' : 'Özel'}
                 </button>
               ))}
             </div>
-            {preset === 'custom' && (
-              <div className="flex items-center gap-2">
-                <PremiumDatePicker value={customStart} onChange={setCustomStart} today={todayStr} compact />
-                <span className="text-slate-300">-</span>
-                <PremiumDatePicker value={customEnd} onChange={setCustomEnd} today={todayStr} compact />
-              </div>
-            )}
+
+            <select
+              value={doctorFilter}
+              onChange={e => setDoctorFilter(e.target.value)}
+              className="w-full sm:w-auto rounded-xl border bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+            >
+              <option value="ALL">Tüm Doktorlar</option>
+              {doctors.map(d => <option key={d.id} value={d.id}>{d.full_name}</option>)}
+            </select>
           </div>
-          <select value={doctorFilter} onChange={e => setDoctorFilter(e.target.value)} className="rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all">
-            <option value="ALL">Tüm Doktorlar</option>
-            {doctors.map(d => <option key={d.id} value={d.id}>{d.full_name}</option>)}
-          </select>
+
+          {preset === 'custom' && (
+            <div className="flex items-center gap-2 pt-1">
+              <PremiumDatePicker value={customStart} onChange={setCustomStart} today={todayStr} compact />
+              <span className="text-slate-300 font-bold">-</span>
+              <PremiumDatePicker value={customEnd} onChange={setCustomEnd} today={todayStr} compact />
+            </div>
+          )}
         </div>
       </div>
 

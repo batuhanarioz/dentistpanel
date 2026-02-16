@@ -1,8 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr } from "@/lib/dateUtils";
 import { useClinic } from "@/app/context/ClinicContext";
 import { UserRole } from "@/types/database";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getTaskConfigs, getPaymentsForAppointments, getAppointmentsForDate } from "@/lib/api";
 
 export type DashboardAppointment = {
     id: string;
@@ -13,9 +15,10 @@ export type DashboardAppointment = {
     doctorName: string;
     doctorId: string | null;
     channel: string;
-    status: "pending" | "confirmed" | "cancelled" | "no_show" | "completed";
+    status: "confirmed" | "cancelled" | "no_show" | "completed";
     treatmentType: string | null;
     estimatedAmount: number | null;
+    treatmentNote?: string;
 };
 
 export type DoctorOption = {
@@ -47,6 +50,8 @@ function formatTime(dateString: string) {
 }
 
 export function useDashboard() {
+    const queryClient = useQueryClient();
+    const clinic = useClinic();
     const baseToday = useMemo(() => localDateStr(), []);
     const [viewOffsetAppointments, setViewOffsetAppointments] = useState<0 | 1>(0);
     const [viewOffsetControls, setViewOffsetControls] = useState<0 | 1>(0);
@@ -63,332 +68,208 @@ export function useDashboard() {
         return localDateStr(d);
     }, [baseToday, viewOffsetControls]);
 
-    const [appointments, setAppointments] = useState<DashboardAppointment[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [doctors, setDoctors] = useState<DoctorOption[]>([]);
-    const [controlItems, setControlItems] = useState<ControlItem[]>([]);
-    const clinic = useClinic();
-    const [taskAssignments, setTaskAssignments] = useState<Record<string, { role: string; enabled: boolean }>>({});
+    // Fetch Task Configs
+    const { data: taskAssignments = {} } = useQuery({
+        queryKey: ["taskConfigs", clinic.clinicId],
+        queryFn: () => getTaskConfigs(clinic.clinicId!),
+        enabled: !!clinic.clinicId,
+    });
 
-    useEffect(() => {
-        const fetchTaskLogic = async () => {
-            if (!clinic.clinicId) return;
+    // Fetch Appointments for List
+    const { data: rawCalendarAppointments = [], isLoading: loading } = useQuery({
+        queryKey: ["dashboardAppointments", viewDateAppointments, clinic.clinicId],
+        queryFn: async () => {
+            if (!clinic.clinicId) return [];
+            const data = await getAppointmentsForDate(viewDateAppointments, clinic.clinicId);
+            return data;
+        },
+        enabled: !!clinic.clinicId,
+    });
 
-            const { data: defs } = await supabase.from("dashboard_task_definitions").select("*");
-            const { data: configs } = await supabase.from("clinic_task_configs").select("*").eq("clinic_id", clinic.clinicId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mapCalendarToDashboard = (ca: any): DashboardAppointment => {
+        const start = new Date(`${ca.date}T${ca.startHour.toString().padStart(2, "0")}:${ca.startMinute.toString().padStart(2, "0")}:00`);
+        const end = new Date(start.getTime() + ca.durationMinutes * 60000);
 
-            const mapping: Record<string, { role: string; enabled: boolean }> = {};
-            defs?.forEach(d => {
-                const config = configs?.find(c => c.task_definition_id === d.id);
-                mapping[d.code] = {
-                    role: config ? config.assigned_role : d.default_role,
-                    enabled: config ? config.is_enabled : true
-                };
-            });
-            setTaskAssignments(mapping);
+        return {
+            id: ca.id,
+            startsAt: start.toISOString(),
+            endsAt: end.toISOString(),
+            patientName: ca.patientName,
+            patientPhone: ca.phone,
+            doctorName: ca.doctor || "Doktor atanmadı",
+            doctorId: ca.doctorId,
+            channel: ca.channel,
+            status: ca.dbStatus,
+            treatmentType: ca.treatmentType,
+            estimatedAmount: ca.estimatedAmount ? parseFloat(ca.estimatedAmount) : null,
+            treatmentNote: ca.treatmentNote,
         };
-        fetchTaskLogic();
-    }, [clinic.clinicId]);
+    };
 
-    useEffect(() => {
-        const loadTodayAppointments = async () => {
-            setLoading(true);
+    const rawAppointments = useMemo(() => {
+        return rawCalendarAppointments.map(mapCalendarToDashboard);
+    }, [rawCalendarAppointments]);
 
-            const start = new Date(`${viewDateAppointments}T00:00:00`);
-            const end = new Date(`${viewDateAppointments}T23:59:59`);
+    // Fetch Doctors
+    const { data: doctorsData = [] } = useQuery({
+        queryKey: ["doctors"],
+        queryFn: async () => {
+            const { data } = await supabase.from("users").select("id, full_name").eq("role", UserRole.DOKTOR);
+            return (data || []) as DoctorOption[];
+        },
+    });
 
-            const { data, error } = await supabase
-                .from("appointments")
-                .select(
-                    "id, patient_id, doctor_id, channel, status, starts_at, ends_at, treatment_type, estimated_amount"
-                )
-                .gte("starts_at", start.toISOString())
-                .lt("starts_at", end.toISOString())
-                .order("starts_at", { ascending: true });
+    const doctors = doctorsData;
 
-            if (error || !data) {
-                setAppointments([]);
-                setLoading(false);
-                return;
+    // Filter appointments for the list (e.g. upcoming if today)
+    const appointments = useMemo(() => {
+        const sorted = [...rawAppointments].sort((a, b) => {
+            const dateA = new Date(a.startsAt).getTime();
+            const dateB = new Date(b.startsAt).getTime();
+            const now = new Date().getTime();
+
+            // Prioritize upcoming confirmed appointments if it's today
+            if (viewOffsetAppointments === 0) {
+                const isUpcomingA = a.status === "confirmed" && dateA > now;
+                const isUpcomingB = b.status === "confirmed" && dateB > now;
+
+                if (isUpcomingA && !isUpcomingB) return -1;
+                if (!isUpcomingA && isUpcomingB) return 1;
             }
 
-            const patientIds = Array.from(
-                new Set(data.map((a) => a.patient_id).filter(Boolean))
-            ) as string[];
+            return dateA - dateB;
+        });
 
-            const [patientsRes, doctorsRes] = await Promise.all([
-                patientIds.length
-                    ? supabase
-                        .from("patients")
-                        .select("id, full_name, phone")
-                        .in("id", patientIds)
-                    : Promise.resolve({ data: [], error: null }),
-                supabase
-                    .from("users")
-                    .select("id, full_name")
-                    .in("role", [UserRole.DOKTOR]),
-            ]);
+        return sorted.filter((a: DashboardAppointment) => {
+            if (a.status === "completed") return false;
+            return true;
+        });
+    }, [rawAppointments, viewOffsetAppointments]);
 
-            const patientsMap = Object.fromEntries(
-                (patientsRes.data || []).map((p: any) => [p.id, { full_name: p.full_name, phone: p.phone }])
-            );
-            const doctorsMap = Object.fromEntries(
-                (doctorsRes.data || []).map((d: any) => [d.id, d.full_name])
-            );
+    // Control Items logic
+    const { data: controlCalendarAppointments = [] } = useQuery({
+        queryKey: ["dashboardAppointmentsControl", viewDateControls, clinic.clinicId], // usage distinct key
+        queryFn: () => getAppointmentsForDate(viewDateControls, clinic.clinicId || ""),
+        enabled: !!clinic.clinicId,
+    });
 
-            setDoctors((doctorsRes.data || []) as DoctorOption[]);
+    const controlAppointments = useMemo(() => {
+        return controlCalendarAppointments.map(mapCalendarToDashboard);
+    }, [controlCalendarAppointments]);
 
-            const now = new Date();
+    const { data: paymentsMap = {} } = useQuery({
+        queryKey: ["paymentsForAppointments", viewDateControls],
+        queryFn: () => getPaymentsForAppointments(controlAppointments.map((a: DashboardAppointment) => a.id)),
+        enabled: controlAppointments.length > 0,
+    });
 
-            const mapped: DashboardAppointment[] = (data || []).map((row: any) => {
-                return {
-                    id: row.id,
-                    startsAt: row.starts_at,
-                    endsAt: row.ends_at,
-                    patientName: patientsMap[row.patient_id]?.full_name ?? "Hasta",
-                    patientPhone: patientsMap[row.patient_id]?.phone ?? null,
-                    doctorName: doctorsMap[row.doctor_id] ?? "Doktor atanmadı",
-                    doctorId: row.doctor_id ?? null,
-                    channel: row.channel,
-                    status: row.status,
-                    treatmentType: row.treatment_type ?? null,
-                    estimatedAmount: row.estimated_amount !== null ? Number(row.estimated_amount) : null,
-                };
-            });
+    const controlItems = useMemo(() => {
+        const now = new Date();
+        const controls: ControlItem[] = [];
+        const userRole = clinic.userRole || UserRole.SEKRETER;
+        const userId = clinic.userId;
 
-            const upcomingNotCompleted = mapped.filter((a) => {
-                if (a.status === "completed") return false;
-                const startDate = new Date(a.startsAt);
-                if (viewOffsetAppointments === 0) {
-                    return startDate > now;
-                }
-                return true;
-            });
-
-            setAppointments(upcomingNotCompleted);
-            setLoading(false);
+        const canShowTask = (code: string, apptDoctorId?: string | null) => {
+            const config = taskAssignments[code];
+            if (!config || !config.enabled) return false;
+            if (clinic.isAdmin) return true;
+            if (config.role === UserRole.DOKTOR && apptDoctorId === userId) return true;
+            return config.role === userRole;
         };
 
-        loadTodayAppointments();
-    }, [viewDateAppointments, viewOffsetAppointments]);
+        controlAppointments.forEach((appt: DashboardAppointment) => {
+            const startDate = new Date(appt.startsAt);
+            const endDate = new Date(appt.endsAt);
+            const timeLabel = `${formatTime(appt.startsAt)} - ${formatTime(appt.endsAt)}`;
+            const treatmentLabel = appt.treatmentType?.trim() || "Genel muayene";
 
-    useEffect(() => {
-        const loadControlItems = async () => {
-            const start = new Date(`${viewDateControls}T00:00:00`);
-            const end = new Date(`${viewDateControls}T23:59:59`);
-
-            const { data, error } = await supabase
-                .from("appointments")
-                .select(
-                    "id, patient_id, doctor_id, status, starts_at, ends_at, treatment_type"
-                )
-                .gte("starts_at", start.toISOString())
-                .lt("starts_at", end.toISOString())
-                .order("starts_at", { ascending: true });
-
-            if (error || !data) {
-                setControlItems([]);
-                return;
+            if (endDate < now && appt.status !== "completed" && appt.status !== "cancelled" && appt.status !== "no_show") {
+                if (canShowTask("STATUS_UPDATE", appt.doctorId)) {
+                    controls.push({
+                        id: `${appt.id}-status`,
+                        type: "status",
+                        tone: "critical",
+                        toneLabel: "Acil",
+                        appointmentId: appt.id,
+                        patientName: appt.patientName,
+                        timeLabel,
+                        treatmentLabel,
+                        actionLabel: "Durum güncellemesi bekliyor.",
+                        sortTime: endDate.getTime(),
+                    });
+                }
             }
 
-            const patientIds = Array.from(
-                new Set(data.map((a) => a.patient_id).filter(Boolean))
-            ) as string[];
 
-            const { data: patientsData } = await supabase
-                .from("patients")
-                .select("id, full_name, phone")
-                .in("id", patientIds);
 
-            const patientsMap = Object.fromEntries(
-                (patientsData || []).map((p: any) => [p.id, { full_name: p.full_name, phone: p.phone }])
-            );
-
-            const now = new Date();
-
-            const mapped: DashboardAppointment[] = (data || []).map((row: any) => {
-                return {
-                    id: row.id,
-                    startsAt: row.starts_at,
-                    endsAt: row.ends_at,
-                    patientName: patientsMap[row.patient_id]?.full_name ?? "Hasta",
-                    patientPhone: patientsMap[row.patient_id]?.phone ?? null,
-                    doctorName: "",
-                    doctorId: row.doctor_id ?? null,
-                    channel: row.channel,
-                    status: row.status,
-                    treatmentType: row.treatment_type ?? null,
-                    estimatedAmount: null,
-                };
-            });
-
-            const appointmentIds = mapped.map((a) => a.id);
-            let paymentsMap: Record<string, boolean> = {};
-
-            if (appointmentIds.length) {
-                const { data: paymentsData } = await supabase
-                    .from("payments")
-                    .select("id, appointment_id")
-                    .in("appointment_id", appointmentIds);
-
-                paymentsMap = Object.fromEntries(
-                    (paymentsData || []).map((p: any) => [p.appointment_id, true])
-                );
+            if (!appt.doctorId) {
+                if (canShowTask("MISSING_DOCTOR", appt.doctorId)) {
+                    controls.push({
+                        id: `${appt.id}-doctor`,
+                        type: "doctor",
+                        tone: "low",
+                        toneLabel: "Doktor",
+                        appointmentId: appt.id,
+                        patientName: appt.patientName,
+                        timeLabel,
+                        treatmentLabel,
+                        actionLabel: "Doktor ataması bekliyor.",
+                        sortTime: startDate.getTime(),
+                    });
+                }
             }
 
-            const controls: ControlItem[] = [];
-            const userRole = clinic.userRole || UserRole.SEKRETER;
-            const userId = clinic.userId;
-
-            const canShowTask = (code: string, apptDoctorId?: string | null) => {
-                const config = taskAssignments[code];
-                if (!config || !config.enabled) return false;
-                if (clinic.isAdmin) return true;
-                if (config.role === UserRole.DOKTOR && apptDoctorId === userId) return true;
-                return config.role === userRole;
-            };
-
-            mapped.forEach((appt) => {
-                const startDate = new Date(appt.startsAt);
-                const endDate = new Date(appt.endsAt);
-                const timeLabel = `${formatTime(appt.startsAt)} - ${formatTime(appt.endsAt)}`;
-                const treatmentLabel = appt.treatmentType?.trim() || "Genel muayene";
-
-                if (endDate < now && appt.status !== "completed" && appt.status !== "cancelled" && appt.status !== "no_show") {
-                    if (canShowTask("STATUS_UPDATE", appt.doctorId)) {
-                        controls.push({
-                            id: `${appt.id}-status`,
-                            type: "status",
-                            tone: "critical",
-                            toneLabel: "Acil",
-                            appointmentId: appt.id,
-                            patientName: appt.patientName,
-                            timeLabel,
-                            treatmentLabel,
-                            actionLabel: "Durum güncellemesi bekliyor.",
-                            sortTime: endDate.getTime(),
-                        });
-                    }
+            if (appt.status === "completed" && !paymentsMap[appt.id]) {
+                if (canShowTask("MISSING_PAYMENT", appt.doctorId)) {
+                    controls.push({
+                        id: `${appt.id}-payment`,
+                        type: "payment",
+                        tone: "high",
+                        toneLabel: "Ödeme",
+                        appointmentId: appt.id,
+                        patientName: appt.patientName,
+                        timeLabel,
+                        treatmentLabel,
+                        actionLabel: "Ödeme eklemesi bekliyor.",
+                        sortTime: endDate.getTime(),
+                    });
                 }
+            }
 
-                if (appt.status === "pending") {
-                    if (canShowTask("PENDING_APPROVAL", appt.doctorId)) {
-                        controls.push({
-                            id: `${appt.id}-approval`,
-                            type: "approval",
-                            tone: "medium",
-                            toneLabel: "Onay",
-                            appointmentId: appt.id,
-                            patientName: appt.patientName,
-                            timeLabel,
-                            treatmentLabel,
-                            actionLabel: "Onay güncellemesi bekliyor.",
-                            sortTime: startDate.getTime(),
-                        });
-                    }
+            // New Rule: Missing Treatment Note
+            if (appt.status === "completed" && !appt.treatmentNote) {
+                // Assuming "MISSING_TREATMENT_NOTE" task code exists or use "STATUS_UPDATE" role logic
+                if (canShowTask("MISSING_TREATMENT_NOTE", appt.doctorId)) {
+                    controls.push({
+                        id: `${appt.id}-note`,
+                        type: "status",
+                        tone: "medium",
+                        toneLabel: "Not",
+                        appointmentId: appt.id,
+                        patientName: appt.patientName,
+                        timeLabel,
+                        treatmentLabel,
+                        actionLabel: "Tedavi notu eksik.",
+                        sortTime: endDate.getTime(),
+                    });
                 }
+            }
+        });
 
-                if (!appt.doctorId) {
-                    if (canShowTask("MISSING_DOCTOR", appt.doctorId)) {
-                        controls.push({
-                            id: `${appt.id}-doctor`,
-                            type: "doctor",
-                            tone: "low",
-                            toneLabel: "Doktor",
-                            appointmentId: appt.id,
-                            patientName: appt.patientName,
-                            timeLabel,
-                            treatmentLabel,
-                            actionLabel: "Doktor ataması bekliyor.",
-                            sortTime: startDate.getTime(),
-                        });
-                    }
-                }
-
-                if (appt.status === "completed" && !paymentsMap[appt.id]) {
-                    if (canShowTask("MISSING_PAYMENT", appt.doctorId)) {
-                        controls.push({
-                            id: `${appt.id}-payment`,
-                            type: "payment",
-                            tone: "high",
-                            toneLabel: "Ödeme",
-                            appointmentId: appt.id,
-                            patientName: appt.patientName,
-                            timeLabel,
-                            treatmentLabel,
-                            actionLabel: "Ödeme eklemesi bekliyor.",
-                            sortTime: endDate.getTime(),
-                        });
-                    }
-                }
-            });
-
-            controls.sort((a, b) => b.sortTime - a.sortTime);
-            setControlItems(controls);
-        };
-
-        loadControlItems();
-    }, [viewDateControls, viewOffsetControls, clinic.isAdmin, clinic.userId, clinic.userRole, taskAssignments]);
+        controls.sort((a, b) => b.sortTime - a.sortTime);
+        return controls;
+    }, [controlAppointments, taskAssignments, clinic.isAdmin, clinic.userId, clinic.userRole, paymentsMap]);
 
     const handleAssignDoctor = async (appointmentId: string, doctorId: string) => {
         if (!doctorId) return;
-
-        await supabase
-            .from("appointments")
-            .update({ doctor_id: doctorId })
-            .eq("id", appointmentId);
-
-        const selectedDoctor = doctors.find((d) => d.id === doctorId);
-
-        setAppointments((prev) =>
-            prev.map((appt) =>
-                appt.id === appointmentId
-                    ? {
-                        ...appt,
-                        doctorId,
-                        doctorName: selectedDoctor?.full_name ?? appt.doctorName,
-                    }
-                    : appt
-            )
-        );
-
-        // Remove doctor assignment control item from the list
-        setControlItems((prev) =>
-            prev.filter((item) => !(item.appointmentId === appointmentId && item.type === "doctor"))
-        );
+        await supabase.from("appointments").update({ doctor_id: doctorId }).eq("id", appointmentId);
+        queryClient.invalidateQueries({ queryKey: ["dashboardAppointments"] });
     };
 
-    const handleStatusChange = async (
-        appointmentId: string,
-        newStatus: DashboardAppointment["status"]
-    ) => {
-        await supabase
-            .from("appointments")
-            .update({ status: newStatus })
-            .eq("id", appointmentId);
-
-        setAppointments((prev) =>
-            prev
-                .map((appt) =>
-                    appt.id === appointmentId ? { ...appt, status: newStatus } : appt
-                )
-                .filter((appt) => appt.status !== "completed")
-        );
-
-        // Remove related control items based on status change
-        setControlItems((prev) =>
-            prev.filter((item) => {
-                if (item.appointmentId !== appointmentId) return true;
-
-                // Remove status update task if status changed
-                if (item.type === "status") return false;
-
-                // Remove approval task if status is no longer pending
-                if (item.type === "approval" && newStatus !== "pending") return false;
-
-                return true;
-            })
-        );
+    const handleStatusChange = async (appointmentId: string, newStatus: DashboardAppointment["status"]) => {
+        await supabase.from("appointments").update({ status: newStatus }).eq("id", appointmentId);
+        queryClient.invalidateQueries({ queryKey: ["dashboardAppointments"] });
     };
 
     return {
@@ -401,6 +282,6 @@ export function useDashboard() {
         viewOffsetControls,
         setViewOffsetControls,
         handleAssignDoctor,
-        handleStatusChange
+        handleStatusChange,
     };
 }

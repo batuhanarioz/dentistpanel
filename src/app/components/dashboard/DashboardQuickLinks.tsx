@@ -1,27 +1,6 @@
 import React from "react";
-import { UserRole } from "@/types/database";
 
-const ROLE_DESCRIPTIONS = [
-    { role: UserRole.DOKTOR, desc: "Tıbbi işlemler: randevular, hasta notları ve tedavi planları" },
-    { role: UserRole.SEKRETER, desc: "Operasyon: randevu kayıt, hasta teyit ve resepsiyon işlemleri" },
-    { role: UserRole.FINANS, desc: "Maddi işlemler: ödemeler, taksitler ve finansal raporlar" },
-];
-
-const LOCAL_ROLE_LABELS: Record<string, string> = {
-    [UserRole.ADMIN]: "Yönetici",
-    [UserRole.DOKTOR]: "Doktor",
-    [UserRole.SEKRETER]: "Sekreter",
-    [UserRole.FINANS]: "Finans",
-    [UserRole.SUPER_ADMIN]: "Süper Admin",
-};
-
-const ROLE_BADGE_COLORS: Record<string, string> = {
-    [UserRole.SUPER_ADMIN]: "bg-purple-100 text-purple-700 border-purple-200",
-    [UserRole.ADMIN]: "bg-teal-100 text-teal-700 border-teal-200",
-    [UserRole.DOKTOR]: "bg-blue-100 text-blue-700 border-blue-200",
-    [UserRole.SEKRETER]: "bg-amber-100 text-amber-700 border-amber-200",
-    [UserRole.FINANS]: "bg-emerald-100 text-emerald-700 border-emerald-200",
-};
+import { ROLE_LABELS, ROLE_DESCRIPTIONS, ROLE_BADGE_COLORS } from "@/constants/roles";
 
 interface DashboardQuickLinksProps {
     isAdmin: boolean;
@@ -69,7 +48,7 @@ export function DashboardQuickLinks({ isAdmin, onConfigClick }: DashboardQuickLi
                     {ROLE_DESCRIPTIONS.map((r) => (
                         <div key={r.role} className="flex items-start gap-2.5">
                             <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold border shrink-0 mt-0.5 ${ROLE_BADGE_COLORS[r.role]}`}>
-                                {LOCAL_ROLE_LABELS[r.role] || r.role}
+                                {ROLE_LABELS[r.role] || r.role}
                             </span>
                             <span className="text-[11px] text-slate-600 leading-relaxed">{r.desc}</span>
                         </div>

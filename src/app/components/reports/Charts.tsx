@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend
@@ -7,7 +7,16 @@ import { EmptyState } from "./ReportCard";
 
 const CHART_COLORS = ["#0d9488", "#4BB543", "#d97706", "#e11d48", "#6366f1", "#8b5cf6", "#0ea5e9"];
 
-export function StatusByDayChart({ data }: { data: any[] }) {
+export interface StatusByDayData {
+    day: string;
+    completed: number;
+    confirmed: number;
+    pending: number;
+    cancelled: number;
+    no_show: number;
+}
+
+export function StatusByDayChart({ data }: { data: StatusByDayData[] }) {
     if (data.length === 0) return <EmptyState />;
     return (
         <ResponsiveContainer width="100%" height={260}>
@@ -27,7 +36,13 @@ export function StatusByDayChart({ data }: { data: any[] }) {
     );
 }
 
-export function ChannelPerformanceChart({ data }: { data: any[] }) {
+export interface ChannelData {
+    name: string;
+    value: number;
+    pct: number;
+}
+
+export function ChannelPerformanceChart({ data }: { data: ChannelData[] }) {
     if (data.length === 0) return <EmptyState />;
     return (
         <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -54,7 +69,12 @@ export function ChannelPerformanceChart({ data }: { data: any[] }) {
     );
 }
 
-export function OccupancyChart({ data }: { data: any[] }) {
+export interface OccupancyData {
+    day: string;
+    doluluk: number;
+}
+
+export function OccupancyChart({ data }: { data: OccupancyData[] }) {
     if (data.length === 0) return <EmptyState />;
     return (
         <ResponsiveContainer width="100%" height={200}>
@@ -69,7 +89,12 @@ export function OccupancyChart({ data }: { data: any[] }) {
     );
 }
 
-export function PatientBreakdownChart({ data, total }: { data: any[], total: number }) {
+export interface PatientBreakdownData {
+    name: string;
+    value: number;
+}
+
+export function PatientBreakdownChart({ data, total }: { data: PatientBreakdownData[], total: number }) {
     if (total === 0) return <EmptyState />;
     const COLORS = ["#0d9488", "#6366f1"];
     return (

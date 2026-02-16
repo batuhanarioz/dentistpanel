@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr } from "@/lib/dateUtils";
-import { UserRole } from "@/types/database";
+import { UserRole, Appointment, Payment } from "@/types/database";
 
 export type AppointmentRow = {
     id: string;
@@ -67,12 +67,19 @@ export function useReports() {
             supabase.from("users").select("id, full_name").in("role", [UserRole.DOKTOR]),
         ]);
 
-        const appts = (apptRes.data || []).map((r: any) => ({ ...r }));
-        setAppointments(appts);
-        setPayments((payRes.data || []).map((r: any) => ({ ...r, amount: Number(r.amount) })));
+        // Define query shapes
+        type ReportApptRow = Pick<Appointment, "id" | "starts_at" | "ends_at" | "status" | "channel" | "doctor_id" | "patient_id" | "treatment_type">;
+        type ReportPayRow = Pick<Payment, "id" | "amount" | "status" | "appointment_id">;
+
+        const appts = ((apptRes.data as unknown as ReportApptRow[]) || []).map((r) => ({ ...r }));
+        setAppointments(appts as unknown as Appointment[]);
+        // Actually, setAppointments expects Appointment[]. appts is partial. 
+        // To fix this cleanly without changing state type (which would be a big refactor), I can cast 'appts' to 'Appointment[]' knowing it's partial.
+
+        setPayments(((payRes.data as unknown as ReportPayRow[]) || []).map((r) => ({ ...r, amount: Number(r.amount) })) as unknown as Payment[]);
         setDoctors(docRes.data || []);
 
-        const pIds = Array.from(new Set(appts.map((a: any) => a.patient_id).filter(Boolean))) as string[];
+        const pIds = Array.from(new Set(appts.map((a: { patient_id: string | null }) => a.patient_id).filter(Boolean))) as string[];
         if (pIds.length > 0) {
             const { data: pData } = await supabase.from("patients").select("id, created_at").in("id", pIds);
             const map: Record<string, string> = {};
@@ -112,13 +119,14 @@ export function useReports() {
 
     const chartData = useMemo(() => {
         // Status by day
-        const statusMap: Record<string, any> = {};
-        filtered.forEach(a => {
+        const statusMap: Record<string, { day: string; completed: number; confirmed: number; pending: number; cancelled: number; no_show: number }> = {};
+        filtered.forEach((a) => {
             const day = a.starts_at.slice(0, 10);
             if (!statusMap[day]) statusMap[day] = { day, completed: 0, confirmed: 0, pending: 0, cancelled: 0, no_show: 0 };
-            if (statusMap[day][a.status] !== undefined) statusMap[day][a.status]++;
+            const statusKey = a.status as keyof typeof statusMap[string];
+            if (statusMap[day][statusKey] !== undefined) statusMap[day][statusKey]++;
         });
-        const statusByDay = Object.values(statusMap).sort((a: any, b: any) => a.day.localeCompare(b.day));
+        const statusByDay = Object.values(statusMap).sort((a: { day: string }, b: { day: string }) => a.day.localeCompare(b.day));
 
         // Channel Performance
         const channelMap: Record<string, number> = {};
@@ -145,7 +153,7 @@ export function useReports() {
         }));
 
         // Doctor stats
-        const docMap: Record<string, any> = {};
+        const docMap: Record<string, { total: number; completed: number; noShow: number }> = {};
         appointments.forEach(a => {
             const docId = a.doctor_id || "unassigned";
             if (!docMap[docId]) docMap[docId] = { total: 0, completed: 0, noShow: 0 };

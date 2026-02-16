@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { ClinicContext, type ClinicContextValue } from "../context/ClinicContext";
 import { UserRole, type WorkingHours, type Clinic } from "@/types/database";
-import { DEFAULT_WORKING_HOURS } from "@/types/database";
+import { DEFAULT_WORKING_HOURS } from "@/constants/days";
 
 type Props = {
   children: React.ReactNode;
@@ -117,139 +117,163 @@ export function AuthGuard({ children }: Props) {
     n8nWorkflows: [],
   });
 
+  // Sayfa değiştiğinde yükleme ekranını otomatik kapat
   useEffect(() => {
-    // Ana sayfa (giriş ekranı) için guard devre dışı
-    if (pathname === "/") {
-      setAllowed(true);
+    if (allowed && clinicCtx.userId) {
       setChecking(false);
-      return;
     }
+  }, [pathname, allowed, clinicCtx.userId]);
 
-    const checkAuth = async () => {
+  // 1. Aşama: Veri Getirme ve Güvenlik Kontrolü (Sadece Başlangıçta veya Oturum Değiştiğinde)
+  useEffect(() => {
+    const initAuth = async () => {
       setLoadingStep("auth");
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace("/");
+        if (pathname !== "/") router.replace("/");
+        setChecking(false);
         return;
       }
 
-      // Kullanıcının panelde kaydı var mı kontrol et + clinic bilgisi
-      setLoadingStep("profile");
-      const { data: appUser, error } = await supabase
-        .from("users")
-        .select("id, full_name, email, role, clinic_id")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (error || !appUser) {
-        await supabase.auth.signOut();
-        router.replace("/?error=unauthorized");
+      // Veriler zaten varsa (refresh değilse) ve kullanıcı aynıysa tekrar çekme
+      if (clinicCtx.userId === user.id) {
+        setChecking(false);
         return;
       }
 
-      const role = appUser.role as UserRole;
-      const isSuperAdmin = role === UserRole.SUPER_ADMIN;
-      const isAdmin = role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
+      try {
+        setLoadingStep("profile");
+        const { data: appUser, error: userError } = await supabase
+          .from("users")
+          .select("id, full_name, email, role, clinic_id")
+          .eq("id", user.id)
+          .maybeSingle();
 
-      setLoadingStep("clinic");
+        if (userError || !appUser) {
+          await supabase.auth.signOut();
+          router.replace("/?error=unauthorized");
+          return;
+        }
 
-      // SUPER_ADMIN olmayan kullanıcılar için klinik aktifliği ve slug kontrolü
-      if (!isSuperAdmin && appUser.clinic_id) {
-        let clinic;
-        try {
+        const role = appUser.role as UserRole;
+        const isSuperAdmin = role === UserRole.SUPER_ADMIN;
+        const isAdmin = role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
+
+        setLoadingStep("clinic");
+        let clinicData: Partial<Clinic> | null = null;
+
+        if (!isSuperAdmin && appUser.clinic_id) {
           const { data, error: clinicError } = await supabase
             .from("clinics")
             .select("id, name, slug, is_active, working_hours, plan_id, credits, trial_ends_at, automations_enabled, n8n_workflow_id, n8n_workflows")
             .eq("id", appUser.clinic_id)
             .maybeSingle();
 
-          if (clinicError) throw clinicError;
-          clinic = data;
-        } catch (e) {
-          console.warn("Klinik detayları (yeni kolonlar) yüklenemedi, temel bilgilerle devam ediliyor:", e);
-          const { data: basicClinic } = await supabase
-            .from("clinics")
-            .select("id, name, slug, is_active, working_hours")
-            .eq("id", appUser.clinic_id)
-            .maybeSingle();
-          clinic = basicClinic;
-        }
-
-        if (!clinic || !clinic.is_active) {
-          await supabase.auth.signOut();
-          router.replace("/?error=inactive");
-          return;
+          if (clinicError || !data || !data.is_active) {
+            await supabase.auth.signOut();
+            router.replace(data?.is_active === false ? "/?error=inactive" : "/?error=unauthorized");
+            return;
+          }
+          clinicData = data;
         }
 
         setClinicCtx({
-          clinicId: clinic.id,
-          clinicName: clinic.name,
-          clinicSlug: clinic.slug,
+          clinicId: clinicData?.id || null,
+          clinicName: clinicData?.name || null,
+          clinicSlug: clinicData?.slug || null,
           userRole: role,
           isSuperAdmin,
           isAdmin,
           userId: appUser.id,
           userName: appUser.full_name,
           userEmail: appUser.email,
-          workingHours: (clinic.working_hours as WorkingHours) || DEFAULT_WORKING_HOURS,
-          planId: (clinic as unknown as Clinic).plan_id || "starter",
-          credits: (clinic as unknown as Clinic).credits || 0,
-          trialEndsAt: (clinic as unknown as Clinic).trial_ends_at || null,
-          automationsEnabled: (clinic as unknown as Clinic).automations_enabled || false,
-          n8nWorkflowId: (clinic as unknown as Clinic).n8n_workflow_id || null,
-          n8nWorkflows: (clinic as unknown as Clinic).n8n_workflows || [],
+          workingHours: (clinicData?.working_hours as WorkingHours) || DEFAULT_WORKING_HOURS,
+          planId: (clinicData as unknown as Clinic)?.plan_id || (isSuperAdmin ? "enterprise" : "starter"),
+          credits: (clinicData as unknown as Clinic)?.credits ?? (isSuperAdmin ? 999999 : 0),
+          trialEndsAt: (clinicData as unknown as Clinic)?.trial_ends_at || null,
+          automationsEnabled: (clinicData as unknown as Clinic)?.automations_enabled ?? isSuperAdmin,
+          n8nWorkflowId: (clinicData as unknown as Clinic)?.n8n_workflow_id || null,
+          n8nWorkflows: (clinicData as unknown as Clinic)?.n8n_workflows || [],
         });
 
-        // URL'deki slug kontrolü: klinik kullanıcıları doğru slug altında olmalı
-        const urlSlug = pathname.split("/")[1]; // /{slug}/...
-        if (urlSlug !== clinic.slug && pathname !== "/") {
-          // Yanlış slug veya slug olmayan bir yolda → doğru slug'a yönlendir
-          router.replace(`/${clinic.slug}`);
-          return;
-        }
-      } else if (isSuperAdmin) {
-        // SUPER_ADMIN: klinik bilgisi yok
-        setClinicCtx({
-          clinicId: null,
-          clinicName: null,
-          clinicSlug: null,
-          userRole: role,
-          isSuperAdmin: true,
-          isAdmin: true,
-          userId: appUser.id,
-          userName: appUser.full_name,
-          userEmail: appUser.email,
-          workingHours: DEFAULT_WORKING_HOURS,
-          planId: "enterprise", // Super admin için tam yetki
-          credits: 999999,
-          trialEndsAt: null,
-          automationsEnabled: true,
-          n8nWorkflowId: null,
-          n8nWorkflows: [],
-        });
+        // Oturum Kaydı (Sadece ilk yüklemede ve sesssion varsa)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { error: upsertError } = await supabase.from("active_sessions").upsert({
+            user_id: user.id,
+            session_id: session.access_token,
+            created_at: new Date().toISOString(),
+          }, { onConflict: 'user_id, session_id' });
 
-        // SUPER_ADMIN /platform dışında bir sayfaya girerse platforme yönlendir
-        if (!pathname.startsWith("/platform") && pathname !== "/") {
-          router.replace("/platform/clinics");
-          return;
+          if (!upsertError) {
+            const { data: sessions } = await supabase
+              .from("active_sessions")
+              .select("id")
+              .eq("user_id", user.id)
+              .order("created_at", { ascending: false });
+
+            if (sessions && sessions.length > 2) {
+              const sessionsToDelete = sessions.slice(2).map(s => s.id);
+              await supabase.from("active_sessions").delete().in("id", sessionsToDelete);
+            }
+          }
         }
-      } else {
-        // Klinik atanmamış, SUPER_ADMIN değil -> yetkisiz
-        await supabase.auth.signOut();
-        router.replace("/?error=unauthorized");
-        return;
+
+        setLoadingStep("ready");
+        setAllowed(true);
+      } catch (err) {
+        console.error("AuthGuard initialization error:", err);
+      } finally {
+        setChecking(false);
       }
-
-      setLoadingStep("ready");
-      setAllowed(true);
-      setChecking(false);
     };
 
-    checkAuth();
-  }, [pathname, router]);
+    initAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Sadece mount anında çalışır
+
+  // 2. Aşama: URL ve Slug Kontrolü (Sayfa geçişlerinde çalışır, veritabanına gitmez)
+  useEffect(() => {
+    if (!allowed) return;
+
+    if (pathname !== "/") {
+      if (!clinicCtx.isSuperAdmin && clinicCtx.clinicSlug) {
+        const urlSlug = pathname.split("/")[1];
+        if (urlSlug !== clinicCtx.clinicSlug) {
+          router.replace(`/${clinicCtx.clinicSlug}`);
+        }
+      } else if (clinicCtx.isSuperAdmin) {
+        if (!pathname.startsWith("/platform")) {
+          router.replace("/platform/clinics");
+        }
+      }
+    }
+  }, [pathname, allowed, clinicCtx.clinicSlug, clinicCtx.isSuperAdmin, router]);
+
+  // 3. Aşama: Oturum Geçerlilik Kontrolü (Arka Planda)
+  useEffect(() => {
+    if (!allowed) return;
+
+    const intervalId = setInterval(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: exists, error } = await supabase
+        .from("active_sessions")
+        .select("id")
+        .eq("session_id", session.access_token)
+        .maybeSingle();
+
+      // Sadece veri geldiyse ve oturum yoksa at (Ağ hatasında veya tablo yoksa atma)
+      if (!error && !exists && allowed) {
+        await supabase.auth.signOut();
+        window.location.href = "/?error=session_expired";
+      }
+    }, 60000);
+
+    return () => clearInterval(intervalId);
+  }, [allowed]);
 
   if (checking) {
     return <LoadingScreen step={loadingStep} />;

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { clinicId, toPhone, template, variables } = validation.data;
+  const { } = validation.data;
 
   // Taslak akış:
   // 1) clinicId ve template adına göre message_templates tablosundan içerik çek

@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from "react";
 import type { UserRole, WorkingHours } from "@/types/database";
-import { DEFAULT_WORKING_HOURS } from "@/types/database";
+import { DEFAULT_WORKING_HOURS } from "@/constants/days";
 
 export interface ClinicContextValue {
   clinicId: string | null;

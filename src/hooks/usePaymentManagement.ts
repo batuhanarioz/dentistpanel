@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr } from "@/lib/dateUtils";
+import { Appointment } from "@/types/database";
+import { paymentSchema, updatePaymentSchema } from "@/lib/validations/payment";
+import * as Sentry from "@sentry/nextjs";
 
 export type Patient = { id: string; full_name: string; phone: string | null; };
 export type AppointmentOption = { id: string; starts_at: string; treatment_type: string | null; patient_id: string; patient_full_name: string; patient_phone: string | null; };
@@ -72,7 +75,9 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
         setModalAppointmentsLoading(true);
         supabase.from("appointments").select("id, starts_at, treatment_type, patient_id, patients:patient_id(full_name, phone)").in("patient_id", pIds).order("starts_at", { ascending: true }).limit(30)
             .then(({ data }) => {
-                setModalAppointments((data || []).map((r: any) => ({
+                type PaymentModalRow = Pick<Appointment, "id" | "starts_at" | "treatment_type" | "patient_id"> & { patients: { full_name: string; phone: string | null } | null };
+
+                setModalAppointments(((data as unknown as PaymentModalRow[]) || []).map((r) => ({
                     id: r.id, starts_at: r.starts_at, treatment_type: r.treatment_type, patient_id: r.patient_id,
                     patient_full_name: r.patients?.full_name || "Hasta", patient_phone: r.patients?.phone || null
                 })));
@@ -96,11 +101,28 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
         const appt = modalAppointments.find(a => a.id === selectedAppointmentId);
         if (!appt) return;
         setSaving(true);
-        const { error } = await supabase.from("payments").insert({
-            appointment_id: selectedAppointmentId, patient_id: appt.patient_id, amount: Number(amount),
-            method, status: "planned", note: note || null, due_date: selectedDate
-        });
-        if (error) setError(error.message);
+        const paymentData = {
+            appointment_id: selectedAppointmentId,
+            patient_id: appt.patient_id,
+            amount: Number(amount),
+            method,
+            status: "planned",
+            note: note || null,
+            due_date: selectedDate
+        };
+
+        const validation = paymentSchema.safeParse(paymentData);
+        if (!validation.success) {
+            setError("Ödeme bilgileri geçersiz: " + validation.error.issues[0].message);
+            setSaving(false);
+            return;
+        }
+
+        const { error } = await supabase.from("payments").insert(validation.data);
+        if (error) {
+            Sentry.captureException(error, { tags: { section: "payments", action: "insert" } });
+            setError(error.message);
+        }
         else {
             closeModal();
             const baseDate = new Date(selectedDate);
@@ -118,7 +140,20 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
 
     const handleUpdateStatus = async () => {
         if (!selectedPayment) return;
-        const { error } = await supabase.from("payments").update({ status: detailStatus, amount: Number(detailAmount), method: detailMethod }).eq("id", selectedPayment.id);
+
+        const updates = {
+            status: detailStatus,
+            amount: Number(detailAmount),
+            method: detailMethod
+        };
+
+        const validation = updatePaymentSchema.safeParse(updates);
+        if (!validation.success) {
+            alert("Yeni bilgiler geçersiz: " + validation.error.issues[0].message);
+            return;
+        }
+
+        const { error } = await supabase.from("payments").update(validation.data).eq("id", selectedPayment.id);
         if (!error) {
             setPayments(prev => prev.map(p => p.id === selectedPayment.id ? { ...p, status: detailStatus, amount: Number(detailAmount), method: detailMethod } : p));
             setIsDetailModalOpen(false);

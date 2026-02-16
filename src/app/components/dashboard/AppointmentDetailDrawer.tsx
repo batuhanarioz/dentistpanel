@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { STATUS_LABEL_MAP, STATUS_BADGE_CLASS } from "@/constants/dashboard";
+import { DashboardAppointment } from "@/hooks/useDashboard";
+import { Appointment } from "@/types/database";
 
 interface AppointmentDetailDrawerProps {
     appointmentId: string | null;
     onClose: () => void;
-    onStatusChange: (id: string, status: any) => void;
+    onStatusChange: (id: string, status: DashboardAppointment["status"]) => void;
     onAssignDoctor: (id: string, doctorId: string) => void;
     doctors: Array<{ id: string; full_name: string }>;
 }
@@ -17,10 +19,35 @@ export function AppointmentDetailDrawer({
     onAssignDoctor,
     doctors
 }: AppointmentDetailDrawerProps) {
-    const [appointment, setAppointment] = useState<any>(null);
+    // Define the shape of the fetched appointment with joined data
+    type DrawerAppointment = Appointment & {
+        patients: { full_name: string; phone: string } | null;
+        users: { full_name: string } | null;
+    };
+
+    const [appointment, setAppointment] = useState<DrawerAppointment | null>(null);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [statusChanging, setStatusChanging] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [localTreatmentNote, setLocalTreatmentNote] = useState("");
+    const [localEstimatedAmount, setLocalEstimatedAmount] = useState("");
+
+    const fetchDetail = useCallback(async (id: string) => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from("appointments")
+            .select("*, patients(*), users!doctor_id(full_name)")
+            .eq("id", id)
+            .maybeSingle();
+
+        if (!error && data) {
+            setAppointment(data as unknown as DrawerAppointment);
+            setLocalTreatmentNote(data.treatment_note || "");
+            setLocalEstimatedAmount(data.estimated_amount?.toString() || "0");
+        }
+        setLoading(false);
+    }, []);
 
     useEffect(() => {
         if (appointmentId) {
@@ -30,21 +57,7 @@ export function AppointmentDetailDrawer({
             setIsOpen(false);
             setAppointment(null);
         }
-    }, [appointmentId]);
-
-    const fetchDetail = async (id: string) => {
-        setLoading(true);
-        const { data, error } = await supabase
-            .from("appointments")
-            .select("*, patients(*), users!doctor_id(full_name)")
-            .eq("id", id)
-            .maybeSingle();
-
-        if (!error && data) {
-            setAppointment(data);
-        }
-        setLoading(false);
-    };
+    }, [appointmentId, fetchDetail]);
 
     if (!appointmentId && !isOpen) return null;
 
@@ -118,29 +131,31 @@ export function AppointmentDetailDrawer({
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Randevu Durumu</label>
                                     <div className="flex flex-wrap gap-2">
-                                        {Object.entries(STATUS_LABEL_MAP).map(([val, label]) => (
-                                            <button
-                                                key={val}
-                                                onClick={async () => {
-                                                    setStatusChanging(true);
-                                                    await onStatusChange(appointment.id, val as any);
-                                                    setAppointment((prev: any) => ({ ...prev, status: val }));
-                                                    setTimeout(() => setStatusChanging(false), 500);
-                                                }}
-                                                disabled={statusChanging}
-                                                className={`px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all disabled:opacity-50 ${appointment.status === val
-                                                    ? STATUS_BADGE_CLASS[val as keyof typeof STATUS_BADGE_CLASS] + " shadow-md scale-105 ring-2 ring-offset-2 ring-teal-500/30"
-                                                    : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-teal-200"
-                                                    }`}
-                                            >
-                                                {statusChanging && appointment.status === val ? (
-                                                    <svg className="h-3 w-3 animate-spin inline-block" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                ) : label}
-                                            </button>
-                                        ))}
+                                        {Object.entries(STATUS_LABEL_MAP)
+                                            .filter(([val]) => val !== "pending")
+                                            .map(([val, label]) => (
+                                                <button
+                                                    key={val}
+                                                    onClick={async () => {
+                                                        setStatusChanging(true);
+                                                        await onStatusChange(appointment.id, val as DashboardAppointment["status"]);
+                                                        setAppointment((prev) => prev ? ({ ...prev, status: val as DashboardAppointment["status"] }) : null);
+                                                        setTimeout(() => setStatusChanging(false), 500);
+                                                    }}
+                                                    disabled={statusChanging}
+                                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all disabled:opacity-50 ${appointment.status === val
+                                                        ? STATUS_BADGE_CLASS[val as keyof typeof STATUS_BADGE_CLASS] + " shadow-md scale-105 ring-2 ring-offset-2 ring-teal-500/30"
+                                                        : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-teal-200"
+                                                        }`}
+                                                >
+                                                    {statusChanging && appointment.status === val ? (
+                                                        <svg className="h-3 w-3 animate-spin inline-block" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                    ) : label}
+                                                </button>
+                                            ))}
                                     </div>
                                     {statusChanging && (
                                         <p className="text-[10px] text-teal-600 font-bold mt-2 animate-pulse">Durum güncelleniyor...</p>
@@ -154,7 +169,7 @@ export function AppointmentDetailDrawer({
                                         onChange={(e) => {
                                             const docId = e.target.value;
                                             onAssignDoctor(appointment.id, docId);
-                                            setAppointment((prev: any) => ({ ...prev, doctor_id: docId }));
+                                            setAppointment((prev) => prev ? ({ ...prev, doctor_id: docId }) : null);
                                         }}
                                         className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 focus:bg-white transition-all"
                                     >
@@ -173,9 +188,54 @@ export function AppointmentDetailDrawer({
                                             <p className="text-xs font-bold text-slate-900">{appointment.treatment_type || "Genel Muayene"}</p>
                                         </div>
                                     </div>
-                                    <div className="text-2xl font-black text-slate-900">
-                                        {appointment.estimated_amount?.toLocaleString("tr-TR") || "0"} <span className="text-sm font-semibold text-slate-400">₺</span>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            value={localEstimatedAmount}
+                                            onChange={(e) => setLocalEstimatedAmount(e.target.value)}
+                                            className="w-full bg-transparent text-2xl font-black text-slate-900 outline-none border-b-2 border-transparent focus:border-indigo-500"
+                                        />
+                                        <span className="text-sm font-semibold text-slate-400">₺</span>
                                     </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Tedavi Notu (Doktor)</label>
+                                    <textarea
+                                        value={localTreatmentNote}
+                                        onChange={(e) => setLocalTreatmentNote(e.target.value)}
+                                        rows={3}
+                                        placeholder="Tedavi detaylarını buraya ekleyin..."
+                                        className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-700 outline-none focus:border-indigo-500 focus:bg-white transition-all resize-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <button
+                                        onClick={async () => {
+                                            setSaving(true);
+                                            const { error } = await supabase
+                                                .from("appointments")
+                                                .update({
+                                                    treatment_note: localTreatmentNote,
+                                                    estimated_amount: parseFloat(localEstimatedAmount) || 0
+                                                })
+                                                .eq("id", appointment.id);
+
+                                            if (!error) {
+                                                // We might want to trigger a refresh in the parent as well
+                                                setAppointment(prev => prev ? { ...prev, treatment_note: localTreatmentNote, estimated_amount: parseFloat(localEstimatedAmount) || 0 } : null);
+                                                // Ideally call a refresh function passed from props
+                                                onStatusChange(appointment.id, appointment.status as DashboardAppointment["status"]); // Dummy call to trigger refresh if parent handles it
+                                            }
+                                            setSaving(false);
+                                        }
+                                        }
+                                        disabled={saving}
+                                        className="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                                    >
+                                        {saving ? "Kaydediliyor..." : "Not ve Ücreti Kaydet"}
+                                    </button>
                                 </div>
 
                                 <div>

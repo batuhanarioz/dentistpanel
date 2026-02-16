@@ -2,13 +2,7 @@ import React from "react";
 import { UserRow } from "@/hooks/useAdminUsers";
 import { UserRole } from "@/types/database";
 
-const ROLE_LABELS: Record<string, string> = {
-    [UserRole.ADMIN]: "Yönetici",
-    [UserRole.DOKTOR]: "Doktor",
-    [UserRole.SEKRETER]: "Sekreter",
-    [UserRole.FINANS]: "Finans",
-    [UserRole.SUPER_ADMIN]: "Süper Admin",
-};
+import { ROLE_LABELS } from "@/constants/roles";
 
 interface UserListTableProps {
     users: UserRow[];
@@ -57,9 +51,9 @@ export function UserListTable({ users, loading, isAdmin, onEditUser }: UserListT
                             </td>
                             <td className="whitespace-nowrap px-6 py-4">
                                 <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${u.role === UserRole.ADMIN ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                                        u.role === UserRole.DOKTOR ? 'bg-teal-50 text-teal-700 border-teal-100' :
-                                            u.role === UserRole.SEKRETER ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                                'bg-slate-50 text-slate-600 border-slate-100'
+                                    u.role === UserRole.DOKTOR ? 'bg-teal-50 text-teal-700 border-teal-100' :
+                                        u.role === UserRole.SEKRETER ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                            'bg-slate-50 text-slate-600 border-slate-100'
                                     }`}>
                                     {ROLE_LABELS[u.role] || u.role}
                                 </span>

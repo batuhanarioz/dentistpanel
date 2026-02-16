@@ -12,26 +12,26 @@ export default function SubscriptionPage() {
 
     const planDetails: Record<string, { name: string; limit: string; price: string; details: string[] }> = {
         starter: {
-            name: "Starter",
-            limit: "1.000",
-            price: "499₺",
-            details: ["1 Doktor Sınırı", "Temel Raporlama", "Haftalık Analiz", "Standart Destek"]
+            name: "Başlangıç",
+            limit: "750",
+            price: "1.990 ₺",
+            details: ["2 Doktor Sınırı", "Standart Destek"]
         },
         pro: {
-            name: "Pro",
-            limit: "5.000",
-            price: "999₺",
-            details: ["5 Doktor Sınırı", "Gelişmiş Raporlar", "WhatsApp Hatırlatıcılar", "AI Destekli Analizler"]
+            name: "Profesyonel",
+            limit: "2.500",
+            price: "3.990 ₺",
+            details: ["5 Doktor Sınırı", "Öncelikli Destek"]
         },
         enterprise: {
-            name: "Enterprise",
-            limit: "25.000",
-            price: "2.499₺",
-            details: ["Sınırsız Doktor", "Tam Raporlama", "Özel Entegrasyonlar", "Öncelikli Destek (7/24)"]
+            name: "Kurumsal",
+            limit: "7.500",
+            price: "8.990₺",
+            details: ["12 Doktor Sınırı", "Öncelikli Destek (7/24)"]
         },
         trial: {
-            name: "Deneme (Trial)",
-            limit: "1.000",
+            name: "Deneme",
+            limit: "100",
             price: "Ücretsiz",
             details: ["7 Günlük Deneme", "Tüm Özellikler Açık", "100 Kredi Hediye"]
         },

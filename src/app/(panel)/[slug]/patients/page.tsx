@@ -4,7 +4,6 @@ import { usePatients } from "@/hooks/usePatients";
 import { PatientListTable } from "@/app/components/patients/PatientListTable";
 import { PatientDetailModal } from "@/app/components/patients/PatientDetailModal";
 
-const PAGE_SIZE = 10;
 
 export default function PatientsPage() {
   const {
@@ -17,7 +16,6 @@ export default function PatientsPage() {
     selectedPatient,
     appointments,
     payments,
-    appointmentsLoading,
     detailOpen,
     setDetailOpen,
     patients,
@@ -165,7 +163,6 @@ export default function PatientsPage() {
         patient={selectedPatient}
         appointments={appointments}
         payments={payments}
-        loading={appointmentsLoading}
         onDelete={deletePatient}
         onUpdate={updatePatient}
       />

@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   description: "Multi-tenant diş klinik yönetim paneli.",
 };
 
+import * as Sentry from "@sentry/nextjs";
+import Providers from "./providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -17,8 +20,11 @@ export default function RootLayout({
         className="antialiased bg-slate-50 text-slate-900"
         suppressHydrationWarning
       >
-        {children}
+        <Sentry.ErrorBoundary fallback={<p>Bir hata oluştu. Lütfen sayfayı yenileyiniz.</p>}>
+          <Providers>{children}</Providers>
+        </Sentry.ErrorBoundary>
       </body>
     </html>
   );
 }
+

@@ -3,6 +3,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
 import { UserRole } from "@/types/database";
 
+import { DOCTOR_LIMITS, PLAN_IDS } from "@/constants/plans";
+
 export type UserRow = {
     id: string;
     full_name: string | null;
@@ -14,12 +16,6 @@ export type UserRow = {
 export type ClinicRow = {
     id: string;
     name: string;
-};
-
-export const DOCTOR_LIMITS: Record<string, number> = {
-    starter: 1,
-    pro: 5,
-    enterprise: 999,
 };
 
 export function useAdminUsers() {
@@ -119,7 +115,7 @@ export function useAdminUsers() {
 
         if (newRole === UserRole.DOKTOR) {
             const currentDocs = users.filter(u => u.role === UserRole.DOKTOR).length;
-            const limit = DOCTOR_LIMITS[clinic.planId || "starter"] || 1;
+            const limit = DOCTOR_LIMITS[clinic.planId || PLAN_IDS.STARTER] || 1;
             if (currentDocs >= limit) {
                 setError(`Limit aşıldı. En fazla ${limit} doktor ekleyebilirsiniz.`);
                 setSaving(false);

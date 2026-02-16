@@ -17,7 +17,7 @@ interface SelfProfileCardProps {
 }
 
 export function SelfProfileCard({
-    email, newEmail, setNewEmail, oldPassword, setOldPassword,
+    newEmail, setNewEmail, oldPassword, setOldPassword,
     newPassword, setNewPassword, newPasswordRepeat, setNewPasswordRepeat,
     saving, message, error, onSubmit
 }: SelfProfileCardProps) {

@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { UserRole } from "@/types/database";
+import { PricingModal } from "@/app/components/PricingModal";
 
 function LoginForm() {
   const router = useRouter();
@@ -13,6 +14,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
 
   const togglePassword = useCallback(() => setShowPassword((v) => !v), []);
 
@@ -56,6 +58,10 @@ function LoginForm() {
     } else if (urlError === "inactive") {
       setError(
         "Kliniğiniz şu anda aktif değil. Lütfen platform yöneticisi ile iletişime geçin."
+      );
+    } else if (urlError === "session_expired") {
+      setError(
+        "Başka bir cihazdan giriş yapıldığı için oturumunuz sonlandırıldı. Tekrar giriş yapabilirsiniz."
       );
     }
   }, [urlError]);
@@ -261,14 +267,31 @@ function LoginForm() {
                 </button>
               </form>
 
-              <p className="mt-5 text-center text-xs text-slate-500 leading-relaxed">
-                Giriş yapamıyorsanız, klinik yöneticinizden panel hesabınızın
-                oluşturulmasını isteyin.
-              </p>
+              <div className="mt-8 pt-6 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsPricingOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98]"
+                >
+                  <svg className="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                  </svg>
+                  Paketleri ve Fiyatları Gör
+                </button>
+                <p className="mt-5 text-center text-xs text-slate-500 leading-relaxed">
+                  Giriş yapamıyorsanız, klinik yöneticinizden panel hesabınızın
+                  oluşturulmasını isteyin.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      <PricingModal
+        isOpen={isPricingOpen}
+        onClose={() => setIsPricingOpen(false)}
+      />
 
       <footer className="py-6 text-center">
         <p className="text-sm font-medium text-slate-400">

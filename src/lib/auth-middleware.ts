@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 import { UserRole } from "@/types/database";
+import { generalRateLimit, getIP } from "@/lib/ratelimit";
 
 export type AuthContext = {
     user: { id: string; email?: string };
@@ -19,6 +20,16 @@ export function withAuth(
 ) {
     return async (req: NextRequest): Promise<NextResponse> => {
         try {
+            // 0) Rate Limit Kontrolü
+            const ip = getIP(req);
+            const { success } = await generalRateLimit.limit(ip);
+            if (!success) {
+                return NextResponse.json(
+                    { error: "Çok fazla istek gönderdiniz. Lütfen bir dakika sonra tekrar deneyiniz." },
+                    { status: 429 }
+                );
+            }
+
             const authHeader = req.headers.get("authorization");
             if (!authHeader?.startsWith("Bearer ")) {
                 return NextResponse.json({ error: "unauthorized" }, { status: 401 });

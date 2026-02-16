@@ -1,5 +1,5 @@
 import React from "react";
-import { AppointmentRow, CHANNEL_LABELS } from "@/hooks/useReports";
+import { AppointmentRow } from "@/hooks/useReports";
 
 interface KPIDetailListProps {
     data: AppointmentRow[];
@@ -55,8 +55,8 @@ export function KPIDetailList({
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                                 <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${a.status === 'completed' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' :
-                                        a.status === 'cancelled' || a.status === 'no_show' ? 'border-rose-200 bg-rose-50 text-rose-700' :
-                                            'border-slate-200 bg-slate-50 text-slate-600'
+                                    a.status === 'cancelled' || a.status === 'no_show' ? 'border-rose-200 bg-rose-50 text-rose-700' :
+                                        'border-slate-200 bg-slate-50 text-slate-600'
                                     }`}>
                                     {STATUS_LABELS[a.status] || a.status}
                                 </span>

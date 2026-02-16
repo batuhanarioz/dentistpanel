@@ -48,7 +48,7 @@ export function ControlListSection({
                                 <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                             </svg>
                         </div>
-                        <p className="text-sm text-slate-500">Tebrikler! Bekleyen kontrol kalmadı.</p>
+                        <p className="text-sm text-slate-500">Kontrol Listen Şimdilik Temiz!</p>
                     </div>
                 )}
                 {controlItems.map((item) => {

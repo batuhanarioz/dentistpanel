@@ -1,6 +1,5 @@
 import React from "react";
 import { UserRole } from "@/types/database";
-import { ClinicRow } from "@/hooks/useAdminUsers";
 
 interface CreateUserModalProps {
     isOpen: boolean;
