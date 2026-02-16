@@ -20,6 +20,7 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
     const [selectedDate, setSelectedDate] = useState(today);
     const [amount, setAmount] = useState("");
     const [method, setMethod] = useState<string>("Nakit");
+    const [status, setStatus] = useState<string>("planned");
     const [note, setNote] = useState("");
     const [payments, setPayments] = useState<PaymentRow[]>([]);
     const [loading, setLoading] = useState(false);
@@ -91,6 +92,7 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
         setSelectedAppointmentId("");
         setAmount("");
         setMethod("Nakit");
+        setStatus("planned");
         setNote("");
         setError(null);
     }, []);
@@ -106,8 +108,8 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
             patient_id: appt.patient_id,
             amount: Number(amount),
             method,
-            status: "planned",
-            note: note || null,
+            status,
+            note: note.trim() || null,
             due_date: selectedDate
         };
 
@@ -185,7 +187,7 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
     return {
         today, patients, listSearch, setListSearch, modalPatientSearch, setModalPatientSearch,
         modalAppointments, modalAppointmentsLoading, selectedAppointmentId, setSelectedAppointmentId,
-        selectedDate, setSelectedDate, amount, setAmount, method, setMethod, note, setNote,
+        selectedDate, setSelectedDate, amount, setAmount, method, setMethod, status, setStatus, note, setNote,
         payments, loading, saving, error, isModalOpen, setIsModalOpen, closeModal, currentPage, setCurrentPage,
         viewMode, setViewMode, selectedPayment, isDetailModalOpen, setIsDetailModalOpen,
         detailStatus, setDetailStatus, detailAmount, setDetailAmount, detailMethod, setDetailMethod,

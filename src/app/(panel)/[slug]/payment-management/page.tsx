@@ -23,7 +23,7 @@ function PaymentsInner() {
   const {
     today, listSearch, setListSearch, modalPatientSearch, setModalPatientSearch,
     modalAppointments, modalAppointmentsLoading, selectedAppointmentId, setSelectedAppointmentId,
-    selectedDate, setSelectedDate, amount, setAmount, method, setMethod, note, setNote,
+    selectedDate, setSelectedDate, amount, setAmount, method, setMethod, status, setStatus, note, setNote,
     loading, saving, error, isModalOpen, setIsModalOpen, closeModal, currentPage, setCurrentPage,
     viewMode, setViewMode, selectedPayment, isDetailModalOpen, setIsDetailModalOpen,
     detailStatus, setDetailStatus, detailAmount, setDetailAmount, detailMethod, setDetailMethod,
@@ -119,7 +119,7 @@ function PaymentsInner() {
         isOpen={isModalOpen} onClose={closeModal} onSubmit={handleSave}
         error={error} saving={saving} selectedDate={selectedDate} setSelectedDate={setSelectedDate}
         today={today} amount={amount} setAmount={setAmount}
-        method={method} setMethod={setMethod} note={note} setNote={setNote}
+        method={method} setMethod={setMethod} status={status} setStatus={setStatus} note={note} setNote={setNote}
         selectedAppointmentId={selectedAppointmentId} setSelectedAppointmentId={setSelectedAppointmentId}
         modalPatientSearch={modalPatientSearch} setModalPatientSearch={setModalPatientSearch}
         modalAppointments={modalAppointments} modalAppointmentsLoading={modalAppointmentsLoading}

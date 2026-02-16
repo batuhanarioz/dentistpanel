@@ -15,6 +15,8 @@ interface NewPaymentModalProps {
     setAmount: (v: string) => void;
     method: string;
     setMethod: (v: string) => void;
+    status: string;
+    setStatus: (v: string) => void;
     note: string;
     setNote: (v: string) => void;
     selectedAppointmentId: string;
@@ -27,7 +29,7 @@ interface NewPaymentModalProps {
 
 export function NewPaymentModal({
     isOpen, onClose, onSubmit, error, saving,
-    selectedDate, setSelectedDate, today, amount, setAmount, method, setMethod, note, setNote,
+    selectedDate, setSelectedDate, today, amount, setAmount, method, setMethod, status, setStatus, note, setNote,
     selectedAppointmentId, setSelectedAppointmentId, modalPatientSearch, setModalPatientSearch,
     modalAppointments, modalAppointmentsLoading
 }: NewPaymentModalProps) {
@@ -219,6 +221,22 @@ export function NewPaymentModal({
                                         {m}
                                     </option>
                                 ))}
+                            </select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-medium text-slate-700">
+                                Ödeme durumu
+                            </label>
+                            <select
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value)}
+                                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                            >
+                                <option value="planned">Planlandı</option>
+                                <option value="partial">Kısmi</option>
+                                <option value="paid">Ödendi</option>
+                                <option value="cancelled">İptal</option>
                             </select>
                         </div>
 

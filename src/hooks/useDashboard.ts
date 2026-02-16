@@ -122,12 +122,16 @@ export function useDashboard() {
 
     const doctors = doctorsData;
 
-    // Filter appointments for the list (e.g. upcoming if today)
+    // Filter and sort appointments for the list
     const appointments = useMemo(() => {
         const sorted = [...rawAppointments].sort((a, b) => {
             const dateA = new Date(a.startsAt).getTime();
             const dateB = new Date(b.startsAt).getTime();
             const now = new Date().getTime();
+
+            // Completed appointments always go to the bottom
+            if (a.status === "completed" && b.status !== "completed") return 1;
+            if (a.status !== "completed" && b.status === "completed") return -1;
 
             // Prioritize upcoming confirmed appointments if it's today
             if (viewOffsetAppointments === 0) {
@@ -141,10 +145,8 @@ export function useDashboard() {
             return dateA - dateB;
         });
 
-        return sorted.filter((a: DashboardAppointment) => {
-            if (a.status === "completed") return false;
-            return true;
-        });
+        // Return all appointments including completed ones
+        return sorted;
     }, [rawAppointments, viewOffsetAppointments]);
 
     // Control Items logic
@@ -264,12 +266,17 @@ export function useDashboard() {
     const handleAssignDoctor = async (appointmentId: string, doctorId: string) => {
         if (!doctorId) return;
         await supabase.from("appointments").update({ doctor_id: doctorId }).eq("id", appointmentId);
+        // Invalidate both appointments and control queries to refresh the lists
         queryClient.invalidateQueries({ queryKey: ["dashboardAppointments"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboardAppointmentsControl"] });
     };
 
     const handleStatusChange = async (appointmentId: string, newStatus: DashboardAppointment["status"]) => {
         await supabase.from("appointments").update({ status: newStatus }).eq("id", appointmentId);
+        // Invalidate both appointments and control queries to refresh the lists
         queryClient.invalidateQueries({ queryKey: ["dashboardAppointments"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboardAppointmentsControl"] });
+        queryClient.invalidateQueries({ queryKey: ["paymentsForAppointments"] });
     };
 
     return {
