@@ -26,7 +26,7 @@ describe("Internal Appointment Schema", () => {
     });
 
     it("should fail if starts_at is missing", () => {
-        const invalidAppt = { ...validAppointment } as any;
+        const invalidAppt: Record<string, unknown> = { ...validAppointment };
         delete invalidAppt.starts_at;
         const result = internalAppointmentSchema.safeParse(invalidAppt);
         expect(result.success).toBe(false);
