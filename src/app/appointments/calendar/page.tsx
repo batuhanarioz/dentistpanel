@@ -28,6 +28,38 @@ type CalendarAppointment = {
   sourceMessageId?: string;
 };
 
+interface PatientRow {
+  id: string;
+  full_name: string;
+  phone: string;
+  email: string | null;
+  birth_date: string | null;
+}
+
+interface DoctorRow {
+  id: string;
+  full_name: string;
+}
+
+interface AppointmentRow {
+  id: string;
+  patient_id: string;
+  doctor_id: string;
+  channel: string;
+  status: "pending" | "confirmed" | "cancelled" | "no_show" | "completed";
+  starts_at: string;
+  ends_at: string;
+  treatment_type: string | null;
+  patient_note: string | null;
+  internal_note: string | null;
+  contact_preference: "WhatsApp" | "SMS" | "Arama";
+  reminder_minutes_before: number | null;
+  tags: string[] | null;
+  source_conversation_id: string | null;
+  source_message_id: string | null;
+  estimated_amount: number | null;
+}
+
 const WORKING_HOURS = Array.from({ length: 10 }, (_, i) => 9 + i); // 09:00 - 18:00 (mesai 19:00'da biter)
 
 const TREATMENTS: { label: string; value: string; duration: number }[] = [
@@ -121,29 +153,29 @@ export default function AppointmentCalendarPage() {
     const [patientsRes, doctorsRes] = await Promise.all([
       patientIds.length
         ? supabase
-            .from("patients")
-            .select("id, full_name, phone, email, birth_date")
-            .in("id", patientIds)
+          .from("patients")
+          .select("id, full_name, phone, email, birth_date")
+          .in("id", patientIds)
         : Promise.resolve({ data: [], error: null } as {
-            data: any[];
-            error: any;
-          }),
+          data: PatientRow[];
+          error: null;
+        }),
       doctorIds.length
         ? supabase
-            .from("users")
-            .select("id, full_name")
-            .in("id", doctorIds)
+          .from("users")
+          .select("id, full_name")
+          .in("id", doctorIds)
         : Promise.resolve({ data: [], error: null } as {
-            data: any[];
-            error: any;
-          }),
+          data: DoctorRow[];
+          error: null;
+        }),
     ]);
 
     const patientsMap = Object.fromEntries(
-      (patientsRes.data || []).map((p: any) => [p.id, p])
+      (patientsRes.data || []).map((p: PatientRow) => [p.id, p])
     );
     const doctorsMap = Object.fromEntries(
-      (doctorsRes.data || []).map((d: any) => [d.id, d.full_name])
+      (doctorsRes.data || []).map((d: DoctorRow) => [d.id, d.full_name])
     );
 
     const channelMap: Record<string, string> = {
@@ -153,7 +185,7 @@ export default function AppointmentCalendarPage() {
       walk_in: "Yüz yüze",
     };
 
-    const mapped: CalendarAppointment[] = data.map((row: any) => {
+    const mapped: CalendarAppointment[] = (data || []).map((row: AppointmentRow) => {
       const startDate = new Date(row.starts_at);
       const endDate = new Date(row.ends_at);
       const durationMinutes = Math.max(
@@ -198,7 +230,6 @@ export default function AppointmentCalendarPage() {
 
   useEffect(() => {
     loadAppointmentsForDate(selectedDate);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
   // Kayıtlı doktorları Supabase'den çek (role = DOCTOR)
@@ -298,8 +329,8 @@ export default function AppointmentCalendarPage() {
         appt.dbStatus === "completed"
           ? "GERCEKLESTI"
           : appt.dbStatus === "cancelled" || appt.dbStatus === "no_show"
-          ? "IPTAL"
-          : "",
+            ? "IPTAL"
+            : "",
     });
     setModalOpen(true);
   };
@@ -370,7 +401,7 @@ export default function AppointmentCalendarPage() {
       if (existingPatient) {
         patientId = existingPatient.id;
         // Mevcut hastanın bilgilerini güncelle
-        const updates: Record<string, any> = {};
+        const updates: Record<string, string | null | undefined> = {};
         if (form.patientName) updates.full_name = form.patientName;
         if (form.email) updates.email = form.email;
         if (form.birthDate) updates.birth_date = form.birthDate;
@@ -440,11 +471,11 @@ export default function AppointmentCalendarPage() {
 
     let dbStatus: "pending" | "confirmed" | "cancelled" | "no_show" | "completed" =
       statusToDb[form.status] as
-        | "pending"
-        | "confirmed"
-        | "cancelled"
-        | "no_show"
-        | "completed";
+      | "pending"
+      | "confirmed"
+      | "cancelled"
+      | "no_show"
+      | "completed";
 
     if (isPast) {
       if (form.result === "IPTAL") {
@@ -454,7 +485,7 @@ export default function AppointmentCalendarPage() {
       }
     }
 
-    const payload: any = {
+    const payload = {
       patient_id: patientId,
       doctor_id: doctorId,
       channel: channelToDb[form.channel] ?? "web",
@@ -639,33 +670,32 @@ export default function AppointmentCalendarPage() {
                           e.stopPropagation();
                           openEdit(a);
                         }}
-                        className={`rounded-md border px-2 py-1 text-[10px] ${
-                          (() => {
-                            const start = new Date(
-                              `${a.date}T${a.startHour
-                                .toString()
-                                .padStart(2, "0")}:${(a.startMinute ?? 0).toString().padStart(2, "0")}:00`
-                            );
-                            const end = new Date(
-                              start.getTime() + a.durationMinutes * 60000
-                            );
-                            const isPast = end < now;
+                        className={`rounded-md border px-2 py-1 text-[10px] ${(() => {
+                          const start = new Date(
+                            `${a.date}T${a.startHour
+                              .toString()
+                              .padStart(2, "0")}:${(a.startMinute ?? 0).toString().padStart(2, "0")}:00`
+                          );
+                          const end = new Date(
+                            start.getTime() + a.durationMinutes * 60000
+                          );
+                          const isPast = end < now;
 
-                            if (
-                              a.dbStatus === "cancelled" ||
-                              a.dbStatus === "no_show"
-                            ) {
-                              return "border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200";
-                            }
-                            if (isPast) {
-                              return "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800";
-                            }
-                            if (a.dbStatus === "confirmed") {
-                              return "border-emerald-300 bg-emerald-100 text-emerald-900 hover:bg-emerald-200";
-                            }
-                            return "border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200";
-                          })()
-                        }`}
+                          if (
+                            a.dbStatus === "cancelled" ||
+                            a.dbStatus === "no_show"
+                          ) {
+                            return "border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200";
+                          }
+                          if (isPast) {
+                            return "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800";
+                          }
+                          if (a.dbStatus === "confirmed") {
+                            return "border-emerald-300 bg-emerald-100 text-emerald-900 hover:bg-emerald-200";
+                          }
+                          return "border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200";
+                        })()
+                          }`}
                       >
                         <div className="flex justify-between">
                           <span className="font-semibold">
@@ -836,8 +866,8 @@ export default function AppointmentCalendarPage() {
                       return `${Math.floor(totalMin / 60)
                         .toString()
                         .padStart(2, "0")}:${(totalMin % 60)
-                        .toString()
-                        .padStart(2, "0")}`;
+                          .toString()
+                          .padStart(2, "0")}`;
                     })()}
                   </p>
                 )}
@@ -965,7 +995,7 @@ export default function AppointmentCalendarPage() {
                   </p>
                 )}
               </div>
-    
+
               <div className="space-y-1">
                 <label className="block text-[11px] font-medium text-slate-800">
                   Kanal
