@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { ClinicContext, type ClinicContextValue } from "../context/ClinicContext";
 import { UserRole, type WorkingHours, type Clinic } from "@/types/database";
 import { DEFAULT_WORKING_HOURS } from "@/constants/days";
+import { SYSTEM_AUTOMATIONS } from "@/constants/automations";
 
 type Props = {
   children: React.ReactNode;
@@ -98,6 +99,7 @@ export function AuthGuard({ children }: Props) {
   const [checking, setChecking] = useState(true);
   const [allowed, setAllowed] = useState(false);
   const [loadingStep, setLoadingStep] = useState<LoadingStep>("auth");
+  let automations: any[] = [];
   const [clinicCtx, setClinicCtx] = useState<ClinicContextValue>({
     clinicId: null,
     clinicName: null,
@@ -109,6 +111,7 @@ export function AuthGuard({ children }: Props) {
     userName: null,
     userEmail: null,
     workingHours: DEFAULT_WORKING_HOURS,
+    workingHoursOverrides: [],
     planId: null,
     credits: 0,
     trialEndsAt: null,
@@ -164,18 +167,36 @@ export function AuthGuard({ children }: Props) {
         let clinicData: Partial<Clinic> | null = null;
 
         if (!isSuperAdmin && appUser.clinic_id) {
-          const { data, error: clinicError } = await supabase
-            .from("clinics")
-            .select("id, name, slug, is_active, working_hours, plan_id, credits, trial_ends_at, automations_enabled, n8n_workflow_id, n8n_workflows")
-            .eq("id", appUser.clinic_id)
-            .maybeSingle();
+          const [clinicRes, autoRes] = await Promise.all([
+            supabase
+              .from("clinics")
+              .select("id, name, slug, is_active, working_hours, working_hours_overrides, plan_id, credits, trial_ends_at, automations_enabled, n8n_workflow_id")
+              .eq("id", appUser.clinic_id)
+              .maybeSingle(),
+            supabase
+              .from("clinic_automations")
+              .select("*")
+              .eq("clinic_id", appUser.clinic_id)
+          ]);
 
-          if (clinicError || !data || !data.is_active) {
+          if (clinicRes.error || !clinicRes.data || !clinicRes.data.is_active) {
             await supabase.auth.signOut();
-            router.replace(data?.is_active === false ? "/?error=inactive" : "/?error=unauthorized");
+            router.replace(clinicRes.data?.is_active === false ? "/?error=inactive" : "/?error=unauthorized");
             return;
           }
-          clinicData = data;
+          clinicData = clinicRes.data;
+
+          if (!autoRes.error && autoRes.data) {
+            // Map table data to context structure
+            automations = autoRes.data.map(a => ({
+              id: a.automation_id,
+              name: SYSTEM_AUTOMATIONS.find(s => s.id === a.automation_id)?.name || a.automation_id,
+              visible: a.is_visible,
+              enabled: a.is_enabled,
+              time: a.schedule_time ? a.schedule_time.substring(0, 5) : "09:00",
+              day: a.schedule_day
+            }));
+          }
         }
 
         setClinicCtx({
@@ -189,12 +210,13 @@ export function AuthGuard({ children }: Props) {
           userName: appUser.full_name,
           userEmail: appUser.email,
           workingHours: (clinicData?.working_hours as WorkingHours) || DEFAULT_WORKING_HOURS,
+          workingHoursOverrides: clinicData?.working_hours_overrides || [],
           planId: (clinicData as unknown as Clinic)?.plan_id || (isSuperAdmin ? "enterprise" : "starter"),
           credits: (clinicData as unknown as Clinic)?.credits ?? (isSuperAdmin ? 999999 : 0),
           trialEndsAt: (clinicData as unknown as Clinic)?.trial_ends_at || null,
           automationsEnabled: (clinicData as unknown as Clinic)?.automations_enabled ?? isSuperAdmin,
           n8nWorkflowId: (clinicData as unknown as Clinic)?.n8n_workflow_id || null,
-          n8nWorkflows: (clinicData as unknown as Clinic)?.n8n_workflows || [],
+          n8nWorkflows: automations,
         });
 
         // Oturum Kaydı (Sadece ilk yüklemede ve sesssion varsa)

@@ -15,12 +15,13 @@ export interface ClinicContextValue {
   userName: string | null;
   userEmail: string | null;
   workingHours: WorkingHours;
+  workingHoursOverrides: { date: string; open: string; close: string; is_closed: boolean; note?: string }[];
   planId: string | null;
   credits: number;
   trialEndsAt: string | null;
   automationsEnabled: boolean;
   n8nWorkflowId: string | null;
-  n8nWorkflows: Array<{ id: string; name: string; enabled: boolean }>;
+  n8nWorkflows: Array<{ id: string; name: string; visible?: boolean; enabled: boolean; time?: string; day?: string }>;
 }
 
 const defaultValue: ClinicContextValue = {
@@ -34,6 +35,7 @@ const defaultValue: ClinicContextValue = {
   userName: null,
   userEmail: null,
   workingHours: DEFAULT_WORKING_HOURS,
+  workingHoursOverrides: [],
   planId: null,
   credits: 0,
   trialEndsAt: null,

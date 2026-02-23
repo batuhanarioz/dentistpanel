@@ -3,6 +3,9 @@
 import { usePatients } from "@/hooks/usePatients";
 import { PatientListTable } from "@/app/components/patients/PatientListTable";
 import { PatientDetailModal } from "@/app/components/patients/PatientDetailModal";
+import { CSVUploadModal } from "@/app/components/patients/CSVUploadModal";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 
 export default function PatientsPage() {
@@ -28,6 +31,13 @@ export default function PatientsPage() {
     updatePatient,
     isAdmin
   } = usePatients();
+
+  const queryClient = useQueryClient();
+  const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
+
+  const refreshPatients = () => {
+    queryClient.invalidateQueries({ queryKey: ["patients"] });
+  };
 
   return (
     <div className="space-y-6 italic-none">
@@ -98,15 +108,26 @@ export default function PatientsPage() {
             </div>
 
             {isAdmin && (
-              <button
-                onClick={downloadPatientsCsv}
-                className="w-full md:w-auto h-10 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-6 text-xs font-bold text-white shadow-lg shadow-emerald-100 hover:from-emerald-700 hover:to-teal-600 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12L12 16.5m0 0L16.5 12M12 16.5V3" />
-                </svg>
-                CSV Olarak İndir
-              </button>
+              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                <button
+                  onClick={() => setIsCSVModalOpen(true)}
+                  className="w-full md:w-auto h-10 flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-100 bg-white px-6 text-xs font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 hover:border-emerald-200 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                  CSV Olarak Yükle
+                </button>
+                <button
+                  onClick={downloadPatientsCsv}
+                  className="w-full md:w-auto h-10 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-6 text-xs font-bold text-white shadow-lg shadow-emerald-100 hover:from-emerald-700 hover:to-teal-600 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12L12 16.5m0 0L16.5 12M12 16.5V3" />
+                  </svg>
+                  CSV Olarak İndir
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -165,6 +186,11 @@ export default function PatientsPage() {
         payments={payments}
         onDelete={deletePatient}
         onUpdate={updatePatient}
+      />
+      <CSVUploadModal
+        isOpen={isCSVModalOpen}
+        onClose={() => setIsCSVModalOpen(false)}
+        onUploadComplete={refreshPatients}
       />
     </div>
   );

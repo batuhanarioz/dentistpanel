@@ -1,13 +1,13 @@
-import React from "react";
-
 interface ModalHeaderProps {
     editing: boolean;
     formDate: string;
     formTime: string;
     onClose: () => void;
+    handleDelete?: () => void;
+    onSubmit?: (e: any) => void;
 }
 
-export function ModalHeader({ editing, formDate, formTime, onClose }: ModalHeaderProps) {
+export function ModalHeader({ editing, formDate, formTime, onClose, handleDelete, onSubmit }: ModalHeaderProps) {
     return (
         <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-500 px-6 py-4">
             <div className="flex items-center justify-between">
@@ -26,15 +26,22 @@ export function ModalHeader({ editing, formDate, formTime, onClose }: ModalHeade
                         </p>
                     </div>
                 </div>
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="rounded-lg p-1.5 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/20 transition-all shadow-sm"
+                    >
+                        Vazgeç
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(e) => onSubmit?.(e)}
+                        className="rounded-lg bg-white px-4 py-1.5 text-xs font-bold text-indigo-700 hover:bg-slate-50 transition-all shadow-md active:scale-95"
+                    >
+                        {editing ? "Kaydet" : "Oluştur"}
+                    </button>
+                </div>
             </div>
         </div>
     );

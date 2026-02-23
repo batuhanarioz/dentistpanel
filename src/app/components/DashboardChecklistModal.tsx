@@ -41,25 +41,37 @@ export function DashboardChecklistModal({ open, onClose }: DashboardChecklistMod
             setLoading(true);
             setError(null);
 
-            const [defsRes, configsRes] = await Promise.all([
-                supabase.from("dashboard_task_definitions").select("*"),
-                supabase.from("clinic_task_configs").select("*").eq("clinic_id", clinic.clinicId)
-            ]);
+            try {
+                const [defsRes, configsRes] = await Promise.all([
+                    supabase.from("dashboard_task_definitions").select("*"),
+                    supabase.from("clinic_task_configs").select("*").eq("clinic_id", clinic.clinicId)
+                ]);
 
-            if (defsRes.error) {
-                setError("Görev tanımları yüklenemedi.");
+                if (defsRes.error) {
+                    setError(`Görev tanımları yüklenemedi: ${defsRes.error.message}`);
+                    setLoading(false);
+                    return;
+                }
+
+                if (configsRes.error) {
+                    setError(`Ayarlar yüklenemedi: ${configsRes.error.message}`);
+                    setLoading(false);
+                    return;
+                }
+
+                setTaskDefs(defsRes.data || []);
+
+                const configMap: Record<string, TaskConfig> = {};
+                (configsRes.data || []).forEach(c => {
+                    configMap[c.task_definition_id] = c;
+                });
+                setConfigs(configMap);
+            } catch (err: any) {
+                console.error("DashboardChecklistModal load error:", err);
+                setError("Beklenmedik bir hata oluştu: " + (err.message || ""));
+            } finally {
                 setLoading(false);
-                return;
             }
-
-            setTaskDefs(defsRes.data || []);
-
-            const configMap: Record<string, TaskConfig> = {};
-            (configsRes.data || []).forEach(c => {
-                configMap[c.task_definition_id] = c;
-            });
-            setConfigs(configMap);
-            setLoading(false);
         };
 
         loadSettings();

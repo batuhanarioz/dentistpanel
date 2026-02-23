@@ -6,6 +6,7 @@ import { StatCards } from "@/app/components/dashboard/StatCards";
 import { AppointmentsSection } from "@/app/components/dashboard/AppointmentsSection";
 import { ControlListSection } from "@/app/components/dashboard/ControlListSection";
 import { AppointmentDetailDrawer } from "@/app/components/dashboard/AppointmentDetailDrawer";
+import { DashboardAnalytics } from "@/app/components/dashboard/DashboardAnalytics";
 
 export default function DashboardView() {
     const {
@@ -71,6 +72,8 @@ export default function DashboardView() {
                     onItemClick={handleControlItemClick}
                 />
             </div>
+
+            <DashboardAnalytics />
 
             <AppointmentDetailDrawer
                 appointmentId={selectedAppointmentId}

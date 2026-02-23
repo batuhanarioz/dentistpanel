@@ -11,6 +11,7 @@ import { SummaryCards } from "@/app/components/platform/clinics/SummaryCards";
 import { SuperAdminList } from "@/app/components/platform/clinics/SuperAdminList";
 import { ClinicList } from "@/app/components/platform/clinics/ClinicList";
 import { ClinicModal } from "@/app/components/platform/clinics/ClinicModal";
+import { SYSTEM_AUTOMATIONS, ClinicAutomation } from "@/constants/automations";
 
 type SuperAdminUser = { id: string; full_name: string | null; email: string | null; created_at: string };
 
@@ -37,12 +38,8 @@ export default function PlatformClinicsPage() {
   const [formPlanId, setFormPlanId] = useState<string>(PLAN_IDS.STARTER);
   const [formCredits, setFormCredits] = useState(0);
   const [formTrialEndsAt, setFormTrialEndsAt] = useState("");
-  const [formAutomationsEnabled, setFormAutomationsEnabled] = useState(false);
-  const [formN8nWorkflowId, setFormN8nWorkflowId] = useState("");
-  const [formN8nWorkflows, setFormN8nWorkflows] = useState<{ id: string, name: string, enabled: boolean }[]>([]);
+  const [formAutomations, setFormAutomations] = useState<ClinicAutomation[]>([]);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [n8nWorkflows, setN8nWorkflows] = useState<{ id: string, name: string, active: boolean }[]>([]);
-  const [n8nSearch, setN8nSearch] = useState("");
   const [formAdminPassword, setFormAdminPassword] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -74,22 +71,6 @@ export default function PlatformClinicsPage() {
 
     if (!superRes.error) setSuperAdmins(superRes.data || []);
     if (!plansRes.error) setPlans(plansRes.data || []);
-
-    // n8n workflowlarını çek
-    try {
-      const token = await getAccessToken();
-      const wfRes = await fetch("/api/admin/n8n/workflows", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (wfRes.ok) {
-        const wfData = await wfRes.json();
-        setN8nWorkflows(wfData);
-      }
-    } catch (e) {
-      console.error("Workflow fetch error:", e);
-    }
 
     setLoading(false);
   }, []);
@@ -130,9 +111,7 @@ export default function PlatformClinicsPage() {
           plan_id: formPlanId,
           credits: formCredits,
           trial_ends_at: formTrialEndsAt || null,
-          automations_enabled: formAutomationsEnabled,
-          n8n_workflow_id: formN8nWorkflowId || null,
-          n8n_workflows: formN8nWorkflows,
+          n8n_workflows: formAutomations, // Reuse n8n_workflows field for now or migrate later
           adminPassword: formAdminPassword,
         }),
       });
@@ -141,6 +120,24 @@ export default function PlatformClinicsPage() {
       if (!res.ok) {
         throw new Error(data.error || "Klinik oluşturulamadı.");
       }
+
+      const newClinicId = data.id;
+
+      // Create default automations for the new clinic
+      const defaultAutomations = SYSTEM_AUTOMATIONS.map(sys => ({
+        clinic_id: newClinicId,
+        automation_id: sys.id,
+        is_visible: false,
+        is_enabled: false,
+        schedule_time: "09:00:00",
+        schedule_day: sys.id === 'gmail_performance_weekly' ? "Monday" : null
+      }));
+
+      const { error: autoError } = await supabase
+        .from("clinic_automations")
+        .insert(defaultAutomations);
+
+      if (autoError) console.error("Default automations error:", autoError);
 
       setFormName("");
       setFormSlug("");
@@ -180,13 +177,26 @@ export default function PlatformClinicsPage() {
           plan_id: formPlanId,
           credits: formCredits,
           trial_ends_at: formTrialEndsAt || null,
-          automations_enabled: formAutomationsEnabled,
-          n8n_workflow_id: formN8nWorkflowId || null,
-          n8n_workflows: formN8nWorkflows,
         })
         .eq("id", selectedClinic.id);
 
       if (error) throw error;
+
+      // Sync automations to the new table
+      const automationUpserts = formAutomations.map(a => ({
+        clinic_id: selectedClinic.id,
+        automation_id: a.id,
+        is_visible: a.visible,
+        is_enabled: a.enabled,
+        schedule_time: a.time ? (a.time.includes(":") && a.time.length === 5 ? `${a.time}:00` : a.time) : "09:00:00",
+        schedule_day: a.day || null
+      }));
+
+      const { error: syncError } = await supabase
+        .from("clinic_automations")
+        .upsert(automationUpserts, { onConflict: "clinic_id,automation_id" });
+
+      if (syncError) throw syncError;
 
       setSaving(false);
       setShowEditModal(false);
@@ -199,40 +209,6 @@ export default function PlatformClinicsPage() {
     }
   };
 
-  const toggleAutomation = async (enabled: boolean, workflowId: string) => {
-    if (!selectedClinic || !workflowId) return;
-
-    // UI'da hemen güncelle
-    setFormN8nWorkflows(prev => prev.map(wf => wf.id === workflowId ? { ...wf, enabled } : wf));
-
-    try {
-      const token = await getAccessToken();
-      const res = await fetch("/api/admin/clinics/automation", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          clinicId: selectedClinic.id,
-          enabled,
-          workflowId
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || "Otomasyon güncellenemedi.");
-        // Geri al
-        setFormN8nWorkflows(prev => prev.map(wf => wf.id === workflowId ? { ...wf, enabled: !enabled } : wf));
-      } else {
-        await loadClinics();
-      }
-    } catch {
-      setError("Bağlantı hatası oluştu.");
-      setFormN8nWorkflows(prev => prev.map(wf => wf.id === workflowId ? { ...wf, enabled: !enabled } : wf));
-    }
-  };
 
   const handleToggleActive = async (clinicItem: Clinic) => {
     setError(null);
@@ -263,10 +239,30 @@ export default function PlatformClinicsPage() {
     setFormPlanId(clinicItem.plan_id || PLAN_IDS.STARTER);
     setFormCredits(clinicItem.credits || 0);
     setFormTrialEndsAt(clinicItem.trial_ends_at ? new Date(clinicItem.trial_ends_at).toISOString().slice(0, 16) : "");
-    setFormAutomationsEnabled(clinicItem.automations_enabled || false);
-    setFormN8nWorkflowId(clinicItem.n8n_workflow_id || "");
-    setFormN8nWorkflows(clinicItem.n8n_workflows || []);
-    setN8nSearch("");
+
+    // Fetch automations from the dedicated table
+    const fetchAutomations = async () => {
+      const { data, error } = await supabase
+        .from("clinic_automations")
+        .select("*")
+        .eq("clinic_id", clinicItem.id);
+
+      if (!error && data) {
+        setFormAutomations(data.map(a => ({
+          id: a.automation_id,
+          name: SYSTEM_AUTOMATIONS.find(s => s.id === a.automation_id)?.name || a.automation_id,
+          visible: a.is_visible,
+          enabled: a.is_enabled,
+          time: a.schedule_time ? a.schedule_time.substring(0, 5) : "09:00",
+          day: a.schedule_day
+        })));
+      } else {
+        // Fallback to legacy or empty
+        setFormAutomations([]);
+      }
+    };
+
+    fetchAutomations();
     setSaving(false);
     setShowEditModal(true);
   };
@@ -280,12 +276,15 @@ export default function PlatformClinicsPage() {
     setFormAddress("");
     setFormWorkingHours(DEFAULT_WORKING_HOURS);
     setFormPlanId("trial");
-    setFormCredits(100); // Trial için 100 kredi (3 modül testi için uygun)
-    setFormTrialEndsAt(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)); // 1 hafta deneme
-    setFormAutomationsEnabled(false);
-    setFormN8nWorkflowId("");
-    setFormN8nWorkflows([]);
-    setN8nSearch("");
+    setFormCredits(100); // Trial için 100 kredi
+    setFormTrialEndsAt(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16));
+    setFormAutomations(SYSTEM_AUTOMATIONS.map(sys => ({
+      id: sys.id,
+      name: sys.name,
+      visible: false,
+      enabled: false,
+      time: "09:00"
+    })));
     setSaving(false);
     setShowCreateModal(true);
   };
@@ -362,12 +361,8 @@ export default function PlatformClinicsPage() {
         formTrialEndsAt={formTrialEndsAt}
         setFormTrialEndsAt={setFormTrialEndsAt}
         plans={plans}
-        n8nSearch={n8nSearch}
-        setN8nSearch={setN8nSearch}
-        n8nWorkflows={n8nWorkflows}
-        formN8nWorkflows={formN8nWorkflows}
-        setFormN8nWorkflows={setFormN8nWorkflows}
-        toggleAutomation={toggleAutomation}
+        formAutomations={formAutomations}
+        setFormAutomations={setFormAutomations}
       />
 
       {/* Deaktivasyon Onay Modalı */}

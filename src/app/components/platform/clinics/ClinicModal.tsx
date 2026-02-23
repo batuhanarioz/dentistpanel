@@ -40,12 +40,8 @@ interface ClinicModalProps {
     plans: SubscriptionPlan[];
 
     // Automation
-    n8nSearch: string;
-    setN8nSearch: (val: string) => void;
-    n8nWorkflows: { id: string, name: string, active: boolean }[];
-    formN8nWorkflows: { id: string, name: string, enabled: boolean }[];
-    setFormN8nWorkflows: React.Dispatch<React.SetStateAction<{ id: string, name: string, enabled: boolean }[]>>;
-    toggleAutomation: (enabled: boolean, workflowId: string) => Promise<void>;
+    formAutomations: any[]; // ClinicAutomation type from constants
+    setFormAutomations: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
 export function ClinicModal({
@@ -66,10 +62,7 @@ export function ClinicModal({
     formCredits, setFormCredits,
     formTrialEndsAt, setFormTrialEndsAt,
     plans,
-    n8nSearch, setN8nSearch,
-    n8nWorkflows,
-    formN8nWorkflows, setFormN8nWorkflows,
-    toggleAutomation,
+    formAutomations, setFormAutomations,
 }: ClinicModalProps) {
     if (!isOpen) return null;
 
@@ -194,13 +187,8 @@ export function ClinicModal({
                         />
 
                         <AutomationSection
-                            n8nSearch={n8nSearch}
-                            setN8nSearch={setN8nSearch}
-                            n8nWorkflows={n8nWorkflows}
-                            formN8nWorkflows={formN8nWorkflows}
-                            setFormN8nWorkflows={setFormN8nWorkflows}
-                            showEditModal={!!isEdit}
-                            toggleAutomation={toggleAutomation}
+                            formAutomations={formAutomations}
+                            setFormAutomations={setFormAutomations}
                         />
 
                         <div className="flex items-center gap-3 pt-4 border-t border-slate-100">

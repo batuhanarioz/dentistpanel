@@ -39,6 +39,16 @@ export default function SubscriptionPage() {
 
     const currentPlan = planDetails[clinic.planId || "starter"] || planDetails.starter;
 
+    const dayTranslations: Record<string, string> = {
+        'Monday': 'Pazartesi',
+        'Tuesday': 'Salı',
+        'Wednesday': 'Çarşamba',
+        'Thursday': 'Perşembe',
+        'Friday': 'Cuma',
+        'Saturday': 'Cumartesi',
+        'Sunday': 'Pazar'
+    };
+
     function stats_credits_calculation(credits: number, limitStr: string) {
         const limit = parseInt(limitStr.replace(".", ""));
         return Math.max(0, limit - credits);
@@ -201,7 +211,7 @@ export default function SubscriptionPage() {
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
                                 <h3 className="text-base font-bold text-slate-900">Aktif Otomasyonlar</h3>
-                                <span className="rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">n8n Engine</span>
+                                <span className="rounded-full bg-gradient-to-r from-teal-600 to-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">Akıllı Servisler</span>
                             </div>
                             <p className="text-xs text-slate-500 mt-0.5">Sistem yöneticisi tarafından kliniğinize atanan akıllı servisler</p>
                         </div>
@@ -220,17 +230,45 @@ export default function SubscriptionPage() {
                         </div>
                     ) : (
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {clinic.n8nWorkflows.map(wf => (
-                                <AutomationCard
-                                    key={wf.id}
-                                    icon={<svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
-                                    iconBg="bg-indigo-50"
-                                    title={wf.name}
-                                    desc=""
-                                    enabled={wf.enabled}
-                                    schedule="Real-time"
-                                />
-                            ))}
+                            {clinic.n8nWorkflows
+                                .filter(wf => wf.visible)
+                                .sort((a, b) => (a.enabled === b.enabled ? 0 : a.enabled ? -1 : 1))
+                                .map(wf => {
+                                    // Determine icon and color based on category/id (Simplified for UI)
+                                    const isAI = wf.id.startsWith('ai_');
+                                    const isWA = wf.id.startsWith('wa_');
+                                    const isGmail = wf.id.startsWith('gmail_');
+
+                                    const translatedDay = wf.day ? (dayTranslations[wf.day] || wf.day) : null;
+                                    const scheduleText = isAI ? '7/24 Aktif' : (translatedDay ? `${translatedDay} - ${wf.time || "09:00"}` : (wf.time || "09:00"));
+
+                                    return (
+                                        <AutomationCard
+                                            key={wf.id}
+                                            icon={
+                                                isAI ? (
+                                                    <svg className="h-5 w-5 text-violet-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455-2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455-2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                                                    </svg>
+                                                ) : isWA ? (
+                                                    <svg className="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a.596.596 0 0 1-.474-.065.412.412 0 0 1-.171-.449 5.09 5.09 0 0 1 1.242-2.313C4.83 16.99 4.5 15.54 4.5 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                    </svg>
+                                                )
+                                            }
+                                            iconBg={isAI ? "bg-violet-50" : isWA ? "bg-emerald-50" : "bg-indigo-50"}
+                                            title={wf.name}
+                                            desc=""
+                                            enabled={wf.enabled}
+                                            schedule={scheduleText}
+                                            hideScheduleTitle={isAI}
+                                        />
+                                    );
+                                })}
                         </div>
                     )}
                 </div>
@@ -246,6 +284,7 @@ function AutomationCard({
     desc,
     enabled,
     schedule,
+    hideScheduleTitle,
 }: {
     icon: React.ReactNode;
     iconBg: string;
@@ -253,6 +292,7 @@ function AutomationCard({
     desc: string;
     enabled: boolean;
     schedule: string;
+    hideScheduleTitle?: boolean;
 }) {
     return (
         <div className={`rounded-2xl border bg-white p-5 transition-all group overflow-hidden relative ${enabled ? 'border-slate-200 hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-500/5' : 'border-slate-100 opacity-75'}`}>
@@ -279,8 +319,8 @@ function AutomationCard({
                         <span className={`text-[11px] font-semibold ${enabled ? 'text-emerald-600' : 'text-slate-500'}`}>{enabled ? 'Çalışıyor' : 'Durduruldu'}</span>
                     </div>
                     <div className="flex flex-col gap-0.5 text-right">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Zamanlama</span>
-                        <span className="text-[11px] font-semibold text-indigo-600">{schedule}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">{hideScheduleTitle ? 'Zamanlama' : 'Zamanlama'}</span>
+                        <span className={`text-[11px] font-semibold ${hideScheduleTitle ? 'text-slate-500' : 'text-indigo-600'}`}>{schedule}</span>
                     </div>
                 </div>
             </div>

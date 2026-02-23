@@ -55,6 +55,7 @@ export interface Clinic {
   logo_url: string | null;
   is_active: boolean;
   working_hours: WorkingHours;
+  working_hours_overrides?: { date: string; open: string; close: string; is_closed: boolean; note?: string }[];
   plan_id: string;
   credits: number;
   trial_ends_at: string | null;

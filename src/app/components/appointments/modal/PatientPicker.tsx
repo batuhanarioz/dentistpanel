@@ -20,6 +20,7 @@ interface PatientPickerProps {
     isNewPatient: boolean;
     matchedPatientAllergies: string | null;
     matchedPatientMedicalAlerts: string | null;
+    showAllInfo?: boolean;
 }
 
 export function PatientPicker({
@@ -27,7 +28,7 @@ export function PatientPicker({
     patientSearchResults, patientSearchLoading, setForm,
     setPhoneCountryCode, setPhoneNumber, duplicatePatient, handleUseDuplicate,
     phoneCountryCode, phoneNumber, form, patientMatchInfo, isNewPatient,
-    matchedPatientAllergies, matchedPatientMedicalAlerts
+    matchedPatientAllergies, matchedPatientMedicalAlerts, showAllInfo = false
 }: PatientPickerProps) {
     return (
         <div className="space-y-1 md:col-span-2 border-t pt-3 mt-1">
@@ -225,15 +226,15 @@ export function PatientPicker({
                         )}
                     </div>
                 )}
-                {isNewPatient && (
-                    <div className="mt-2 grid gap-2 md:grid-cols-2">
+                {showAllInfo && isNewPatient && (
+                    <div className="mt-2 grid gap-2 md:grid-cols-2 animate-in fade-in slide-in-from-top-1 duration-200">
                         <div className="space-y-1">
                             <label className="block text-[11px] font-medium text-slate-600">Alerjiler (opsiyonel)</label>
                             <input
                                 type="text"
                                 value={form.allergies}
                                 onChange={(e) => setForm((f) => ({ ...f, allergies: e.target.value }))}
-                                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
+                                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                                 placeholder="İlaç, lateks vb."
                             />
                         </div>
@@ -243,7 +244,7 @@ export function PatientPicker({
                                 type="text"
                                 value={form.medicalAlerts}
                                 onChange={(e) => setForm((f) => ({ ...f, medicalAlerts: e.target.value }))}
-                                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
+                                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                                 placeholder="Kan sulandırıcı, kalp vb."
                             />
                         </div>

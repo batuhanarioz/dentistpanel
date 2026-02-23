@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { CSVUploadModal } from "@/app/components/patients/CSVUploadModal";
 
 type PatientRow = {
   id: string;
@@ -50,28 +51,29 @@ export default function PatientsPage() {
   const [payments, setPayments] = useState<PatientPayment[]>([]);
   const [appointmentsLoading, setAppointmentsLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
+
+  const loadPatients = async () => {
+    setLoading(true);
+    setError(null);
+
+    const { data, error } = await supabase
+      .from("patients")
+      .select("id, full_name, phone, email, birth_date, tc_identity_no, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setError(error.message || "Hastalar yüklenemedi.");
+      setLoading(false);
+      return;
+    }
+
+    const rows = data || [];
+    setPatients(rows);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const loadPatients = async () => {
-      setLoading(true);
-      setError(null);
-
-      const { data, error } = await supabase
-        .from("patients")
-        .select("id, full_name, phone, email, birth_date, tc_identity_no, created_at")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        setError(error.message || "Hastalar yüklenemedi.");
-        setLoading(false);
-        return;
-      }
-
-      const rows = data || [];
-      setPatients(rows);
-      setLoading(false);
-    };
-
     loadPatients();
   }, []);
 
@@ -167,11 +169,20 @@ export default function PatientsPage() {
   return (
     <div className="space-y-4">
       <header className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
           <p className="text-sm text-slate-800">
             Kayıtlı Toplam Hasta Sayısı:{" "}
             <span className="font-semibold">{patients.length}</span>
           </p>
+          <button
+            onClick={() => setIsCSVModalOpen(true)}
+            className="flex items-center gap-2 rounded-xl border border-teal-200 bg-white px-4 py-2 text-xs font-bold text-teal-700 shadow-sm transition-all hover:bg-teal-50 active:scale-95"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            CSV Olarak Yükle
+          </button>
         </div>
       </header>
 
@@ -543,6 +554,12 @@ export default function PatientsPage() {
           </div>
         );
       })()}
+
+      <CSVUploadModal
+        isOpen={isCSVModalOpen}
+        onClose={() => setIsCSVModalOpen(false)}
+        onUploadComplete={loadPatients}
+      />
     </div>
   );
 }
