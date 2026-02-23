@@ -28,7 +28,7 @@ export function AutomationSection({
         }
     }, [formAutomations, setFormAutomations]);
 
-    const updateAutomation = (id: string, field: keyof ClinicAutomation, value: any) => {
+    const updateAutomation = (id: string, field: keyof ClinicAutomation, value: string | boolean) => {
         setFormAutomations(prev => prev.map(a => a.id === id ? { ...a, [field]: value } : a));
     };
 

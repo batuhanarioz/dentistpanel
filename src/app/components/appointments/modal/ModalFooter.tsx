@@ -2,11 +2,10 @@ import React from "react";
 
 interface ModalFooterProps {
     editing: boolean;
-    onClose: () => void;
     handleDelete: () => void;
 }
 
-export function ModalFooter({ editing, onClose, handleDelete }: ModalFooterProps) {
+export function ModalFooter({ editing, handleDelete }: ModalFooterProps) {
     if (!editing) return null;
 
     return (

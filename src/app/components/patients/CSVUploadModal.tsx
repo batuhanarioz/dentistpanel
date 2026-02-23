@@ -123,7 +123,7 @@ export function CSVUploadModal({ isOpen, onClose, onUploadComplete }: CSVUploadM
                 }
                 values.push(current.trim());
 
-                const patient: any = {
+                const patient: Record<string, string | null> = {
                     id: uuidv4(),
                     clinic_id: clinicId,
                 };
@@ -158,8 +158,9 @@ export function CSVUploadModal({ isOpen, onClose, onUploadComplete }: CSVUploadM
 
             onUploadComplete();
             onClose();
-        } catch (err: any) {
-            setError(err.message || "Yükleme sırasında bir hata oluştu.");
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Yükleme sırasında bir hata oluştu.";
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -180,7 +181,7 @@ export function CSVUploadModal({ isOpen, onClose, onUploadComplete }: CSVUploadM
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" onClick={onClose}>
             <div className="bg-white rounded-3xl shadow-2xl border w-full max-w-lg mx-auto overflow-hidden animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
                 <div className="bg-gradient-to-r from-teal-700 to-emerald-600 px-6 py-4 flex items-center justify-between">
-                    <h2 className="text-sm font-bold text-white">CSV'den Hasta Yükle</h2>
+                    <h2 className="text-sm font-bold text-white">CSV&apos;den Hasta Yükle</h2>
                     <button onClick={onClose} className="text-white/70 hover:text-white transition-colors">
                         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

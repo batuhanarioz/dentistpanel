@@ -3,11 +3,10 @@ interface ModalHeaderProps {
     formDate: string;
     formTime: string;
     onClose: () => void;
-    handleDelete?: () => void;
-    onSubmit?: (e: any) => void;
+    onSubmit?: (e: React.FormEvent | React.MouseEvent) => void;
 }
 
-export function ModalHeader({ editing, formDate, formTime, onClose, handleDelete, onSubmit }: ModalHeaderProps) {
+export function ModalHeader({ editing, formDate, formTime, onClose, onSubmit }: ModalHeaderProps) {
     return (
         <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-500 px-6 py-4">
             <div className="flex items-center justify-between">

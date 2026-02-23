@@ -1,5 +1,6 @@
 import React from "react";
 import type { WorkingHours, DayOfWeek, SubscriptionPlan } from "@/types/database";
+import type { ClinicAutomation } from "@/constants/automations";
 import { WorkingHoursSection } from "./sections/WorkingHoursSection";
 import { SubscriptionSection } from "./sections/SubscriptionSection";
 import { AutomationSection } from "./sections/AutomationSection";
@@ -40,8 +41,8 @@ interface ClinicModalProps {
     plans: SubscriptionPlan[];
 
     // Automation
-    formAutomations: any[]; // ClinicAutomation type from constants
-    setFormAutomations: React.Dispatch<React.SetStateAction<any[]>>;
+    formAutomations: ClinicAutomation[]; // ClinicAutomation type from constants
+    setFormAutomations: React.Dispatch<React.SetStateAction<ClinicAutomation[]>>;
 }
 
 export function ClinicModal({

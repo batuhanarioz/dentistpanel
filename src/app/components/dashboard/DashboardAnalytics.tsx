@@ -15,10 +15,10 @@ import {
     CartesianGrid,
 } from "recharts";
 
-const CHART_COLORS = ["#4BB543", "#0d9488", "#f59e0b", "#e11d48", "#64748b"];
+
 
 export function DashboardAnalytics() {
-    const [appointments, setAppointments] = useState<any[]>([]);
+    const [appointments, setAppointments] = useState<{ starts_at: string; status: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

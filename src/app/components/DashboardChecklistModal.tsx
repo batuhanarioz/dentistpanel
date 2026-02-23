@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
 import { UserRole } from "@/types/database";
@@ -66,9 +66,10 @@ export function DashboardChecklistModal({ open, onClose }: DashboardChecklistMod
                     configMap[c.task_definition_id] = c;
                 });
                 setConfigs(configMap);
-            } catch (err: any) {
+            } catch (err: unknown) {
+                const errorMessage = err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu";
                 console.error("DashboardChecklistModal load error:", err);
-                setError("Beklenmedik bir hata oluştu: " + (err.message || ""));
+                setError("Beklenmedik bir hata oluştu: " + errorMessage);
             } finally {
                 setLoading(false);
             }

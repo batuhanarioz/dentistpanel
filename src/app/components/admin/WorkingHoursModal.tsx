@@ -6,6 +6,14 @@ import { supabase } from "@/lib/supabaseClient";
 import { DAY_LABELS, ORDERED_DAYS } from "@/constants/days";
 import { WorkingHours, DayOfWeek, DaySchedule } from "@/types/database";
 
+interface WorkingHoursOverride {
+    date: string;
+    open: string;
+    close: string;
+    is_closed: boolean;
+    note?: string;
+}
+
 interface WorkingHoursModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -15,7 +23,7 @@ export function WorkingHoursModal({ isOpen, onClose }: WorkingHoursModalProps) {
     const clinic = useClinic();
     const [activeTab, setActiveTab] = useState<"standard" | "exceptions">("standard");
     const [localHours, setLocalHours] = useState<WorkingHours>(clinic.workingHours);
-    const [localOverrides, setLocalOverrides] = useState<any[]>(clinic.workingHoursOverrides || []);
+    const [localOverrides, setLocalOverrides] = useState<WorkingHoursOverride[]>(clinic.workingHoursOverrides || []);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +41,7 @@ export function WorkingHoursModal({ isOpen, onClose }: WorkingHoursModalProps) {
         }
     }, [isOpen, clinic.workingHours, clinic.workingHoursOverrides]);
 
-    const handleUpdateStandard = (day: DayOfWeek, field: keyof DaySchedule, value: any) => {
+    const handleUpdateStandard = (day: DayOfWeek, field: keyof DaySchedule, value: string | boolean) => {
         setLocalHours(prev => ({
             ...prev,
             [day]: { ...prev[day], [field]: value }
@@ -86,9 +94,10 @@ export function WorkingHoursModal({ isOpen, onClose }: WorkingHoursModalProps) {
             // Refresh logic - ideally use a real refresh mechanism or window.location.reload
             onClose();
             window.location.reload();
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Kaydedilirken bir hata oluştu.";
             console.error("Error saving working hours:", err);
-            setError(err.message || "Kaydedilirken bir hata oluştu.");
+            setError(errorMessage);
         } finally {
             setSaving(false);
         }

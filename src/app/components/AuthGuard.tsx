@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { ClinicContext, type ClinicContextValue } from "../context/ClinicContext";
 import { UserRole, type WorkingHours, type Clinic } from "@/types/database";
 import { DEFAULT_WORKING_HOURS } from "@/constants/days";
-import { SYSTEM_AUTOMATIONS } from "@/constants/automations";
+import { SYSTEM_AUTOMATIONS, type ClinicAutomation } from "@/constants/automations";
 
 type Props = {
   children: React.ReactNode;
@@ -99,7 +99,7 @@ export function AuthGuard({ children }: Props) {
   const [checking, setChecking] = useState(true);
   const [allowed, setAllowed] = useState(false);
   const [loadingStep, setLoadingStep] = useState<LoadingStep>("auth");
-  let automations: any[] = [];
+  const automationsRef = useRef<ClinicAutomation[]>([]);
   const [clinicCtx, setClinicCtx] = useState<ClinicContextValue>({
     clinicId: null,
     clinicName: null,
@@ -188,7 +188,7 @@ export function AuthGuard({ children }: Props) {
 
           if (!autoRes.error && autoRes.data) {
             // Map table data to context structure
-            automations = autoRes.data.map(a => ({
+            automationsRef.current = autoRes.data.map(a => ({
               id: a.automation_id,
               name: SYSTEM_AUTOMATIONS.find(s => s.id === a.automation_id)?.name || a.automation_id,
               visible: a.is_visible,
@@ -216,7 +216,7 @@ export function AuthGuard({ children }: Props) {
           trialEndsAt: (clinicData as unknown as Clinic)?.trial_ends_at || null,
           automationsEnabled: (clinicData as unknown as Clinic)?.automations_enabled ?? isSuperAdmin,
           n8nWorkflowId: (clinicData as unknown as Clinic)?.n8n_workflow_id || null,
-          n8nWorkflows: automations,
+          n8nWorkflows: automationsRef.current,
         });
 
         // Oturum Kaydı (Sadece ilk yüklemede ve sesssion varsa)
@@ -252,7 +252,6 @@ export function AuthGuard({ children }: Props) {
     };
 
     initAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Sadece mount anında çalışır
 
   // 2. Aşama: URL ve Slug Kontrolü (Sayfa geçişlerinde çalışır, veritabanına gitmez)

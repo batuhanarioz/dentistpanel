@@ -237,7 +237,6 @@ export default function SubscriptionPage() {
                                     // Determine icon and color based on category/id (Simplified for UI)
                                     const isAI = wf.id.startsWith('ai_');
                                     const isWA = wf.id.startsWith('wa_');
-                                    const isGmail = wf.id.startsWith('gmail_');
 
                                     const translatedDay = wf.day ? (dayTranslations[wf.day] || wf.day) : null;
                                     const scheduleText = isAI ? '7/24 Aktif' : (translatedDay ? `${translatedDay} - ${wf.time || "09:00"}` : (wf.time || "09:00"));
