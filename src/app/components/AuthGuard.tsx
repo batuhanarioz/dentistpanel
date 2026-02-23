@@ -252,6 +252,7 @@ export function AuthGuard({ children }: Props) {
     };
 
     initAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Sadece mount anında çalışır
 
   // 2. Aşama: URL ve Slug Kontrolü (Sayfa geçişlerinde çalışır, veritabanına gitmez)

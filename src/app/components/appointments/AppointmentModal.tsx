@@ -136,7 +136,6 @@ export function AppointmentModal(props: AppointmentModalProps) {
                     <div className="px-6 pb-5">
                         <ModalFooter
                             editing={!!props.editing}
-                            onClose={props.onClose}
                             handleDelete={props.handleDelete}
                         />
                     </div>
