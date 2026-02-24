@@ -82,19 +82,19 @@ function ClinicNav({
 
   return (
     <>
-      <a href={base} className={linkClass(base)} onClick={handleClick}>
+      <a id="tour-dashboard" href={base} className={linkClass(base)} onClick={handleClick}>
         <span>Genel Bakış</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
-      <a href={`${base}/appointment-management`} className={linkClass(`${base}/appointment-management`)} onClick={handleClick}>
+      <a id="tour-appointment-management" href={`${base}/appointment-management`} className={linkClass(`${base}/appointment-management`)} onClick={handleClick}>
         <span>Randevu Yönetimi</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
-      <a href={`${base}/payment-management`} className={linkClass(`${base}/payment-management`)} onClick={handleClick}>
+      <a id="tour-payment-management" href={`${base}/payment-management`} className={linkClass(`${base}/payment-management`)} onClick={handleClick}>
         <span>Ödeme Yönetimi</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
-      <a href={`${base}/patients`} className={linkClass(`${base}/patients`)} onClick={handleClick}>
+      <a id="tour-patients" href={`${base}/patients`} className={linkClass(`${base}/patients`)} onClick={handleClick}>
         <span>Hasta Kayıtları</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
@@ -102,7 +102,7 @@ function ClinicNav({
         <span>Yoğunluk Ajandası</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
-      <a href={`${base}/reports`} className={linkClass(`${base}/reports`)} onClick={handleClick}>
+      <a id="tour-reports" href={`${base}/reports`} className={linkClass(`${base}/reports`)} onClick={handleClick}>
         <span>Raporlar</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
@@ -112,7 +112,7 @@ function ClinicNav({
       {isAdmin && (
         <>
           <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
-          <a href={`${base}/admin/subscription`} className={linkClass(`${base}/admin/subscription`)} onClick={handleClick}>
+          <a id="tour-subscription" href={`${base}/admin/subscription`} className={linkClass(`${base}/admin/subscription`)} onClick={handleClick}>
             <span>Abonelik & Kullanım</span>
           </a>
         </>

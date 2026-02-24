@@ -15,6 +15,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
+  const isDemoMode = searchParams.get("demo") === "true";
 
   const togglePassword = useCallback(() => setShowPassword((v) => !v), []);
 
@@ -65,6 +66,50 @@ function LoginForm() {
       );
     }
   }, [urlError]);
+
+  const handleDemoLogin = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: "izmirdis@gmail.com",
+      password: "izmir123",
+    });
+
+    if (signInError) {
+      setError("Demo girişi başarısız oldu: " + signInError.message);
+      setLoading(false);
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("users")
+        .select("role, clinic_id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profile?.clinic_id) {
+        const { data: clinic } = await supabase
+          .from("clinics")
+          .select("slug")
+          .eq("id", profile.clinic_id)
+          .maybeSingle();
+        if (clinic?.slug) {
+          router.replace(`/${clinic.slug}`);
+          return;
+        }
+      }
+    }
+    setLoading(false);
+  }, [router]);
+
+  useEffect(() => {
+    if (isDemoMode) {
+      // Demo modundaysa ve henüz login değilse otomatik girişi tetikle? 
+      // Veya sadece butonu vurgula. Kullanıcı butona tıklasın istiyor ("Bu butona tıklayan kullanıcı...").
+    }
+  }, [isDemoMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -265,6 +310,20 @@ function LoginForm() {
                     "Giriş yap"
                   )}
                 </button>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleDemoLogin}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-white border-2 border-amber-400 text-amber-600 px-4 py-3 text-sm font-bold shadow-sm transition-all hover:bg-amber-50 active:scale-[0.98] disabled:opacity-60"
+                  >
+                    🧪 Canlı Demo
+                  </button>
+                  <p className="mt-2 text-[10px] text-center text-slate-400 italic">
+                    Bilgi girmeden sistemi hemen deneyimleyin
+                  </p>
+                </div>
               </form>
 
               <div className="mt-8 pt-6 border-t border-slate-100">
