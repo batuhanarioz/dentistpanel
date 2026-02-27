@@ -251,14 +251,26 @@ export function useAppointmentManagement(initialData?: {
             estimatedAmount: appt.estimatedAmount?.toString() || "",
             result: "",
         });
-        const fullPhone = appt.phone;
-        if (fullPhone.startsWith("+")) {
-            const m = fullPhone.match(/^(\+\d{1,4})(.*)$/);
-            setPhoneCountryCode(m?.[1] ?? "+90");
-            setPhoneNumber(m?.[2] ?? "");
-        } else {
+        const fullPhone = appt.phone || "";
+        let cleanPhone = fullPhone.replace(/\D/g, "");
+        if (fullPhone.startsWith("+90")) {
             setPhoneCountryCode("+90");
-            setPhoneNumber(fullPhone.replace(/\D/g, ""));
+            setPhoneNumber(fullPhone.substring(3).replace(/\D/g, ""));
+        } else if (fullPhone.startsWith("+")) {
+            const m = fullPhone.match(/^(\+\d{1,3})(.*)$/);
+            setPhoneCountryCode(m?.[1] ?? "+90");
+            setPhoneNumber(m?.[2]?.replace(/\D/g, "") ?? "");
+        } else {
+            if (cleanPhone.length === 12 && cleanPhone.startsWith("90")) {
+                cleanPhone = cleanPhone.substring(2);
+                setPhoneCountryCode("+90");
+            } else if (cleanPhone.length === 11 && cleanPhone.startsWith("0")) {
+                cleanPhone = cleanPhone.substring(1);
+                setPhoneCountryCode("+90");
+            } else {
+                setPhoneCountryCode("+90");
+            }
+            setPhoneNumber(cleanPhone);
         }
         setSelectedPatientId(appt.patientId);
         setIsNewPatient(false);
