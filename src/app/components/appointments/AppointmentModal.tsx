@@ -55,6 +55,8 @@ export function AppointmentModal(props: AppointmentModalProps) {
                     formTime={props.formTime}
                     onClose={props.onClose}
                     onSubmit={props.handleSubmit}
+                    phoneNumber={props.phoneNumber}
+                    phoneCountryCode={props.phoneCountryCode}
                 />
 
                 <div className="relative max-h-[80vh] flex flex-col italic-none">
