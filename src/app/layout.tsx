@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Klinik Yönetim Paneli",
-  description: "Multi-tenant diş klinik yönetim paneli.",
+  title: "Diş Kliniği Yönetim Paneli - NextGency",
+  description: "NextGency ile diş kliniğinizi panelimiz ve otomasyonlarımızla kolayca yönetin.",
 };
 
 import * as Sentry from "@sentry/nextjs";
