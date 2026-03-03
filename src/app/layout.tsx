@@ -4,6 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Diş Kliniği Yönetim Paneli - NextGency",
   description: "NextGency ile diş kliniğinizi panelimiz ve otomasyonlarımızla kolayca yönetin.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
 };
 
 import * as Sentry from "@sentry/nextjs";
