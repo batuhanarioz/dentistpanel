@@ -112,11 +112,11 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ runOnMount = false }) =>
                                 <div style='background: #f0fdf4; border: 1px solid #bbf7d0; padding: 14px; border-radius: 14px; margin-bottom: 12px;'>
                                     <p style='font-size: 13px; font-weight: 700; color: #166534; margin-bottom: 4px;'>İzmir Kliniklerine Özel</p>
                                     <p style='font-size: 11px; color: #15803d; margin-bottom: 8px;'>İzmir’deki klinikler için panel kurulumu ve eğitim hizmetini yerinde sağlıyoruz. Ekibimiz kliniğinizi ziyaret ederek sistemi sizin için kurar ve kullanıma hazır teslim eder.</p>
-                                    <p style='font-size: 15px; font-weight: 800; color: #166534; text-align: center;'>📞 0543 293 43 81</p>
+                                    <p style='font-size: 15px; font-weight: 800; color: #166534; text-align: center;'>📞 0544 441 21 80</p>
                                 </div>
                                 <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 8px;'>
-                                    <a href='tel:+905432934381' style='display: block; background: #0d9488; color: white; text-align: center; padding: 10px; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 13px;'>Hemen Ara</a>
-                                    <a href='https://wa.me/905432934381' target='_blank' style='display: block; background: #25D366; color: white; text-align: center; padding: 10px; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 13px;'>WhatsApp</a>
+                                    <a href='tel:+905444412180' style='display: block; background: #0d9488; color: white; text-align: center; padding: 10px; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 13px;'>Hemen Ara</a>
+                                    <a href='https://wa.me/905444412180' target='_blank' style='display: block; background: #25D366; color: white; text-align: center; padding: 10px; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 13px;'>WhatsApp</a>
                                 </div>
                             </div>
                         `,

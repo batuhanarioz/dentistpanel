@@ -124,7 +124,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
 
                                 <div className="mt-8">
                                     <a
-                                        href={`https://wa.me/905432934381?text=${encodeURIComponent(`Merhaba, ${plan.name} paketiniz hakkında bilgi almak istiyorum.`)}`}
+                                        href={`https://wa.me/905444412180?text=${encodeURIComponent(`Merhaba, ${plan.name} paketiniz hakkında bilgi almak istiyorum.`)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-black transition-all shadow-lg ${plan.isPopular
