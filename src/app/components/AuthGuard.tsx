@@ -219,29 +219,6 @@ export function AuthGuard({ children }: Props) {
           n8nWorkflows: automationsRef.current,
         });
 
-        // Oturum Kaydı (Sadece ilk yüklemede ve sesssion varsa)
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const { error: upsertError } = await supabase.from("active_sessions").upsert({
-            user_id: user.id,
-            session_id: session.access_token,
-            created_at: new Date().toISOString(),
-          }, { onConflict: 'user_id, session_id' });
-
-          if (!upsertError) {
-            const { data: sessions } = await supabase
-              .from("active_sessions")
-              .select("id")
-              .eq("user_id", user.id)
-              .order("created_at", { ascending: false });
-
-            if (sessions && sessions.length > 2) {
-              const sessionsToDelete = sessions.slice(2).map(s => s.id);
-              await supabase.from("active_sessions").delete().in("id", sessionsToDelete);
-            }
-          }
-        }
-
         setLoadingStep("ready");
         setAllowed(true);
       } catch (err) {
@@ -272,30 +249,6 @@ export function AuthGuard({ children }: Props) {
       }
     }
   }, [pathname, allowed, clinicCtx.clinicSlug, clinicCtx.isSuperAdmin, router]);
-
-  // 3. Aşama: Oturum Geçerlilik Kontrolü (Arka Planda)
-  useEffect(() => {
-    if (!allowed) return;
-
-    const intervalId = setInterval(async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data: exists, error } = await supabase
-        .from("active_sessions")
-        .select("id")
-        .eq("session_id", session.access_token)
-        .maybeSingle();
-
-      // Sadece veri geldiyse ve oturum yoksa at (Ağ hatasında veya tablo yoksa atma)
-      if (!error && !exists && allowed) {
-        await supabase.auth.signOut();
-        window.location.href = "/?error=session_expired";
-      }
-    }, 60000);
-
-    return () => clearInterval(intervalId);
-  }, [allowed]);
 
   if (checking) {
     return <LoadingScreen step={loadingStep} />;

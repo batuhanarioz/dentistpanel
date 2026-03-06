@@ -62,10 +62,6 @@ function LoginForm() {
       setError(
         "Kliniğiniz şu anda aktif değil. Lütfen platform yöneticisi ile iletişime geçin."
       );
-    } else if (urlError === "session_expired") {
-      setError(
-        "Başka bir cihazdan giriş yapıldığı için oturumunuz sonlandırıldı. Tekrar giriş yapabilirsiniz."
-      );
     }
   }, [urlError]);
 
