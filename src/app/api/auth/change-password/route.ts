@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 import { changePasswordSchema } from "@/lib/validations/auth";
-import { sensitiveRateLimit, getIP } from "@/lib/ratelimit";
 
 /**
  * Kullanıcının kendi şifresini değiştirmesi.
@@ -12,16 +11,6 @@ import { sensitiveRateLimit, getIP } from "@/lib/ratelimit";
  * Doğruysa yeni şifre supabaseAdmin ile güncellenir.
  */
 export async function POST(req: NextRequest) {
-  // 0) Rate Limit Kontrolü
-  const ip = getIP(req);
-  const { success } = await sensitiveRateLimit.limit(ip);
-  if (!success) {
-    return NextResponse.json(
-      { error: "Çok fazla deneme yaptınız. Lütfen 15 dakika sonra tekrar deneyiniz." },
-      { status: 429 }
-    );
-  }
-
   // 1) Bearer token ile oturum doğrula
   const authHeader = req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
