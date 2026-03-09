@@ -283,6 +283,7 @@ export default function SubscriptionPage() {
                                 </p>
                             </div>
                             <button
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 onClick={() => (window as any).openSupportModal?.()}
                                 className="flex items-center justify-between w-full mt-8 group text-left"
                             >

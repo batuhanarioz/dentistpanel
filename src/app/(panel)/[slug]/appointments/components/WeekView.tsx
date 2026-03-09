@@ -104,6 +104,7 @@ export function WeekView({
                             });
 
                             // Calculate Overlaps
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             const groups: { events: any[], columns: number }[] = [];
                             let lastEventEnd = -1;
 
@@ -119,6 +120,7 @@ export function WeekView({
                             });
 
                             const positionedEvents = groups.flatMap(group => {
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 const columns: any[][] = [];
                                 group.events.forEach(event => {
                                     const start = event.startHour * 60 + event.startMinute;
@@ -128,16 +130,19 @@ export function WeekView({
                                         const lastInColEnd = lastInCol.startHour * 60 + lastInCol.startMinute + lastInCol.durationMinutes;
                                         if (start >= lastInColEnd) {
                                             columns[i].push(event);
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             (event as any).colIdx = i;
                                             placed = true;
                                             break;
                                         }
                                     }
                                     if (!placed) {
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         (event as any).colIdx = columns.length;
                                         columns.push([event]);
                                     }
                                 });
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 group.events.forEach(e => (e as any).totalCols = columns.length);
                                 return group.events;
                             });
@@ -148,7 +153,9 @@ export function WeekView({
                                         positionedEvents.map(event => {
                                             const top = (event.startHour - startHour) * hourHeight + (event.startMinute / 60) * hourHeight;
                                             const height = Math.max((event.durationMinutes / 60) * hourHeight, 32);
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             const colIdx = (event as any).colIdx || 0;
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             const totalCols = (event as any).totalCols || 1;
 
                                             // Calculate horizontal position

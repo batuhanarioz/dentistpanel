@@ -22,6 +22,7 @@ export interface ClinicContextValue {
   lastPaymentDate: string | null;
   n8nWorkflows: Array<{ id: string; name: string; visible?: boolean; enabled: boolean; time?: string; day?: string }>;
   clinicSettings: ClinicSettings | null;
+  planId?: string;
 }
 
 const defaultValue: ClinicContextValue = {

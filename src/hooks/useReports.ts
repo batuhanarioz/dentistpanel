@@ -5,6 +5,8 @@ import { UserRole, Appointment, Payment, Patient, TreatmentDefinition } from "@/
 import { useClinic } from "@/app/context/ClinicContext";
 import { startOfDay, endOfDay, subDays, format, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 
+export type AppointmentRow = Appointment;
+
 export type DatePreset = "today" | "7d" | "30d" | "thisMonth" | "lastMonth" | "thisYear" | "custom";
 
 export function useReports() {

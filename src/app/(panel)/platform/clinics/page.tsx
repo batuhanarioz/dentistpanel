@@ -306,6 +306,7 @@ export default function PlatformSettingsPage() {
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Tip</label>
                     <select
                       value={annType}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       onChange={e => setAnnType(e.target.value as any)}
                       className="w-full rounded-2xl border-slate-200 bg-slate-50 p-4 text-sm font-bold outline-none cursor-pointer"
                     >

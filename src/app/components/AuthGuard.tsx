@@ -118,6 +118,7 @@ export function AuthGuard({ children }: Props) {
     lastPaymentDate: null,
     n8nWorkflows: [],
     clinicSettings: null,
+    planId: "starter",
   });
 
   // Sayfa değiştiğinde yükleme ekranını otomatik kapat
@@ -237,6 +238,8 @@ export function AuthGuard({ children }: Props) {
           lastPaymentDate: (clinicData as unknown as Clinic)?.last_payment_date || null,
           n8nWorkflows: automationsRef.current,
           clinicSettings: clinicSettingsData,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          planId: (clinicData as any)?.planId || "starter",
         });
 
         setLoadingStep("ready");

@@ -172,6 +172,7 @@ function Modals({
   isDetailModalOpen, setIsDetailModalOpen, selectedPayment, detailStatus, setDetailStatus,
   detailAmount, setDetailAmount, detailMethod, setDetailMethod, handleUpdateStatus, handleDelete,
   onPaymentSuccess
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }: any) {
   return (
     <>

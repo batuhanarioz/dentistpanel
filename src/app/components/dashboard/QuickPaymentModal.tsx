@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabaseClient";
 interface QuickPaymentModalProps {
     open: boolean;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValues: (val: any) => void;
+    setValues?: (val: any) => void;
     onClose: () => void;
     appointmentId: string;
     patientId?: string;
@@ -27,7 +27,7 @@ interface InstallmentRow {
 }
 
 export function QuickPaymentModal({
-    open, onClose, appointmentId, patientId, patientName, initialAmount, onSuccess, checklistItemId, code
+    open, setValues, onClose, appointmentId, patientId, patientName, initialAmount, onSuccess, checklistItemId, code
 }: QuickPaymentModalProps) {
     const clinic = useClinic();
     const [amount, setAmount] = useState<number>(initialAmount);
@@ -127,12 +127,13 @@ export function QuickPaymentModal({
     }, [installmentList]);
 
     const totalPaid = useMemo(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return existingPayments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
     }, [existingPayments]);
 
     if (!open) return null;
 
-    const handleUpdateInstallment = (index: number, field: keyof InstallmentRow, value: any) => {
+    const handleUpdateInstallment = <K extends keyof InstallmentRow>(index: number, field: K, value: InstallmentRow[K]) => {
         const newList = [...installmentList];
         newList[index] = { ...newList[index], [field]: value };
         setInstallmentList(newList);
