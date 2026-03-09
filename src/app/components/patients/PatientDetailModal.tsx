@@ -38,6 +38,11 @@ export function PatientDetailModal({
                 email: patient.email,
                 birth_date: patient.birth_date,
                 tc_identity_no: patient.tc_identity_no,
+                gender: patient.gender,
+                blood_group: patient.blood_group,
+                address: patient.address,
+                occupation: patient.occupation,
+                notes: patient.notes,
                 allergies: patient.allergies,
                 medical_alerts: patient.medical_alerts,
             });
@@ -49,7 +54,7 @@ export function PatientDetailModal({
         const totalVisits = appointments.length;
         const completed = appointments.filter(a => a.status === 'completed').length;
         const cancelled = appointments.filter(a => a.status === 'cancelled').length;
-        const totalPaid = payments.reduce((sum, p) => p.status === 'paid' ? sum + p.amount : sum, 0);
+        const totalPaid = payments.reduce((sum, p) => (p.status === 'paid' || p.status === 'Ödendi') ? sum + p.amount : sum, 0);
         return { totalVisits, completed, cancelled, totalPaid };
     }, [appointments, payments]);
 
@@ -109,7 +114,14 @@ export function PatientDetailModal({
             content += `Ad Soyad: ${patient.full_name}\n`;
             content += `Telefon: ${patient.phone || "-"}\n`;
             content += `E-posta: ${patient.email || "-"}\n`;
-            content += `Kayıt Tarihi: ${new Date(patient.created_at).toLocaleDateString("tr-TR")}\n\n`;
+            content += `TC No: ${patient.tc_identity_no || "-"}\n`;
+            content += `Cinsiyet: ${patient.gender || "-"}\n`;
+            content += `Kan Grubu: ${patient.blood_group || "-"}\n`;
+            content += `Meslek: ${patient.occupation || "-"}\n`;
+            content += `Adres: ${patient.address || "-"}\n`;
+            content += `Kayıt Tarihi: ${new Date(patient.created_at).toLocaleDateString("tr-TR")}\n`;
+            if (patient.notes) content += `Genel Notlar: ${patient.notes}\n`;
+            content += `\n`;
 
             content += `RANDEVU GEÇMİŞİ\n`;
             content += `------------------------------------\n`;
@@ -265,31 +277,119 @@ export function PatientDetailModal({
                             </div>
                             <div className="space-y-3">
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">TC No</label>
-                                    {isEditing ? (
-                                        <input
-                                            className="w-full text-sm font-bold border-b-2 border-slate-100 focus:border-[#007f6e] outline-none py-1"
-                                            value={editForm.tc_identity_no || ""}
-                                            onChange={e => setEditForm(f => ({ ...f, tc_identity_no: e.target.value }))}
-                                        />
-                                    ) : (
-                                        <p className="text-sm font-bold text-slate-700">{patient.tc_identity_no || "-"}</p>
-                                    )}
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Doğum / TC</label>
+                                    <div className="flex gap-2">
+                                        {isEditing ? (
+                                            <>
+                                                <input
+                                                    type="date"
+                                                    className="w-1/2 text-xs font-bold border-b border-slate-100 focus:border-[#007f6e] outline-none py-1"
+                                                    value={editForm.birth_date || ""}
+                                                    onChange={e => setEditForm(f => ({ ...f, birth_date: e.target.value }))}
+                                                />
+                                                <input
+                                                    className="w-1/2 text-xs font-bold border-b border-slate-100 focus:border-[#007f6e] outline-none py-1"
+                                                    value={editForm.tc_identity_no || ""}
+                                                    onChange={e => setEditForm(f => ({ ...f, tc_identity_no: e.target.value }))}
+                                                    placeholder="TC No"
+                                                />
+                                            </>
+                                        ) : (
+                                            <p className="text-sm font-bold text-slate-700">
+                                                {patient.birth_date ? new Date(patient.birth_date).toLocaleDateString("tr-TR") : "-"}
+                                                {patient.tc_identity_no && ` / ${patient.tc_identity_no}`}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Doğum</label>
-                                    {isEditing ? (
-                                        <input
-                                            type="date"
-                                            className="w-full text-sm font-bold border-b-2 border-slate-100 focus:border-[#007f6e] outline-none py-1"
-                                            value={editForm.birth_date || ""}
-                                            onChange={e => setEditForm(f => ({ ...f, birth_date: e.target.value }))}
-                                        />
-                                    ) : (
-                                        <p className="text-sm font-bold text-slate-700">{patient.birth_date ? new Date(patient.birth_date).toLocaleDateString("tr-TR") : "-"}</p>
-                                    )}
+                                <div className="grid grid-cols-2 gap-2 pt-1">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Cinsiyet</label>
+                                        {isEditing ? (
+                                            <select
+                                                className="w-full text-xs font-bold border-b border-slate-100 focus:border-[#007f6e] outline-none py-1 bg-transparent"
+                                                value={editForm.gender || ""}
+                                                onChange={e => setEditForm(f => ({ ...f, gender: e.target.value }))}
+                                            >
+                                                <option value="">Seçilmedi</option>
+                                                <option value="Kadın">Kadın</option>
+                                                <option value="Erkek">Erkek</option>
+                                                <option value="Diğer">Diğer</option>
+                                            </select>
+                                        ) : (
+                                            <p className="text-xs font-bold text-slate-700">{patient.gender || "-"}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Kan Grubu</label>
+                                        {isEditing ? (
+                                            <select
+                                                className="w-full text-xs font-bold border-b border-slate-100 focus:border-[#007f6e] outline-none py-1 bg-transparent"
+                                                value={editForm.blood_group || ""}
+                                                onChange={e => setEditForm(f => ({ ...f, blood_group: e.target.value }))}
+                                            >
+                                                <option value="">Seçilmedi</option>
+                                                {["A Rh+", "A Rh-", "B Rh+", "B Rh-", "AB Rh+", "AB Rh-", "0 Rh+", "0 Rh-"].map(bg => (
+                                                    <option key={bg} value={bg}>{bg}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <p className="text-xs font-bold text-slate-700">{patient.blood_group || "-"}</p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Adres ve Notlar */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Meslek</label>
+                                {isEditing ? (
+                                    <input
+                                        className="w-full text-xs font-bold border-b border-slate-100 focus:border-[#007f6e] outline-none py-1"
+                                        value={editForm.occupation || ""}
+                                        onChange={e => setEditForm(f => ({ ...f, occupation: e.target.value }))}
+                                        placeholder="Meslek"
+                                    />
+                                ) : (
+                                    <p className="text-xs font-bold text-slate-700">{patient.occupation || "-"}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Adres</label>
+                                {isEditing ? (
+                                    <textarea
+                                        className="w-full text-xs font-medium border border-slate-100 rounded-lg p-2 focus:border-[#007f6e] outline-none bg-slate-50 mt-1"
+                                        rows={2}
+                                        value={editForm.address || ""}
+                                        onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))}
+                                        placeholder="Açık adres..."
+                                    />
+                                ) : (
+                                    <p className="text-xs font-medium text-slate-600 leading-relaxed italic">{patient.address || "Adres belirtilmedi."}</p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Genel Notlar</label>
+                            {isEditing ? (
+                                <textarea
+                                    className="w-full text-xs font-medium border border-slate-100 rounded-lg p-2 focus:border-[#007f6e] outline-none bg-slate-50"
+                                    rows={4}
+                                    value={editForm.notes || ""}
+                                    onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                                    placeholder="Hasta hakkında genel klinik notlar..."
+                                />
+                            ) : (
+                                <div className="bg-slate-50 rounded-xl p-3 h-full max-h-[120px] overflow-y-auto">
+                                    <p className="text-xs font-medium text-slate-600 leading-relaxed">
+                                        {patient.notes || "Henüz bir not eklenmemiş."}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -357,7 +457,7 @@ export function PatientDetailModal({
                                     </div>
                                     <div className="flex items-center gap-2 text-slate-500">
                                         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
-                                        <p className="text-[10px] font-bold truncate">Dr. {appt.doctor_name || "Atanmadı"}</p>
+                                        <p className="text-[10px] font-bold truncate">{appt.doctor_name || "Atanmadı"}</p>
                                     </div>
                                     {appt.treatment_note && (
                                         <div className="bg-indigo-50/50 rounded-xl p-3 border border-indigo-100">
@@ -367,6 +467,70 @@ export function PatientDetailModal({
                                     )}
                                 </div>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Ödeme Geçmişi ve Taksitler Section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-teal-600">
+                            <div className="h-6 w-6 rounded-lg bg-teal-50 flex items-center justify-center">
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xs font-black uppercase tracking-tight">Ödeme Geçmişi ve Taksitler</h3>
+                        </div>
+
+                        <div className="space-y-3">
+                            {payments.length === 0 ? (
+                                <div className="bg-white rounded-2xl p-10 text-center border border-slate-100 shadow-sm">
+                                    <p className="text-xs font-bold text-slate-400">Henüz ödeme kaydı bulunmuyor.</p>
+                                </div>
+                            ) : payments.map(pay => {
+                                const linkedAppt = appointments.find(a => a.id === pay.appointment_id);
+                                return (
+                                    <div key={pay.id} className="bg-white rounded-[1.5rem] p-4 sm:p-5 border border-slate-100 shadow-sm space-y-4">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <p className="text-xs font-black text-slate-800 tracking-tighter">
+                                                    {pay.amount.toLocaleString('tr-TR')} ₺
+                                                </p>
+                                                {pay.installment_count && pay.installment_count > 1 && (
+                                                    <span className="px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[9px] font-black border border-amber-100">
+                                                        TAKSİT {pay.installment_number}/{pay.installment_count}
+                                                    </span>
+                                                )}
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${pay.status === 'paid' || pay.status === 'Ödendi' ? 'bg-emerald-100 text-emerald-700' :
+                                                    pay.status === 'pending' || pay.status === 'Beklemede' || pay.status === 'planned' ? 'bg-amber-100 text-amber-700' :
+                                                        'bg-slate-100 text-slate-700'
+                                                    }`}>
+                                                    {pay.status === 'paid' || pay.status === 'Ödendi' ? 'Ödendi' :
+                                                        pay.status === 'pending' || pay.status === 'Beklemede' || pay.status === 'planned' ? 'Beklemede' :
+                                                            pay.status === 'cancelled' || pay.status === 'İptal' ? 'İptal' : pay.status}
+                                                </span>
+                                            </div>
+                                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                                                Vade: {pay.due_date ? new Date(pay.due_date).toLocaleDateString("tr-TR") : "-"}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2 text-slate-500">
+                                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75m0 3v.75m0 3v.75m0 3v.75m11.1-1.3l2.58 2.58a1.5 1.5 0 102.12-2.12l-2.58-2.58m0 0l-3.3-3.3a1.5 1.5 0 00-2.12 2.12l3.3 3.3z" /></svg>
+                                                <p className="text-[10px] font-bold">Yöntem: {pay.method || "Belirtilmedi"}</p>
+                                            </div>
+                                            {linkedAppt && (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100">
+                                                    <svg className="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">
+                                                        {new Date(linkedAppt.starts_at).toLocaleDateString("tr-TR")} – {linkedAppt.treatment_type}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

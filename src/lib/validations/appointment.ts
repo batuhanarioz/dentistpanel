@@ -10,7 +10,7 @@ export const webAppointmentSchema = z.object({
 
 export const internalAppointmentSchema = z.object({
     patient_id: z.string().uuid("Geçersiz hasta seçimi"),
-    doctor_id: z.string().uuid("Geçersiz doktor seçimi").nullable(),
+    doctor_id: z.string().uuid("Geçersiz Hekim seçimi").nullable(),
     starts_at: z.string().min(1, "Başlangıç saati zorunludur"),
     ends_at: z.string().min(1, "Bitiş saati zorunludur"),
     channel: z.enum(["web", "whatsapp", "phone", "walk-in", "instagram", "other"]),

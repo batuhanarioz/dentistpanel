@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Diş Kliniği Yönetim Paneli - NextGency",
-  description: "NextGency ile diş kliniğinizi panelimiz ve otomasyonlarımızla kolayca yönetin.",
+  title: "NextGency OS | Diş Kliniği Yönetim Sistemi & Dental CRM Paneli",
+  description: "Diş kliniği yönetim merkezi: Hasta takibi, operasyon yönetimi ve akıllı dental CRM çözümleri. Diş hekimleri için en gelişmiş yönetim paneli.",
+  keywords: ["diş kliniği", "dental crm", "diş hekimi paneli", "klinik yönetim merkezi", "operasyon yönetimi", "hasta yönetimi", "diş kliniği yazılımı", "dental otomasyon"],
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",

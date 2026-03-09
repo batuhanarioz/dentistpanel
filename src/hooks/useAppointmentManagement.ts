@@ -110,6 +110,21 @@ export function useAppointmentManagement(initialData?: {
     const doctors = useMemo(() => ["", ...doctorsData.map((d: { full_name: string | null }) => d.full_name || "")], [doctorsData]);
     const doctorsList = doctorsData as { id: string; full_name: string | null }[];
 
+    // React Query for Treatment Definitions
+    const { data: treatmentDefinitions = [] } = useQuery({
+        queryKey: ["treatmentDefinitions", effectiveClinicId],
+        queryFn: async () => {
+            if (!effectiveClinicId) return [];
+            const { data } = await supabase
+                .from("treatment_definitions")
+                .select("*")
+                .eq("clinic_id", effectiveClinicId)
+                .order("name", { ascending: true });
+            return data || [];
+        },
+        enabled: !!effectiveClinicId,
+    });
+
 
 
     const [phoneCountryCode, setPhoneCountryCode] = useState("+90");
@@ -130,7 +145,7 @@ export function useAppointmentManagement(initialData?: {
         doctor: "",
         channel: "web",
         durationMinutes: 30,
-        treatmentType: "MUAYENE",
+        treatmentType: "",
         status: "confirmed" as "confirmed" | "cancelled" | "no_show" | "completed",
         patientNote: "",
         treatmentNote: "",
@@ -156,7 +171,7 @@ export function useAppointmentManagement(initialData?: {
         setForm({
             patientName: "", phone: "", email: "", birthDate: "", tcIdentityNo: "",
             doctor: doctors.length > 1 ? doctors[1] : "", channel: "web", durationMinutes: 30,
-            treatmentType: "MUAYENE", status: "confirmed", patientNote: "", treatmentNote: "",
+            treatmentType: "", status: "confirmed", patientNote: "", treatmentNote: "",
             allergies: "", medicalAlerts: "", tags: "", conversationId: "", messageId: "",
             estimatedAmount: "", result: "",
         });
@@ -213,7 +228,7 @@ export function useAppointmentManagement(initialData?: {
         setForm({
             patientName: "", phone: "", email: "", birthDate: "", tcIdentityNo: "",
             doctor: doctors.length > 1 ? doctors[1] : "", channel: "web", durationMinutes: 30,
-            treatmentType: "MUAYENE", status: "confirmed", patientNote: "", treatmentNote: "",
+            treatmentType: "", status: "confirmed", patientNote: "", treatmentNote: "",
             allergies: "", medicalAlerts: "", tags: "", conversationId: "", messageId: "",
             estimatedAmount: "", result: "",
         });
@@ -470,7 +485,6 @@ export function useAppointmentManagement(initialData?: {
         patientSearchLoading, selectedPatientId, setSelectedPatientId, duplicatePatient, form, setForm,
         patientMatchInfo, isNewPatient, conflictWarning, matchedPatientAllergies, matchedPatientMedicalAlerts,
         openNew, openEdit, handleSubmit, handleDelete, handleUseDuplicate, closeModal,
-        todaySchedule, isDayOff, workingHourSlots, appointmentsLoading
+        todaySchedule, isDayOff, workingHourSlots, appointmentsLoading, treatmentDefinitions
     };
 }
-

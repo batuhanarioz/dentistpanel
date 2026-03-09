@@ -1,76 +1,68 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePageHeader } from "@/app/components/AppShell";
 import { useClinic } from "@/app/context/ClinicContext";
+import { supabase } from "@/lib/supabaseClient";
+import { PaymentHistory } from "@/types/database";
+import {
+    Check,
+    ShieldCheck,
+    CreditCard,
+    Sparkles,
+    History,
+    AlertCircle,
+    Calendar as CalendarIcon,
+    ChevronRight,
+    Zap,
+    Users,
+    BarChart3,
+    MessageCircle
+} from "lucide-react";
 
 export default function SubscriptionPage() {
     const clinic = useClinic();
-    usePageHeader("Abonelik & Kullanım", "Paket yönetimi ve mesaj kotası takibi");
+    usePageHeader("Abonelik", "Paket yönetimi ve faturalandırma takibi");
 
-    const [activePlanInfo, setActivePlanInfo] = useState<string | null>(null);
+    const [billingCycle, setBillingCycle] = useState<"monthly" | "annual" | "pilot">("annual");
+    const [payments, setPayments] = useState<PaymentHistory[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const planDetails: Record<string, { name: string; limit: string; price: string; details: string[] }> = {
-        starter: {
-            name: "Başlangıç",
-            limit: "750",
-            price: "1.990 ₺",
-            details: ["2 Doktor Sınırı", "Standart Destek"]
-        },
-        pro: {
-            name: "Profesyonel",
-            limit: "2.500",
-            price: "3.990 ₺",
-            details: ["5 Doktor Sınırı", "Öncelikli Destek"]
-        },
-        enterprise: {
-            name: "Kurumsal",
-            limit: "7.500",
-            price: "8.990₺",
-            details: ["12 Doktor Sınırı", "Öncelikli Destek (7/24)"]
-        },
-        trial: {
-            name: "Deneme",
-            limit: "100",
-            price: "Ücretsiz",
-            details: ["7 Günlük Deneme", "Tüm Özellikler Açık", "100 Kredi Hediye"]
-        },
-    };
+    useEffect(() => {
+        async function fetchPayments() {
+            if (!clinic.clinicId) return;
+            const { data } = await supabase
+                .from("payment_history")
+                .select("*")
+                .eq("clinic_id", clinic.clinicId)
+                .order("created_at", { ascending: false });
 
-    const currentPlan = planDetails[clinic.planId || "starter"] || planDetails.starter;
+            if (data) setPayments(data);
+            setLoading(false);
+        }
+        fetchPayments();
+    }, [clinic.clinicId]);
 
-    const dayTranslations: Record<string, string> = {
-        'Monday': 'Pazartesi',
-        'Tuesday': 'Salı',
-        'Wednesday': 'Çarşamba',
-        'Thursday': 'Perşembe',
-        'Friday': 'Cuma',
-        'Saturday': 'Cumartesi',
-        'Sunday': 'Pazar'
-    };
+    const monthlyPrice = 1199;
+    const annualPricePerMonth = 999;
+    let currentPrice = billingCycle === "monthly" ? monthlyPrice : annualPricePerMonth;
+    if (billingCycle === "pilot") currentPrice = 0;
 
-    function stats_credits_calculation(credits: number, limitStr: string) {
-        const limit = parseInt(limitStr.replace(".", ""));
-        return Math.max(0, limit - credits);
-    }
-
-    const stats = {
-        monthlyMessages: parseInt(currentPlan.limit.replace(".", "")),
-        usedMessages: stats_credits_calculation(clinic.credits, currentPlan.limit),
-        planName: currentPlan.name,
-        expiryDate: clinic.trialEndsAt || "2025-12-31",
-        status: clinic.trialEndsAt ? (new Date(clinic.trialEndsAt) > new Date() ? "active" : "expired") : "active",
-    };
-
-    const usagePercent = Math.min(100, (stats.usedMessages / stats.monthlyMessages) * 100);
+    const features = [
+        { icon: CalendarIcon, text: "Sınırsız Randevu Yönetimi" },
+        { icon: Users, text: "Sınırsız Hasta Kaydı ve Takibi" },
+        { icon: Zap, text: "Sınırsız Hekim ve Personel Tanımı" },
+        { icon: CreditCard, text: "Gelişmiş Finansal Yönetim & Kasa" },
+        { icon: BarChart3, text: "Detaylı Klinik Analiz Raporları" },
+        { icon: ShieldCheck, text: "Bulut Tabanlı %100 Güvenli Veri" },
+        { icon: MessageCircle, text: "7/24 Teknik Destek & Eğitim" },
+    ];
 
     if (!clinic.isAdmin) {
         return (
             <div className="flex flex-col items-center justify-center h-64 gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
                 <div className="h-10 w-10 rounded-full bg-rose-50 flex items-center justify-center">
-                    <svg className="h-5 w-5 text-rose-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-                    </svg>
+                    <AlertCircle className="h-5 w-5 text-rose-500" />
                 </div>
                 <p className="text-sm font-semibold text-slate-900">Yetkisiz Erişim</p>
                 <p className="text-xs text-slate-500">Bu sayfayı yalnızca yönetici yetkisine sahip kullanıcılar görüntüleyebilir.</p>
@@ -78,248 +70,310 @@ export default function SubscriptionPage() {
         );
     }
 
-    return (
-        <div className="max-w-5xl mx-auto space-y-6" onClick={() => setActivePlanInfo(null)}>
-            <div className="grid gap-6 md:grid-cols-2">
-                {/* Sol Kolon: Mevcut Durum */}
-                <div className="space-y-6">
-                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm overflow-hidden relative group">
-                        <div className="absolute top-0 right-0 -m-4 h-24 w-24 rounded-full bg-teal-50/50 blur-2xl group-hover:bg-teal-100/50 transition-colors" />
+    const trialDaysLeft = clinic.currentPeriodEnd
+        ? Math.max(0, Math.ceil((new Date(clinic.currentPeriodEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+        : 0;
 
-                        <div className="relative">
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Mevcut Plan</h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-2xl font-bold text-slate-900">{stats.planName}</span>
-                                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-tighter ${stats.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                                            {stats.status === 'active' ? 'Aktif' : 'Süresi Doldu'}
-                                        </span>
-                                    </div>
+    const isTrial = clinic.subscriptionStatus === 'trialing';
+
+    const automationsEnabled = clinic.clinicSettings?.notification_settings
+        ? Object.values(clinic.clinicSettings.notification_settings).some(val => val === true)
+        : false;
+
+    return (
+        <div className="max-w-6xl mx-auto space-y-8 pb-12">
+            {/* 1. Mevcut Durum Özeti */}
+            <div className="grid gap-6 md:grid-cols-3">
+                <div className="md:col-span-2 rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 -m-8 h-32 w-32 rounded-full bg-indigo-50/50 blur-3xl group-hover:bg-indigo-100/50 transition-colors" />
+
+                    <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Mevcut Abonelik</h3>
+                                {isTrial ? (
+                                    <span className="bg-amber-100 text-amber-700 text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-tighter shadow-sm animate-pulse">
+                                        Ücretsiz Deneme
+                                    </span>
+                                ) : (
+                                    <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-tighter shadow-sm">
+                                        Aktif Abonelik
+                                    </span>
+                                )}
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                                {clinic.billingCycle === 'pilot' ? "Pilot Klinik Paketi" : "NextGency OS Premium"}
+                            </h2>
+                            <p className="text-slate-500 text-sm mt-1 font-medium">
+                                {isTrial
+                                    ? `Deneme sürenizin bitmesine ${trialDaysLeft} gün kaldı.`
+                                    : clinic.billingCycle === 'annual' ? "Yıllık Plan • Avantajlı Kullanım" : "Aylık Plan • Esnek Kullanım"}
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-2xl">
+                                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                <span className="text-xs font-bold text-slate-700">Sistem Durumu: Aktif</span>
+                            </div>
+                            {clinic.currentPeriodEnd && (
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        {isTrial ? "Deneme Bitiş" : "Sıradaki Ödeme"}
+                                    </p>
+                                    <p className="text-sm font-black text-slate-900">
+                                        {new Date(clinic.currentPeriodEnd).toLocaleDateString("tr-TR", { day: 'numeric', month: 'long', year: 'numeric' })}
+                                    </p>
                                 </div>
-                                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
-                                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
-                                    </svg>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="mt-8 flex flex-wrap gap-3">
+                        <button className="bg-black text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200">
+                            Planı Değiştir
+                        </button>
+                        <button className="bg-white text-slate-900 border border-slate-200 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95">
+                            Fatura Bilgilerim
+                        </button>
+                    </div>
+                </div>
+
+                <div className="rounded-[2rem] bg-gradient-to-br from-indigo-600 to-violet-700 p-8 shadow-xl shadow-indigo-200 relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <Zap size={100} className="text-white" />
+                    </div>
+                    <div className="relative">
+                        <h4 className="text-white/80 text-xs font-black uppercase tracking-widest mb-1">Akıllı Otomasyon</h4>
+                        <h2 className="text-white text-xl font-bold leading-tight">İletişimi Serbest Bırakın</h2>
+                        <p className="text-indigo-100/70 text-[11px] mt-2 leading-relaxed">
+                            Randevu hatırlatmalarını ve ödeme bildirimlerini otomatize ederek zaman kazanın.
+                        </p>
+                    </div>
+                    <div className="relative mt-6">
+                        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 inline-block w-full">
+                            <div className="flex items-center justify-between">
+                                <span className="text-white text-[10px] font-black uppercase">Durum</span>
+                                {automationsEnabled ? (
+                                    <span className="text-emerald-400 text-[10px] font-black uppercase">Aktif</span>
+                                ) : (
+                                    <span className="text-indigo-200 text-[10px] font-black uppercase">Kapalı</span>
+                                )}
+                            </div>
+                            <button className="w-full mt-3 bg-white text-indigo-700 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all">
+                                Ayarları Yönet
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 2. Paket Seçenekleri */}
+            <div className="pt-12">
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">Size Uygun Planı Seçin</h2>
+                    <p className="text-slate-500 font-medium mt-2">Daha fazla özellik için paketinizi yükseltebilirsiniz.</p>
+                </div>
+
+                <div className="flex justify-center mb-10">
+                    <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-1">
+                        <button
+                            onClick={() => setBillingCycle("monthly")}
+                            className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${billingCycle === "monthly"
+                                ? "bg-black text-white shadow-md"
+                                : "text-slate-500 hover:bg-slate-50"
+                                }`}
+                        >
+                            Aylık
+                        </button>
+                        <button
+                            onClick={() => setBillingCycle("annual")}
+                            className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${billingCycle === "annual"
+                                ? "bg-black text-white shadow-md"
+                                : "text-slate-500 hover:bg-slate-50"
+                                }`}
+                        >
+                            Yıllık
+                            <span className="bg-emerald-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black uppercase shadow-sm">
+                                %20 İndirim
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div className="grid lg:grid-cols-3 gap-8">
+                    {/* Premium Plan */}
+                    <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden flex flex-col">
+                        <div className="p-10 border-b border-slate-50">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 className="text-2xl font-black text-slate-900">NextGency OS Premium</h3>
+                                    <p className="text-slate-500 text-sm mt-1 font-medium">Sınırsız Kullanım, Maksimum Performans</p>
+                                </div>
+                                <div className="h-14 w-14 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center shadow-inner">
+                                    <ShieldCheck size={32} />
                                 </div>
                             </div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-6xl font-black text-slate-900 tracking-tighter">
+                                    {currentPrice.toLocaleString("tr-TR")} ₺
+                                </span>
+                                {billingCycle !== "pilot" && <span className="text-xl text-slate-400 font-bold">/ ay</span>}
+                                {billingCycle === "pilot" && <span className="text-xl text-indigo-600 font-black ml-2 uppercase tracking-widest">Pilot Paket</span>}
+                            </div>
+                            {billingCycle === "annual" && (
+                                <p className="text-sm text-emerald-600 font-bold mt-4 flex items-center gap-2 bg-emerald-50 w-fit px-4 py-1.5 rounded-full">
+                                    <Check size={18} /> Yıllık ödemede aylık 200 ₺ tasarruf
+                                </p>
+                            )}
+                        </div>
 
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between text-xs font-medium">
-                                    <span className="text-slate-600">Mesaj Kullanımı</span>
-                                    <span className="text-slate-900 font-bold">{stats.usedMessages.toLocaleString()} / {stats.monthlyMessages.toLocaleString()}</span>
+                        <div className="p-10 bg-slate-50/30 flex-1 grid sm:grid-cols-2 gap-6">
+                            {features.map((feature, idx) => (
+                                <div key={idx} className="flex items-start gap-4">
+                                    <div className="mt-1 bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
+                                        <feature.icon size={18} className="text-teal-600" />
+                                    </div>
+                                    <span className="text-sm font-bold text-slate-700 leading-snug">
+                                        {feature.text}
+                                    </span>
                                 </div>
-                                <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden p-[2px] border">
-                                    <div
-                                        className="h-full rounded-full bg-gradient-to-r from-teal-500 via-teal-400 to-emerald-400 transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(20,184,166,0.3)]"
-                                        style={{ width: `${usagePercent}%` }}
-                                    />
-                                </div>
-                                <p className="text-[11px] text-slate-400 leading-relaxed italic">
-                                    * {clinic.planId === 'trial' ? 'Deneme süreniz bittiğinde hesabınız duraklatılır.' : 'Mesaj kotanız her ayın 1\'inde otomatik olarak yenilenir.'}
+                            ))}
+                        </div>
+
+                        <div className="p-10 border-t border-slate-100 bg-white">
+                            <button className="w-full bg-black text-white py-5 rounded-3xl text-sm font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-[0.98]">
+                                {clinic.billingCycle === billingCycle ? "Mevcut Planınız" : "Bu Plana Geçiş Yap"}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Pilot Clinic / Help Card */}
+                    <div className="flex flex-col gap-6">
+                        <div className="bg-gradient-to-br from-indigo-600 to-indigo-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-6 opacity-10 transform scale-150 rotate-12">
+                                <Sparkles size={120} />
+                            </div>
+                            <h3 className="text-xl font-black mb-4 tracking-tight">Pilot Kliniğimiz Olun</h3>
+                            <p className="text-indigo-100 text-sm leading-relaxed mb-8 font-medium">
+                                Sektörün geleceğini birlikte tasarlayalım. Kliniğinize özel çözümler ve öncelikli destekle sisteme entegrasyon sağlayın.
+                            </p>
+                            <ul className="space-y-4 mb-10">
+                                <li className="flex items-center gap-3 text-sm font-bold">
+                                    <div className="bg-white/20 p-1 rounded-lg"><Check size={16} /></div>
+                                    1 Ay Ücretsiz Kullanım
+                                </li>
+                                <li className="flex items-center gap-3 text-sm font-bold">
+                                    <div className="bg-white/20 p-1 rounded-lg"><Check size={16} /></div>
+                                    Özel Revize Talepleri
+                                </li>
+                            </ul>
+                            <button
+                                onClick={() => window.open(`https://wa.me/905444412180?text=${encodeURIComponent("Merhaba, Pilot Klinik programınız hakkında bilgi almak istiyorum.")}`, '_blank')}
+                                className="w-full bg-white text-indigo-700 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-lg active:scale-95"
+                            >
+                                Detaylı Bilgi & Başvuru
+                            </button>
+                        </div>
+
+                        <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white flex flex-col justify-between flex-1">
+                            <div>
+                                <h3 className="text-lg font-black mb-2">Desteğe mi ihtiyacınız var?</h3>
+                                <p className="text-slate-400 text-xs leading-relaxed font-medium">
+                                    Fatura işlemleri veya paket seçimleri hakkında her zaman bizimle iletişime geçebilirsiniz.
                                 </p>
                             </div>
-
-                            <div className="mt-8 pt-6 border-t border-slate-100 grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">{clinic.planId === 'trial' ? 'Deneme Bitiş' : 'Yenileme Tarihi'}</p>
-                                    <p className="text-sm font-semibold text-slate-800">{new Date(stats.expiryDate).toLocaleDateString("tr-TR", { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Kalan Kredi</p>
-                                    <p className="text-sm font-semibold text-slate-800">{clinic.credits} Kredi</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Sağ Kolon: Paket Yükseltme */}
-                <div className="rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden relative">
-                    <div className="p-8 border-b bg-slate-50/50">
-                        <h3 className="text-lg font-bold text-slate-900">Paket Detayları</h3>
-                        <p className="text-sm text-slate-500 mt-1">Paketinize dahil olan özellikler ve limitler.</p>
-                    </div>
-
-                    <div className="flex-1 p-6 space-y-4 overflow-y-auto max-h-[460px] scrollbar-hide">
-                        {Object.entries(planDetails).filter(([id]) => id !== 'trial').map(([id, plan]) => (
-                            <div
-                                key={id}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActivePlanInfo(activePlanInfo === id ? null : id);
-                                }}
-                                className={`relative rounded-2xl border-2 p-4 transition-all cursor-pointer ${clinic.planId === id ? 'border-teal-500 bg-teal-50/10' : 'border-teal-500/30'}`}
+                            <button
+                                onClick={() => (window as any).openSupportModal?.()}
+                                className="flex items-center justify-between w-full mt-8 group text-left"
                             >
-                                {clinic.planId === id && (
-                                    <span className="absolute -top-2.5 right-4 rounded-full bg-teal-500 px-3 py-1 text-[9px] font-bold text-white uppercase tracking-wider">Mevcut Paketiniz</span>
-                                )}
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="font-bold text-slate-900">{plan.name}</h4>
-                                        <div className="text-teal-500">
-                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-lg font-black text-slate-900">{plan.price}</p>
-                                        <p className="text-[10px] text-slate-400 font-medium">aylık</p>
-                                    </div>
+                                <span className="text-xs font-black uppercase tracking-widest group-hover:text-teal-400 transition-colors">Destek Merkezine Git</span>
+                                <div className="h-10 w-10 rounded-full border border-white/20 flex items-center justify-center group-hover:border-teal-400 group-hover:text-teal-400 transition-all">
+                                    <ChevronRight size={20} />
                                 </div>
-
-                                {/* Popover Detail */}
-                                {activePlanInfo === id && (
-                                    <div className="mt-3 p-3 rounded-xl bg-white border border-slate-100 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 z-50">
-                                        <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Paket Özellikleri</h5>
-                                        <ul className="space-y-1.5">
-                                            {plan.details.map((d, i) => (
-                                                <li key={i} className="flex items-center gap-2 text-[11px] text-slate-600">
-                                                    <svg className="h-3 w-3 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                                                    </svg>
-                                                    {d}
-                                                </li>
-                                            ))}
-                                            <li className="flex items-center gap-2 text-[11px] text-slate-600">
-                                                <svg className="h-3 w-3 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                                                </svg>
-                                                {plan.limit} Mesaj/Ay
-                                            </li>
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="p-6 border-t bg-slate-50/50 text-center">
-                        <p className="text-[11px] text-slate-500">Paket değişikliği talepleriniz için sistem yöneticisine başvurabilirsiniz.</p>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                <div className="bg-gradient-to-r from-slate-50 to-slate-100/50 border-b px-6 py-4">
+
+            {/* 3. Ödeme Geçmişi */}
+            <div className="pt-12">
+                <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-purple-100">
-                            <svg className="h-5 w-5 text-violet-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455-2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-                            </svg>
+                        <div className="h-10 w-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 shadow-sm">
+                            <History size={20} />
                         </div>
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-base font-bold text-slate-900">Aktif Otomasyonlar</h3>
-                                <span className="rounded-full bg-gradient-to-r from-teal-600 to-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">Akıllı Servisler</span>
-                            </div>
-                            <p className="text-xs text-slate-500 mt-0.5">Sistem yöneticisi tarafından kliniğinize atanan akıllı servisler</p>
+                        <div>
+                            <h3 className="text-xl font-black text-slate-900 tracking-tight">Ödeme Geçmişi</h3>
+                            <p className="text-xs text-slate-500 font-medium">Geçmiş ödemeleriniz ve fatura dökümleri.</p>
                         </div>
                     </div>
                 </div>
-                <div className="p-6">
-                    {clinic.n8nWorkflows.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-                                <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                            </div>
-                            <p className="text-sm font-semibold text-slate-600">Henüz atanmış otomasyon bulunmuyor.</p>
-                            <p className="text-xs text-slate-400 mt-1">Gerekli otomasyonlar için merkez yönetim ile iletişime geçin.</p>
-                        </div>
-                    ) : (
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {clinic.n8nWorkflows
-                                .filter(wf => wf.visible)
-                                .sort((a, b) => (a.enabled === b.enabled ? 0 : a.enabled ? -1 : 1))
-                                .map(wf => {
-                                    // Determine icon and color based on category/id (Simplified for UI)
-                                    const isAI = wf.id.startsWith('ai_');
-                                    const isWA = wf.id.startsWith('wa_');
 
-                                    const translatedDay = wf.day ? (dayTranslations[wf.day] || wf.day) : null;
-                                    const scheduleText = isAI ? '7/24 Aktif' : (translatedDay ? `${translatedDay} - ${wf.time || "09:00"}` : (wf.time || "09:00"));
-
-                                    return (
-                                        <AutomationCard
-                                            key={wf.id}
-                                            icon={
-                                                isAI ? (
-                                                    <svg className="h-5 w-5 text-violet-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455-2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455-2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-                                                    </svg>
-                                                ) : isWA ? (
-                                                    <svg className="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a.596.596 0 0 1-.474-.065.412.412 0 0 1-.171-.449 5.09 5.09 0 0 1 1.242-2.313C4.83 16.99 4.5 15.54 4.5 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
-                                                    </svg>
-                                                ) : (
-                                                    <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                                    </svg>
-                                                )
-                                            }
-                                            iconBg={isAI ? "bg-violet-50" : isWA ? "bg-emerald-50" : "bg-indigo-50"}
-                                            title={wf.name}
-                                            desc=""
-                                            enabled={wf.enabled}
-                                            schedule={scheduleText}
-                                            hideScheduleTitle={isAI}
-                                        />
-                                    );
-                                })}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function AutomationCard({
-    icon,
-    iconBg,
-    title,
-    desc,
-    enabled,
-    schedule,
-    hideScheduleTitle,
-}: {
-    icon: React.ReactNode;
-    iconBg: string;
-    title: string;
-    desc: string;
-    enabled: boolean;
-    schedule: string;
-    hideScheduleTitle?: boolean;
-}) {
-    return (
-        <div className={`rounded-2xl border bg-white p-5 transition-all group overflow-hidden relative ${enabled ? 'border-slate-200 hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-500/5' : 'border-slate-100 opacity-75'}`}>
-            <div className="absolute top-0 right-0 -m-8 h-24 w-24 rounded-full bg-slate-50/50 group-hover:bg-indigo-50/50 transition-colors -z-0" />
-            <div className="relative z-10">
-                <div className="flex items-start gap-4 mb-4">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${iconBg} shadow-sm`}>
-                        {icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-slate-900 leading-tight">{title}</h4>
-                        <div className="flex items-center gap-1.5 mt-1">
-                            <span className={`flex h-1.5 w-1.5 rounded-full ${enabled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${enabled ? 'text-emerald-600' : 'text-slate-400'}`}>
-                                {enabled ? 'Aktif' : 'Pasif'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                {desc && <p className="text-[10px] text-slate-400 font-mono truncate bg-slate-50 p-1 rounded border border-slate-100">{desc}</p>}
-                <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex flex-col gap-0.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Durum</span>
-                        <span className={`text-[11px] font-semibold ${enabled ? 'text-emerald-600' : 'text-slate-500'}`}>{enabled ? 'Çalışıyor' : 'Durduruldu'}</span>
-                    </div>
-                    <div className="flex flex-col gap-0.5 text-right">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">{hideScheduleTitle ? 'Zamanlama' : 'Zamanlama'}</span>
-                        <span className={`text-[11px] font-semibold ${hideScheduleTitle ? 'text-slate-500' : 'text-indigo-600'}`}>{schedule}</span>
+                <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="bg-slate-50/50 border-b border-slate-100">
+                                    <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Tarih</th>
+                                    <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Açıklama</th>
+                                    <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Tutar</th>
+                                    <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Durum</th>
+                                    <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-8 py-10 text-center text-slate-400 text-xs">Yükleniyor...</td>
+                                    </tr>
+                                ) : payments.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-8 py-12 text-center">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <CreditCard className="h-8 w-8 text-slate-200" />
+                                                <p className="text-xs font-bold text-slate-400">Henüz bir ödeme kaydı bulunmuyor.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    payments.map((payment) => (
+                                        <tr key={payment.id} className="hover:bg-slate-50 transition-colors group">
+                                            <td className="px-8 py-5">
+                                                <span className="text-xs font-bold text-slate-900">
+                                                    {new Date(payment.created_at).toLocaleDateString("tr-TR")}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div>
+                                                    <p className="text-xs font-bold text-slate-800">{payment.package_name}</p>
+                                                    <p className="text-[10px] text-slate-400 font-medium capitalize">{payment.billing_period}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className="text-xs font-black text-slate-900">{payment.amount.toLocaleString("tr-TR")} {payment.currency}</span>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${payment.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
+                                                    payment.status === 'failed' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                                                    }`}>
+                                                    <div className={`h-1 w-1 rounded-full ${payment.status === 'paid' ? 'bg-emerald-500' :
+                                                        payment.status === 'failed' ? 'bg-rose-500' : 'bg-amber-500'
+                                                        }`} />
+                                                    {payment.status === 'paid' ? 'Başarılı' : payment.status === 'failed' ? 'Hata' : 'Beklemede'}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <button className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:text-indigo-800 transition-colors flex items-center gap-1 ml-auto">
+                                                    Faturayı İndir
+                                                    <ChevronRight size={14} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

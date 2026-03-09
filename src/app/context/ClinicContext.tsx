@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { UserRole, WorkingHours } from "@/types/database";
+import type { UserRole, WorkingHours, ClinicSettings } from "@/types/database";
 import { DEFAULT_WORKING_HOURS } from "@/constants/days";
 
 export interface ClinicContextValue {
@@ -16,12 +16,12 @@ export interface ClinicContextValue {
   userEmail: string | null;
   workingHours: WorkingHours;
   workingHoursOverrides: { date: string; open: string; close: string; is_closed: boolean; note?: string }[];
-  planId: string | null;
-  credits: number;
-  trialEndsAt: string | null;
-  automationsEnabled: boolean;
-  n8nWorkflowId: string | null;
+  subscriptionStatus: 'trialing' | 'active' | 'past_due' | 'canceled' | null;
+  billingCycle: 'monthly' | 'annual' | 'pilot' | null;
+  currentPeriodEnd: string | null;
+  lastPaymentDate: string | null;
   n8nWorkflows: Array<{ id: string; name: string; visible?: boolean; enabled: boolean; time?: string; day?: string }>;
+  clinicSettings: ClinicSettings | null;
 }
 
 const defaultValue: ClinicContextValue = {
@@ -36,12 +36,12 @@ const defaultValue: ClinicContextValue = {
   userEmail: null,
   workingHours: DEFAULT_WORKING_HOURS,
   workingHoursOverrides: [],
-  planId: null,
-  credits: 0,
-  trialEndsAt: null,
-  automationsEnabled: false,
-  n8nWorkflowId: null,
+  subscriptionStatus: null,
+  billingCycle: null,
+  currentPeriodEnd: null,
+  lastPaymentDate: null,
   n8nWorkflows: [],
+  clinicSettings: null,
 };
 
 export const ClinicContext = createContext<ClinicContextValue>(defaultValue);

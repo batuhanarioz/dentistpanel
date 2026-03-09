@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { CSVUploadModal } from "@/app/components/patients/CSVUploadModal";
+import { useClinic } from "@/app/context/ClinicContext";
 
 type PatientRow = {
   id: string;
@@ -38,6 +39,7 @@ type PatientPayment = {
 const PAGE_SIZE = 10;
 
 export default function PatientsPage() {
+  const { clinicId } = useClinic();
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,12 +56,14 @@ export default function PatientsPage() {
   const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
 
   const loadPatients = async () => {
+    if (!clinicId) return;
     setLoading(true);
     setError(null);
 
     const { data, error } = await supabase
       .from("patients")
       .select("id, full_name, phone, email, birth_date, tc_identity_no, created_at")
+      .eq("clinic_id", clinicId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -75,11 +79,11 @@ export default function PatientsPage() {
 
   useEffect(() => {
     loadPatients();
-  }, []);
+  }, [clinicId]);
 
   useEffect(() => {
     const loadPatientDetail = async () => {
-      if (!selectedPatient) {
+      if (!selectedPatient || !clinicId) {
         setAppointments([]);
         setPayments([]);
         return;
@@ -93,24 +97,27 @@ export default function PatientsPage() {
           .select(
             "id, starts_at, ends_at, status, treatment_type, doctor:doctor_id(full_name), patient_note, internal_note"
           )
+          .eq("clinic_id", clinicId)
           .eq("patient_id", selectedPatient.id)
           .order("starts_at", { ascending: false }),
         supabase
           .from("payments")
           .select("id, amount, method, status, due_date")
+          .eq("clinic_id", clinicId)
           .eq("patient_id", selectedPatient.id)
           .order("due_date", { ascending: false }),
       ]);
 
       const mapped: PatientAppointment[] = (apptRes.data || []).map((row) => {
         const r = row as Record<string, unknown>;
+        const doctorArr = Array.isArray(r.doctor) ? r.doctor : [r.doctor];
         return {
           id: r.id as string,
           starts_at: r.starts_at as string,
           ends_at: r.ends_at as string,
           status: r.status as PatientAppointment["status"],
           treatment_type: r.treatment_type as string | null,
-          doctor_name: (r.doctor as { full_name: string }[])?.[0]?.full_name ?? null,
+          doctor_name: (doctorArr?.[0] as { full_name: string })?.full_name ?? null,
           patient_note: r.patient_note as string | null,
           internal_note: r.internal_note as string | null,
         };
@@ -129,7 +136,7 @@ export default function PatientsPage() {
     };
 
     loadPatientDetail();
-  }, [selectedPatient]);
+  }, [selectedPatient, clinicId]);
 
   const filteredPatients = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -308,10 +315,10 @@ export default function PatientsPage() {
         const completedCount = appointments.filter((a) => a.status === "completed").length;
         const cancelledCount = appointments.filter((a) => a.status === "cancelled" || a.status === "no_show").length;
         const totalPaid = payments
-          .filter((p) => p.status === "paid")
+          .filter((p) => p.status === "paid" || p.status === "Ödendi")
           .reduce((s, p) => s + p.amount, 0);
         const totalPlanned = payments
-          .filter((p) => p.status === "planned" || p.status === "partial")
+          .filter((p) => p.status === "pending" || p.status === "planned" || p.status === "partial" || p.status === "Beklemede" || p.status === "Kısmi")
           .reduce((s, p) => s + p.amount, 0);
 
         const todayStr = new Date().toLocaleDateString("tr-TR").replace(/\./g, "-");
@@ -338,7 +345,7 @@ export default function PatientsPage() {
 
           // --- Randevu Detay Tablosu ---
           csv += "RANDEVU GECMISI\n";
-          csv += "Tarih;Saat;Islem;Doktor;Durum;Hasta Notu;Doktor Tedavi Notu\n";
+          csv += "Tarih;Saat;Islem;Hekim;Durum;Hasta Notu;Hekim Tedavi Notu\n";
           appointments.forEach((a) => {
             const d = new Date(a.starts_at);
             const e = new Date(a.ends_at);
@@ -370,10 +377,10 @@ export default function PatientsPage() {
             const e = new Date(a.ends_at);
             txt += `${i + 1}. ${d.toLocaleDateString("tr-TR")} ${d.toTimeString().slice(0, 5)}-${e.toTimeString().slice(0, 5)}\n`;
             txt += `   İşlem: ${a.treatment_type || "Muayene"}\n`;
-            txt += `   Doktor: ${a.doctor_name || "Atanmadı"}\n`;
+            txt += `   Hekim: ${a.doctor_name || "Atanmadı"}\n`;
             txt += `   Durum: ${statusLabelMap[a.status] ?? a.status}\n`;
             if (a.patient_note) txt += `   Hasta Notu: ${a.patient_note}\n`;
-            if (a.internal_note) txt += `   Doktor Tedavi Notu: ${a.internal_note}\n`;
+            if (a.internal_note) txt += `   Hekim Tedavi Notu: ${a.internal_note}\n`;
             txt += "\n";
           });
           const blob = new Blob([txt], { type: "text/plain;charset=utf-8;" });
@@ -531,7 +538,7 @@ export default function PatientsPage() {
                           </span>
                         </div>
                         <div className="mt-1 text-[10px] text-slate-700">
-                          Doktor: {appt.doctor_name || "Atanmadı"}
+                          Hekim: {appt.doctor_name || "Atanmadı"}
                         </div>
                         {appt.patient_note && (
                           <p className="mt-1 text-[10px] text-slate-800">
@@ -541,7 +548,7 @@ export default function PatientsPage() {
                         )}
                         {appt.internal_note && (
                           <p className="mt-0.5 text-[10px] text-slate-800">
-                            <span className="font-semibold">Doktor tedavi notu: </span>
+                            <span className="font-semibold">Hekim tedavi notu: </span>
                             {appt.internal_note}
                           </p>
                         )}

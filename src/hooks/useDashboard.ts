@@ -4,7 +4,10 @@ import { localDateStr } from "@/lib/dateUtils";
 import { useClinic } from "@/app/context/ClinicContext";
 import { UserRole } from "@/types/database";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getTaskConfigs, getPaymentsForAppointments, getAppointmentsForDate } from "@/lib/api";
+import { getAppointmentsForDate } from "@/lib/api";
+import { useChecklist, ControlItem } from "./useChecklist";
+
+export type { ControlItem };
 
 export type DashboardAppointment = {
     id: string;
@@ -26,21 +29,8 @@ export type DoctorOption = {
     full_name: string;
 };
 
-export type ControlItemType = "status" | "approval" | "doctor" | "payment";
-export type ControlItemTone = "critical" | "high" | "medium" | "low";
+// Types moved to useChecklist.ts
 
-export type ControlItem = {
-    id: string;
-    type: ControlItemType;
-    tone: ControlItemTone;
-    toneLabel: string;
-    appointmentId: string;
-    patientName: string;
-    timeLabel: string;
-    treatmentLabel: string;
-    actionLabel: string;
-    sortTime: number;
-};
 
 function formatTime(dateString: string) {
     const d = new Date(dateString);
@@ -68,13 +58,6 @@ export function useDashboard() {
         return localDateStr(d);
     }, [baseToday, viewOffsetControls]);
 
-    // Fetch Task Configs
-    const { data: taskAssignments = {} } = useQuery({
-        queryKey: ["taskConfigs", clinic.clinicId],
-        queryFn: () => getTaskConfigs(clinic.clinicId!),
-        enabled: !!clinic.clinicId,
-    });
-
     // Fetch Appointments for List
     const { data: rawCalendarAppointments = [], isLoading: loading } = useQuery({
         queryKey: ["dashboardAppointments", viewDateAppointments, clinic.clinicId],
@@ -97,7 +80,7 @@ export function useDashboard() {
             endsAt: end.toISOString(),
             patientName: ca.patientName,
             patientPhone: ca.phone,
-            doctorName: ca.doctor || "Doktor atanmadı",
+            doctorName: ca.doctor || "Hekim atanmadı",
             doctorId: ca.doctorId,
             channel: ca.channel,
             status: ca.dbStatus,
@@ -115,7 +98,11 @@ export function useDashboard() {
     const { data: doctorsData = [] } = useQuery({
         queryKey: ["doctors"],
         queryFn: async () => {
-            const { data } = await supabase.from("users").select("id, full_name").eq("role", UserRole.DOKTOR);
+            if (!clinic.clinicId) return [];
+            const { data } = await supabase.from("users")
+                .select("id, full_name")
+                .eq("clinic_id", clinic.clinicId)
+                .eq("role", UserRole.DOKTOR);
             return (data || []) as DoctorOption[];
         },
     });
@@ -149,139 +136,31 @@ export function useDashboard() {
         return sorted;
     }, [rawAppointments, viewOffsetAppointments]);
 
-    // Control Items logic
-    const { data: controlCalendarAppointments = [] } = useQuery({
-        queryKey: ["dashboardAppointmentsControl", viewDateControls, clinic.clinicId], // usage distinct key
-        queryFn: () => getAppointmentsForDate(viewDateControls, clinic.clinicId || ""),
-        enabled: !!clinic.clinicId,
-    });
 
-    const controlAppointments = useMemo(() => {
-        return controlCalendarAppointments.map(mapCalendarToDashboard);
-    }, [controlCalendarAppointments]);
-
-    const { data: paymentsMap = {} } = useQuery({
-        queryKey: ["paymentsForAppointments", viewDateControls],
-        queryFn: () => getPaymentsForAppointments(controlAppointments.map((a: DashboardAppointment) => a.id)),
-        enabled: controlAppointments.length > 0,
-    });
-
-    const controlItems = useMemo(() => {
-        const now = new Date();
-        const controls: ControlItem[] = [];
-        const userRole = clinic.userRole || UserRole.SEKRETER;
-        const userId = clinic.userId;
-
-        const canShowTask = (code: string, apptDoctorId?: string | null) => {
-            const config = taskAssignments[code];
-            if (!config || !config.enabled) return false;
-            if (clinic.isAdmin) return true;
-            if (config.role === UserRole.DOKTOR && apptDoctorId === userId) return true;
-            return config.role === userRole;
-        };
-
-        controlAppointments.forEach((appt: DashboardAppointment) => {
-            const startDate = new Date(appt.startsAt);
-            const endDate = new Date(appt.endsAt);
-            const timeLabel = `${formatTime(appt.startsAt)} - ${formatTime(appt.endsAt)}`;
-            const treatmentLabel = appt.treatmentType?.trim() || "Genel muayene";
-
-            if (endDate < now && appt.status !== "completed" && appt.status !== "cancelled" && appt.status !== "no_show") {
-                if (canShowTask("STATUS_UPDATE", appt.doctorId)) {
-                    controls.push({
-                        id: `${appt.id}-status`,
-                        type: "status",
-                        tone: "critical",
-                        toneLabel: "Acil",
-                        appointmentId: appt.id,
-                        patientName: appt.patientName,
-                        timeLabel,
-                        treatmentLabel,
-                        actionLabel: "Durum güncellemesi bekliyor.",
-                        sortTime: endDate.getTime(),
-                    });
-                }
-            }
-
-
-
-            if (!appt.doctorId) {
-                if (canShowTask("MISSING_DOCTOR", appt.doctorId)) {
-                    controls.push({
-                        id: `${appt.id}-doctor`,
-                        type: "doctor",
-                        tone: "low",
-                        toneLabel: "Doktor",
-                        appointmentId: appt.id,
-                        patientName: appt.patientName,
-                        timeLabel,
-                        treatmentLabel,
-                        actionLabel: "Doktor ataması bekliyor.",
-                        sortTime: startDate.getTime(),
-                    });
-                }
-            }
-
-            if (appt.status === "completed" && !paymentsMap[appt.id]) {
-                if (canShowTask("MISSING_PAYMENT", appt.doctorId)) {
-                    controls.push({
-                        id: `${appt.id}-payment`,
-                        type: "payment",
-                        tone: "high",
-                        toneLabel: "Ödeme",
-                        appointmentId: appt.id,
-                        patientName: appt.patientName,
-                        timeLabel,
-                        treatmentLabel,
-                        actionLabel: "Ödeme eklemesi bekliyor.",
-                        sortTime: endDate.getTime(),
-                    });
-                }
-            }
-
-            // New Rule: Missing Treatment Note
-            if (appt.status === "completed" && !appt.treatmentNote) {
-                // Assuming "MISSING_TREATMENT_NOTE" task code exists or use "STATUS_UPDATE" role logic
-                if (canShowTask("MISSING_TREATMENT_NOTE", appt.doctorId)) {
-                    controls.push({
-                        id: `${appt.id}-note`,
-                        type: "status",
-                        tone: "medium",
-                        toneLabel: "Not",
-                        appointmentId: appt.id,
-                        patientName: appt.patientName,
-                        timeLabel,
-                        treatmentLabel,
-                        actionLabel: "Tedavi notu eksik.",
-                        sortTime: endDate.getTime(),
-                    });
-                }
-            }
-        });
-
-        controls.sort((a, b) => b.sortTime - a.sortTime);
-        return controls;
-    }, [controlAppointments, taskAssignments, clinic.isAdmin, clinic.userId, clinic.userRole, paymentsMap]);
+    // Checklist Items logic (New Persistent System)
+    const { controlItems, checklistLoading } = useChecklist(viewOffsetControls);
 
     const handleAssignDoctor = async (appointmentId: string, doctorId: string) => {
-        if (!doctorId) return;
-        await supabase.from("appointments").update({ doctor_id: doctorId }).eq("id", appointmentId);
-        // Invalidate both appointments and control queries to refresh the lists
+        if (!doctorId || !clinic.clinicId) return;
+        await supabase.from("appointments").update({ doctor_id: doctorId }).eq("id", appointmentId).eq("clinic_id", clinic.clinicId);
+        // Invalidate relevant queries
         queryClient.invalidateQueries({ queryKey: ["dashboardAppointments"] });
-        queryClient.invalidateQueries({ queryKey: ["dashboardAppointmentsControl"] });
+        queryClient.invalidateQueries({ queryKey: ["checklistItems"] });
     };
 
     const handleStatusChange = async (appointmentId: string, newStatus: DashboardAppointment["status"]) => {
-        await supabase.from("appointments").update({ status: newStatus }).eq("id", appointmentId);
+        if (!clinic.clinicId) return;
+        await supabase.from("appointments").update({ status: newStatus }).eq("id", appointmentId).eq("clinic_id", clinic.clinicId);
         // Invalidate both appointments and control queries to refresh the lists
         queryClient.invalidateQueries({ queryKey: ["dashboardAppointments"] });
-        queryClient.invalidateQueries({ queryKey: ["dashboardAppointmentsControl"] });
+        queryClient.invalidateQueries({ queryKey: ["checklistItems"] });
         queryClient.invalidateQueries({ queryKey: ["paymentsForAppointments"] });
     };
 
     return {
         appointments,
         loading,
+        checklistLoading,
         doctors,
         controlItems,
         viewOffsetAppointments,

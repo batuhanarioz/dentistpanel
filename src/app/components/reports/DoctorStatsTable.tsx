@@ -23,7 +23,7 @@ export function DoctorStatsTable({ data }: DoctorStatsTableProps) {
                 <table className="w-full border-collapse text-left text-[11px]">
                     <thead>
                         <tr className="border-b bg-slate-50/50 text-slate-500 font-black uppercase tracking-widest">
-                            <th className="px-4 py-4">Doktor</th>
+                            <th className="px-4 py-4">Hekim</th>
                             <th className="px-4 py-4 text-center">Toplam</th>
                             <th className="px-4 py-4 text-center">Tamamlanan</th>
                             <th className="px-4 py-4 text-center">Gelmedi</th>

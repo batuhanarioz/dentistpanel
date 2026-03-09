@@ -526,7 +526,7 @@ export default function ReportsPage() {
           {/* Doktor filtresi */}
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-semibold text-slate-700">
-              Doktor:
+              Hekim:
             </span>
             <select
               value={doctorFilter}
@@ -549,7 +549,7 @@ export default function ReportsPage() {
           {doctorFilter !== "ALL" && (
             <span>
               {" "}
-              · Doktor:{" "}
+              · Hekim:{" "}
               <span className="font-medium text-slate-700">
                 {doctors.find((d) => d.id === doctorFilter)?.full_name}
               </span>
@@ -935,8 +935,8 @@ export default function ReportsPage() {
 
           {/* ─── RAPOR 4: DOCTOR BAZLI DAĞILIM ─── */}
           <ReportCard
-            title="Doktor Bazlı Randevu Dağılımı"
-            subtitle="Doktor performans karşılaştırması"
+            title="Hekim Bazlı Randevu Dağılımı"
+            subtitle="Hekim performans karşılaştırması"
           >
             {doctorStats.length === 0 ? (
               <EmptyState />
@@ -988,7 +988,7 @@ export default function ReportsPage() {
                 {/* Mini tablo */}
                 <div className="mt-3 border rounded-lg overflow-hidden text-[11px]">
                   <div className="grid grid-cols-5 bg-slate-100 px-3 py-1.5 font-semibold text-slate-700">
-                    <span>Doktor</span>
+                    <span>Hekim</span>
                     <span className="text-center">Toplam</span>
                     <span className="text-center">Tamamlanan</span>
                     <span className="text-center">Gelmedi</span>
@@ -1012,7 +1012,7 @@ export default function ReportsPage() {
                         }
                         title={
                           isUnassigned
-                            ? "Doktor atanmamış randevuları görmek için tıklayın"
+                            ? "Hekim atanmamış randevuları görmek için tıklayın"
                             : undefined
                         }
                       >

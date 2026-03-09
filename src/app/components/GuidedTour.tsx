@@ -70,7 +70,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ runOnMount = false }) =>
                     element: "#tour-appointment-management",
                     popover: {
                         title: "<span style='color: #0d9488; font-weight: 700;'>Randevu Yönetimi</span>",
-                        description: "Doktor bazlı çalışma saatlerini ve randevuları takvim üzerinden kolayca yönetebilirsiniz.",
+                        description: "Hekim bazlı çalışma saatlerini ve randevuları takvim üzerinden kolayca yönetebilirsiniz.",
                         side: "right",
                         align: "start"
                     }
@@ -78,8 +78,8 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ runOnMount = false }) =>
                 {
                     element: "#tour-subscription",
                     popover: {
-                        title: "<span style='color: #0d9488; font-weight: 700;'>Abonelik & Otomasyon</span>",
-                        description: "Kliniğinize entegre şekilde çalışacak olan mesaj otomasyonlarını (randevu hatırlatma, ödeme günü vb.) ve kredi kullanımınızı buradan yönetebilirsiniz. Eğer isterseniz ekstra otomasyonlar olan 'Sesli Arama Ajanı' veya 'WhatsApp Ajanı' entegrasyonlarını da sisteminize ekleyebiliriz.",
+                        title: "<span style='color: #0d9488; font-weight: 700;'>Abonelik</span>",
+                        description: "Kliniğinize ait abonelik bilgilerini, kredi kullanımınızı ve faturalandırma detaylarını bu ekrandan görüntüleyebilirsiniz.",
                         side: "right",
                         align: "start"
                     }

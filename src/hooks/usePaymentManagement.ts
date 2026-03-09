@@ -1,15 +1,30 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr } from "@/lib/dateUtils";
 import { Appointment } from "@/types/database";
+import { useClinic } from "@/app/context/ClinicContext";
 import { paymentSchema, updatePaymentSchema } from "@/lib/validations/payment";
 import * as Sentry from "@sentry/nextjs";
 
 export type Patient = { id: string; full_name: string; phone: string | null; };
 export type AppointmentOption = { id: string; starts_at: string; treatment_type: string | null; patient_id: string; patient_full_name: string; patient_phone: string | null; };
-export type PaymentRow = { id: string; amount: number; method: string | null; status: string | null; note: string | null; due_date: string | null; patient: { full_name: string | null; phone: string | null; } | null; };
+export type PaymentRow = {
+    id: string;
+    amount: number;
+    method: string | null;
+    status: string | null;
+    note: string | null;
+    due_date: string | null;
+    patient: { full_name: string | null; phone: string | null; } | null;
+    appointment?: { starts_at: string; treatment_type: string | null; } | null;
+    installment_count?: number | null;
+    installment_number?: number | null;
+};
 
 export function usePaymentManagement(appointmentIdParam: string | null) {
+    const queryClient = useQueryClient();
+    const { clinicId } = useClinic();
     const today = useMemo(() => localDateStr(), []);
     const [patients, setPatients] = useState<Patient[]>([]);
     const [listSearch, setListSearch] = useState("");
@@ -18,9 +33,11 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
     const [modalAppointmentsLoading, setModalAppointmentsLoading] = useState(false);
     const [selectedAppointmentId, setSelectedAppointmentId] = useState<string>("");
     const [selectedDate, setSelectedDate] = useState(today);
+    const [startDate, setStartDate] = useState(today);
+    const [endDate, setEndDate] = useState(today);
     const [amount, setAmount] = useState("");
     const [method, setMethod] = useState<string>("Nakit");
-    const [status, setStatus] = useState<string>("planned");
+    const [status, setStatus] = useState<string>("pending");
     const [note, setNote] = useState("");
     const [payments, setPayments] = useState<PaymentRow[]>([]);
     const [loading, setLoading] = useState(false);
@@ -28,10 +45,10 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
-    const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
+    const [viewMode, setViewMode] = useState<"day" | "week" | "month" | "range">("month");
     const [selectedPayment, setSelectedPayment] = useState<PaymentRow | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [detailStatus, setDetailStatus] = useState<string>("planned");
+    const [detailStatus, setDetailStatus] = useState<string>("pending");
     const [detailAmount, setDetailAmount] = useState<string>("");
     const [detailMethod, setDetailMethod] = useState<string>("Nakit");
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -44,37 +61,77 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
     }, [appointmentIdParam, isModalOpen]);
 
     useEffect(() => {
-        supabase.from("patients").select("id, full_name, phone").order("full_name", { ascending: true })
+        if (!clinicId) return;
+        supabase.from("patients").select("id, full_name, phone")
+            .eq("clinic_id", clinicId)
+            .order("full_name", { ascending: true })
             .then(({ data }) => setPatients(data as Patient[] || []));
-    }, []);
+    }, [clinicId]);
 
     const loadPayments = useCallback(async (startDate: string, endDate: string) => {
+        if (!clinicId) return;
         setLoading(true);
-        const { data, error } = await supabase.from("payments").select("id, amount, method, status, note, due_date, patient:patient_id(full_name, phone)")
+        const { data, error } = await supabase.from("payments")
+            .select(`
+                id, amount, method, status, note, due_date, 
+                installment_count, installment_number,
+                patient:patient_id(full_name, phone),
+                appointment:appointment_id(starts_at, treatment_type)
+            `)
+            .eq("clinic_id", clinicId)
             .gte("due_date", startDate).lt("due_date", endDate).order("created_at", { ascending: true });
         if (error) setError(error.message);
         else setPayments((data || []) as unknown as PaymentRow[]);
         setLoading(false);
-    }, []);
+    }, [clinicId]);
 
     useEffect(() => {
-        const baseDate = new Date(selectedDate);
-        let start = new Date(baseDate); let end = new Date(baseDate);
-        if (viewMode === "day") end.setDate(end.getDate() + 1);
-        else if (viewMode === "week") {
-            const d = baseDate.getDay(); const diff = (d + 6) % 7;
-            start.setDate(start.getDate() - diff); end = new Date(start); end.setDate(end.getDate() + 7);
-        } else { start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1); end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1); }
-        loadPayments(localDateStr(start), localDateStr(end));
-    }, [selectedDate, viewMode, loadPayments]);
+        let s = "";
+        let e = "";
+
+        if (viewMode === "range") {
+            s = startDate;
+            // endDate inclusive olması için +1 gün eklemeliyiz sorguda
+            const d = new Date(endDate);
+            d.setDate(d.getDate() + 1);
+            e = localDateStr(d);
+        } else {
+            const baseDate = new Date(selectedDate);
+            let start = new Date(baseDate);
+            let end = new Date(baseDate);
+
+            if (viewMode === "day") {
+                end.setDate(end.getDate() + 1);
+            } else if (viewMode === "week") {
+                const d = baseDate.getDay();
+                const diff = (d + 6) % 7;
+                start.setDate(start.getDate() - diff);
+                end = new Date(start);
+                end.setDate(end.getDate() + 7);
+            } else {
+                start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+                end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1);
+            }
+            s = localDateStr(start);
+            e = localDateStr(end);
+        }
+
+        loadPayments(s, e);
+    }, [selectedDate, viewMode, startDate, endDate, loadPayments]);
 
     useEffect(() => {
         const term = modalPatientSearch.trim().toLowerCase();
-        if (!isModalOpen || !term) { setModalAppointments([]); return; }
+        if (!isModalOpen || !term || !clinicId) {
+            if (!selectedAppointmentId) setModalAppointments([]);
+            return;
+        }
         const pIds = patients.filter(p => p.full_name?.toLowerCase().includes(term) || p.phone?.includes(term)).map(p => p.id);
         if (pIds.length === 0) { setModalAppointments([]); return; }
         setModalAppointmentsLoading(true);
-        supabase.from("appointments").select("id, starts_at, treatment_type, patient_id, patients:patient_id(full_name, phone)").in("patient_id", pIds).order("starts_at", { ascending: true }).limit(30)
+        supabase.from("appointments")
+            .select("id, starts_at, treatment_type, patient_id, patients:patient_id(full_name, phone)")
+            .eq("clinic_id", clinicId)
+            .in("patient_id", pIds).order("starts_at", { ascending: true }).limit(30)
             .then(({ data }) => {
                 type PaymentModalRow = Pick<Appointment, "id" | "starts_at" | "treatment_type" | "patient_id"> & { patients: { full_name: string; phone: string | null } | null };
 
@@ -84,7 +141,8 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
                 })));
                 setModalAppointmentsLoading(false);
             });
-    }, [modalPatientSearch, isModalOpen, patients]);
+    }, [modalPatientSearch, isModalOpen, patients, selectedAppointmentId, clinicId]);
+
 
     const closeModal = useCallback(() => {
         setIsModalOpen(false);
@@ -92,56 +150,13 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
         setSelectedAppointmentId("");
         setAmount("");
         setMethod("Nakit");
-        setStatus("planned");
+        setStatus("pending");
         setNote("");
         setError(null);
     }, []);
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedAppointmentId || !amount) return;
-        const appt = modalAppointments.find(a => a.id === selectedAppointmentId);
-        if (!appt) return;
-        setSaving(true);
-        const paymentData = {
-            appointment_id: selectedAppointmentId,
-            patient_id: appt.patient_id,
-            amount: Number(amount),
-            method,
-            status,
-            note: note.trim() || null,
-            due_date: selectedDate
-        };
-
-        const validation = paymentSchema.safeParse(paymentData);
-        if (!validation.success) {
-            setError("Ödeme bilgileri geçersiz: " + validation.error.issues[0].message);
-            setSaving(false);
-            return;
-        }
-
-        const { error } = await supabase.from("payments").insert(validation.data);
-        if (error) {
-            Sentry.captureException(error, { tags: { section: "payments", action: "insert" } });
-            setError(error.message);
-        }
-        else {
-            closeModal();
-            const baseDate = new Date(selectedDate);
-            let start = new Date(baseDate);
-            let end = new Date(baseDate);
-            if (viewMode === "day") end.setDate(end.getDate() + 1);
-            else if (viewMode === "week") {
-                const d = baseDate.getDay(); const diff = (d + 6) % 7;
-                start.setDate(start.getDate() - diff); end = new Date(start); end.setDate(end.getDate() + 7);
-            } else { start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1); end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1); }
-            await loadPayments(localDateStr(start), localDateStr(end));
-        }
-        setSaving(false);
-    };
-
     const handleUpdateStatus = async () => {
-        if (!selectedPayment) return;
+        if (!selectedPayment || !clinicId) return;
 
         const updates = {
             status: detailStatus,
@@ -155,7 +170,7 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
             return;
         }
 
-        const { error } = await supabase.from("payments").update(validation.data).eq("id", selectedPayment.id);
+        const { error } = await supabase.from("payments").update(validation.data).eq("id", selectedPayment.id).eq("clinic_id", clinicId);
         if (!error) {
             setPayments(prev => prev.map(p => p.id === selectedPayment.id ? { ...p, status: detailStatus, amount: Number(detailAmount), method: detailMethod } : p));
             setIsDetailModalOpen(false);
@@ -163,9 +178,16 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
     };
 
     const handleDelete = async () => {
-        if (!selectedPayment) return;
-        const { error } = await supabase.from("payments").delete().eq("id", selectedPayment.id);
-        if (!error) { setPayments(prev => prev.filter(p => p.id !== selectedPayment.id)); setIsDetailModalOpen(false); setIsDeleteConfirmOpen(false); }
+        if (!selectedPayment || !clinicId) return;
+        // Fiziksel silme yerine durumu "cancelled" yapıyoruz
+        const { error } = await supabase.from("payments").update({ status: "cancelled" }).eq("id", selectedPayment.id).eq("clinic_id", clinicId);
+        if (!error) {
+            setPayments(prev => prev.map(p => p.id === selectedPayment.id ? { ...p, status: "cancelled" } : p));
+            queryClient.invalidateQueries({ queryKey: ["payments"] });
+            queryClient.invalidateQueries({ queryKey: ["assistantPayments"] });
+            setIsDetailModalOpen(false);
+            setIsDeleteConfirmOpen(false);
+        }
     };
 
     const filteredPayments = useMemo(() => payments.filter(p => {
@@ -174,24 +196,25 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
     }), [payments, listSearch]);
 
     const stats = useMemo(() => {
-        const total = filteredPayments.reduce((s, p) => s + p.amount, 0);
-        const paid = filteredPayments.filter(p => p.status === "paid").reduce((s, p) => s + p.amount, 0);
-        const planned = filteredPayments.filter(p => p.status === "planned" || p.status === "partial").reduce((s, p) => s + p.amount, 0);
-        return { total, paid, planned, count: filteredPayments.length };
+        const total = filteredPayments.filter(p => p.status !== 'cancelled' && p.status !== 'İptal').reduce((s, p) => s + p.amount, 0);
+        const paid = filteredPayments.filter(p => p.status === "paid" || p.status === "Ödendi").reduce((s, p) => s + p.amount, 0);
+        const planned = filteredPayments.filter(p => p.status === "pending" || p.status === "partial" || p.status === "Beklemede" || p.status === "planned" || p.status === "Kısmi").reduce((s, p) => s + p.amount, 0);
+        return { total, paid, planned, count: filteredPayments.filter(p => p.status !== 'cancelled' && p.status !== 'İptal').length };
     }, [filteredPayments]);
 
     const openDetail = (p: PaymentRow) => {
-        setSelectedPayment(p); setDetailStatus(p.status || "planned"); setDetailAmount(String(p.amount)); setDetailMethod(p.method || "Nakit"); setIsDetailModalOpen(true);
+        setSelectedPayment(p); setDetailStatus(p.status || "pending"); setDetailAmount(String(p.amount)); setDetailMethod(p.method || "Nakit"); setIsDetailModalOpen(true);
     };
 
     return {
         today, patients, listSearch, setListSearch, modalPatientSearch, setModalPatientSearch,
         modalAppointments, modalAppointmentsLoading, selectedAppointmentId, setSelectedAppointmentId,
-        selectedDate, setSelectedDate, amount, setAmount, method, setMethod, status, setStatus, note, setNote,
+        selectedDate, setSelectedDate, startDate, setStartDate, endDate, setEndDate,
+        amount, setAmount, method, setMethod, status, setStatus, note, setNote,
         payments, loading, saving, error, isModalOpen, setIsModalOpen, closeModal, currentPage, setCurrentPage,
         viewMode, setViewMode, selectedPayment, isDetailModalOpen, setIsDetailModalOpen,
         detailStatus, setDetailStatus, detailAmount, setDetailAmount, detailMethod, setDetailMethod,
         isDeleteConfirmOpen, setIsDeleteConfirmOpen, filteredPayments, stats,
-        handleSave, handleUpdateStatus, handleDelete, openDetail
+        handleUpdateStatus, handleDelete, openDetail
     };
 }

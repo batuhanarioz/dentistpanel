@@ -1,6 +1,5 @@
 import React from "react";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
-import { TREATMENTS } from "@/constants/appointments";
 import { AppointmentFormState } from "@/hooks/useAppointmentManagement";
 
 interface DateTimeSectionProps {
@@ -12,10 +11,12 @@ interface DateTimeSectionProps {
     todaySchedule: { open: string; close: string; enabled: boolean } | undefined;
     form: AppointmentFormState;
     setForm: React.Dispatch<React.SetStateAction<AppointmentFormState>>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    treatmentDefinitions: any[];
 }
 
 export function DateTimeSection({
-    formDate, setFormDate, formTime, setFormTime, today, todaySchedule, form, setForm
+    formDate, setFormDate, formTime, setFormTime, today, todaySchedule, form, setForm, treatmentDefinitions
 }: DateTimeSectionProps) {
     return (
         <>
@@ -57,18 +58,18 @@ export function DateTimeSection({
                     value={form.treatmentType}
                     onChange={(e) => {
                         const value = e.target.value;
-                        const treatment = TREATMENTS.find((t) => t.value === value);
+                        const treatment = treatmentDefinitions.find((t) => t.name === value);
                         setForm((f) => ({
                             ...f,
                             treatmentType: value,
-                            durationMinutes: treatment?.duration ?? f.durationMinutes,
+                            durationMinutes: treatment?.default_duration ?? f.durationMinutes,
                         }));
                     }}
                     className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                 >
                     <option value="">Seçin</option>
-                    {TREATMENTS.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
+                    {treatmentDefinitions.map((t) => (
+                        <option key={t.id || t.name} value={t.name}>{t.name}</option>
                     ))}
                 </select>
             </div>

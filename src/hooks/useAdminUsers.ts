@@ -117,7 +117,7 @@ export function useAdminUsers() {
             const currentDocs = users.filter(u => u.role === UserRole.DOKTOR).length;
             const limit = DOCTOR_LIMITS[clinic.planId || PLAN_IDS.STARTER] || 1;
             if (currentDocs >= limit) {
-                setError(`Limit aşıldı. En fazla ${limit} doktor ekleyebilirsiniz.`);
+                setError(`Limit aşıldı. En fazla ${limit} hekim ekleyebilirsiniz.`);
                 setSaving(false);
                 return;
             }

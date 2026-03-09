@@ -24,12 +24,9 @@ export const POST = withAuth(
                 email,
                 address,
                 working_hours,
-                plan_id,
-                credits,
-                trial_ends_at,
-                automations_enabled,
-                n8n_workflow_id,
-                n8n_workflows,
+                subscription_status,
+                billing_cycle,
+                current_period_end,
                 adminPassword,
             } = validation.data;
 
@@ -55,12 +52,9 @@ export const POST = withAuth(
                     email,
                     address,
                     working_hours,
-                    plan_id,
-                    credits: credits || 0,
-                    trial_ends_at,
-                    automations_enabled: automations_enabled || false,
-                    n8n_workflow_id,
-                    n8n_workflows: n8n_workflows || [],
+                    subscription_status,
+                    billing_cycle,
+                    current_period_end,
                 })
                 .select()
                 .single();
@@ -78,7 +72,7 @@ export const POST = withAuth(
                 await supabaseAdmin.auth.admin.createUser({
                     email,
                     password: adminPassword,
-                    email_confirm: true, // Mark as confirmed immediately
+                    email_confirm: true,
                     user_metadata: { full_name: `${name} Admin` },
                 });
 
@@ -114,7 +108,7 @@ export const POST = withAuth(
 
             return NextResponse.json({
                 success: true,
-                clinicId: clinic.id,
+                id: clinic.id,
                 userId: authUser.user.id,
             });
         } catch (error: unknown) {
@@ -143,13 +137,10 @@ export const PATCH = withAuth(
 
             const { id, ...updateData } = validation.data;
 
-            // Authorization: Only SUPER_ADMIN can update any clinic. 
-            // Others can only update their own clinic.
             if (!auth.isSuperAdmin && id !== auth.clinicId) {
                 return NextResponse.json({ error: "forbidden" }, { status: 403 });
             }
 
-            // Initialize Supabase Admin Client
             const supabaseAdmin = createClient(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
                 process.env.SUPABASE_SERVICE_ROLE_KEY!

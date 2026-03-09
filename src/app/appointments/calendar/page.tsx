@@ -62,14 +62,7 @@ interface AppointmentRow {
 
 const WORKING_HOURS = Array.from({ length: 10 }, (_, i) => 9 + i); // 09:00 - 18:00 (mesai 19:00'da biter)
 
-const TREATMENTS: { label: string; value: string; duration: number }[] = [
-  { label: "Muayene", value: "MUAYENE", duration: 30 },
-  { label: "Kontrol", value: "KONTROL", duration: 20 },
-  { label: "Dolgu", value: "DOLGU", duration: 45 },
-  { label: "Kanal Tedavisi", value: "KANAL", duration: 60 },
-  { label: "İmplant", value: "IMPLANT", duration: 90 },
-  { label: "Diş Taşı Temizliği", value: "TEMIZLIK", duration: 40 },
-];
+// Treatment definitions will be fetched from the database
 
 // Şimdilik sadece UI davranışı için örnek hasta listesi
 const MOCK_PATIENTS = [
@@ -91,6 +84,7 @@ export default function AppointmentCalendarPage() {
   const [formTime, setFormTime] = useState<string>(""); // "HH:MM"
   const [formDate, setFormDate] = useState<string>(today);
   const [doctors, setDoctors] = useState<string[]>([]);
+  const [treatmentDefinitions, setTreatmentDefinitions] = useState<{ name: string; default_duration: number }[]>([]);
 
   const [phoneCountryCode, setPhoneCountryCode] = useState("+90");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -255,6 +249,25 @@ export default function AppointmentCalendarPage() {
     loadDoctors();
   }, []);
 
+  // Tedavi türlerini Supabase'den çek
+  useEffect(() => {
+    const loadTreatments = async () => {
+      const { data, error } = await supabase
+        .from("treatment_definitions")
+        .select("name, default_duration")
+        .order("name", { ascending: true });
+
+      if (error || !data) {
+        setTreatmentDefinitions([]);
+        return;
+      }
+
+      setTreatmentDefinitions(data);
+    };
+
+    loadTreatments();
+  }, []);
+
   const openNewForHour = (hour: number) => {
     setEditing(null);
     setFormTime(`${hour.toString().padStart(2, "0")}:00`);
@@ -357,7 +370,7 @@ export default function AppointmentCalendarPage() {
       birthDate: form.birthDate || undefined,
       doctor: form.doctor,
       channel: form.channel,
-      treatmentType: form.treatmentType || "MUAYENE",
+      treatmentType: form.treatmentType || "",
       status: form.status,
       patientNote: form.patientNote || undefined,
       internalNote: form.internalNote || undefined,
@@ -820,22 +833,22 @@ export default function AppointmentCalendarPage() {
                   value={form.treatmentType}
                   onChange={(e) => {
                     const value = e.target.value;
-                    const treatment = TREATMENTS.find(
-                      (t) => t.value === value
+                    const treatment = treatmentDefinitions.find(
+                      (t) => t.name === value
                     );
                     setForm((f) => ({
                       ...f,
                       treatmentType: value,
                       durationMinutes:
-                        treatment?.duration ?? f.durationMinutes,
+                        treatment?.default_duration ?? f.durationMinutes,
                     }));
                   }}
                   className="w-full rounded-md border px-2 py-1 text-xs"
                 >
                   <option value="">Seçin</option>
-                  {TREATMENTS.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
+                  {treatmentDefinitions.map((t) => (
+                    <option key={t.name} value={t.name}>
+                      {t.name}
                     </option>
                   ))}
                 </select>

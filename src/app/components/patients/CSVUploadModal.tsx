@@ -21,6 +21,10 @@ export function CSVUploadModal({ isOpen, onClose, onUploadComplete }: CSVUploadM
         email: "",
         birth_date: "",
         tc_identity_no: "",
+        gender: "",
+        address: "",
+        blood_group: "",
+        occupation: "",
         notes: "",
         allergies: "",
         medical_alerts: "",
@@ -76,6 +80,10 @@ export function CSVUploadModal({ isOpen, onClose, onUploadComplete }: CSVUploadM
                     if (lowH.includes("mail") || lowH.includes("email")) newMapping.email = h;
                     if (lowH.includes("doğum") || lowH.includes("birth")) newMapping.birth_date = h;
                     if (lowH.includes("tc") || lowH.includes("kimlik")) newMapping.tc_identity_no = h;
+                    if (lowH.includes("cins") || lowH.includes("gender")) newMapping.gender = h;
+                    if (lowH.includes("adres") || lowH.includes("address")) newMapping.address = h;
+                    if (lowH.includes("kan") || lowH.includes("blood")) newMapping.blood_group = h;
+                    if (lowH.includes("meslek") || lowH.includes("job") || lowH.includes("occupation")) newMapping.occupation = h;
                     if (lowH.includes("not") || lowH.includes("description")) newMapping.notes = h;
                     if (lowH.includes("aleri") || lowH.includes("allergy")) newMapping.allergies = h;
                     if (lowH.includes("tıbbi") || lowH.includes("alert") || lowH.includes("uyarı")) newMapping.medical_alerts = h;
@@ -172,6 +180,10 @@ export function CSVUploadModal({ isOpen, onClose, onUploadComplete }: CSVUploadM
         { label: "E-posta", key: "email" },
         { label: "Doğum Tarihi", key: "birth_date" },
         { label: "TC Kimlik No", key: "tc_identity_no" },
+        { label: "Cinsiyet", key: "gender" },
+        { label: "Adres", key: "address" },
+        { label: "Kan Grubu", key: "blood_group" },
+        { label: "Meslek", key: "occupation" },
         { label: "Notlar", key: "notes" },
         { label: "Alerjiler", key: "allergies" },
         { label: "Tıbbi Uyarılar", key: "medical_alerts" },

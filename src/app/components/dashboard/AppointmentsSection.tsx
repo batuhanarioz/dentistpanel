@@ -32,7 +32,7 @@ export function AppointmentsSection({
     onReminderClick,
 }: AppointmentsSectionProps) {
     return (
-        <section className="rounded-2xl border bg-white shadow-sm overflow-hidden">
+        <section className="rounded-2xl border bg-white shadow-sm overflow-hidden flex flex-col" style={{ height: '416px' }}>
             <div className="flex items-center justify-between px-5 pt-5 pb-3">
                 <div className="flex items-center gap-2.5">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100">
@@ -87,10 +87,10 @@ export function AppointmentsSection({
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="text-[10px] font-medium text-slate-500">
-                                    {appt.doctorId && appt.doctorName !== "Doktor atanmadı" ? (
+                                    {appt.doctorId && appt.doctorName !== "Hekim atanmadı" ? (
                                         <span>{appt.doctorName}</span>
                                     ) : (
-                                        <span>Doktor atanmadı</span>
+                                        <span>Hekim atanmadı</span>
                                     )}
                                 </div>
                             </div>
@@ -106,7 +106,7 @@ export function AppointmentsSection({
                         <div className="grid grid-cols-[1fr_1.2fr_1.2fr_1fr] gap-3 items-center px-5 py-2.5 bg-gradient-to-r from-slate-50 to-slate-100/50 border-y text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                             <span>Saat / İşlem</span>
                             <span>Hasta</span>
-                            <span>Doktor</span>
+                            <span>Hekim</span>
                             <span>İletişim</span>
                         </div>
                         <div className="divide-y divide-slate-100 h-[320px] overflow-y-auto">

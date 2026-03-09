@@ -13,6 +13,11 @@ export const patientSchema = z.object({
         .or(z.literal("")),
     allergies: z.string().optional().nullable(),
     medical_alerts: z.string().optional().nullable(),
+    gender: z.string().optional().nullable(),
+    address: z.string().optional().nullable(),
+    occupation: z.string().optional().nullable(),
+    blood_group: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
 });
 
 export const updatePatientSchema = patientSchema.partial();

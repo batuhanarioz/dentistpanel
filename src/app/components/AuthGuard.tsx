@@ -112,12 +112,12 @@ export function AuthGuard({ children }: Props) {
     userEmail: null,
     workingHours: DEFAULT_WORKING_HOURS,
     workingHoursOverrides: [],
-    planId: null,
-    credits: 0,
-    trialEndsAt: null,
-    automationsEnabled: false,
-    n8nWorkflowId: null,
+    subscriptionStatus: null,
+    billingCycle: null,
+    currentPeriodEnd: null,
+    lastPaymentDate: null,
     n8nWorkflows: [],
+    clinicSettings: null,
   });
 
   // Sayfa değiştiğinde yükleme ekranını otomatik kapat
@@ -134,7 +134,9 @@ export function AuthGuard({ children }: Props) {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        if (pathname !== "/") router.replace("/");
+        if (pathname !== "/login" && pathname !== "/") {
+          router.replace("/login");
+        }
         setChecking(false);
         return;
       }
@@ -155,7 +157,7 @@ export function AuthGuard({ children }: Props) {
 
         if (userError || !appUser) {
           await supabase.auth.signOut();
-          router.replace("/?error=unauthorized");
+          router.replace("/login?error=unauthorized");
           return;
         }
 
@@ -165,30 +167,43 @@ export function AuthGuard({ children }: Props) {
 
         setLoadingStep("clinic");
         let clinicData: Partial<Clinic> | null = null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let clinicSettingsData: any = null; // To hold clinic settings
+        let automationsData: ClinicAutomation[] = []; // To hold automations
 
         if (!isSuperAdmin && appUser.clinic_id) {
-          const [clinicRes, autoRes] = await Promise.all([
+          const [
+            { data: clinicResData, error: clinicResError },
+            { data: autoResData, error: autoResError },
+            { data: settingsResData, error: settingsResError }
+          ] = await Promise.all([
             supabase
               .from("clinics")
-              .select("id, name, slug, is_active, working_hours, working_hours_overrides, plan_id, credits, trial_ends_at, automations_enabled, n8n_workflow_id")
+              .select("id, name, slug, is_active, working_hours, working_hours_overrides, subscription_status, billing_cycle, current_period_end, last_payment_date")
               .eq("id", appUser.clinic_id)
               .maybeSingle(),
             supabase
               .from("clinic_automations")
-              .select("*")
+              .select("automation_id, is_visible, is_enabled, schedule_time, schedule_day")
+              .eq("clinic_id", appUser.clinic_id),
+            supabase
+              .from("clinic_settings")
+              .select("id, clinic_id, message_templates, notification_settings, assistant_timings, created_at, updated_at")
               .eq("clinic_id", appUser.clinic_id)
+              .maybeSingle()
           ]);
 
-          if (clinicRes.error || !clinicRes.data || !clinicRes.data.is_active) {
+          if (clinicResError || !clinicResData || !clinicResData.is_active) {
             await supabase.auth.signOut();
-            router.replace(clinicRes.data?.is_active === false ? "/?error=inactive" : "/?error=unauthorized");
+            router.replace(clinicResData?.is_active === false ? "/login?error=inactive" : "/login?error=unauthorized");
             return;
           }
-          clinicData = clinicRes.data;
+          clinicData = clinicResData;
 
-          if (!autoRes.error && autoRes.data) {
+          if (!autoResError && autoResData) {
             // Map table data to context structure
-            automationsRef.current = autoRes.data.map(a => ({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            automationsData = autoResData.map((a: any) => ({
               id: a.automation_id,
               name: SYSTEM_AUTOMATIONS.find(s => s.id === a.automation_id)?.name || a.automation_id,
               visible: a.is_visible,
@@ -196,6 +211,11 @@ export function AuthGuard({ children }: Props) {
               time: a.schedule_time ? a.schedule_time.substring(0, 5) : "09:00",
               day: a.schedule_day
             }));
+            automationsRef.current = automationsData;
+          }
+
+          if (!settingsResError && settingsResData) {
+            clinicSettingsData = settingsResData;
           }
         }
 
@@ -211,12 +231,12 @@ export function AuthGuard({ children }: Props) {
           userEmail: appUser.email,
           workingHours: (clinicData?.working_hours as WorkingHours) || DEFAULT_WORKING_HOURS,
           workingHoursOverrides: clinicData?.working_hours_overrides || [],
-          planId: (clinicData as unknown as Clinic)?.plan_id || (isSuperAdmin ? "enterprise" : "starter"),
-          credits: (clinicData as unknown as Clinic)?.credits ?? (isSuperAdmin ? 999999 : 0),
-          trialEndsAt: (clinicData as unknown as Clinic)?.trial_ends_at || null,
-          automationsEnabled: (clinicData as unknown as Clinic)?.automations_enabled ?? isSuperAdmin,
-          n8nWorkflowId: (clinicData as unknown as Clinic)?.n8n_workflow_id || null,
+          subscriptionStatus: (clinicData as unknown as Clinic)?.subscription_status || (isSuperAdmin ? "active" : "trialing"),
+          billingCycle: (clinicData as unknown as Clinic)?.billing_cycle || (isSuperAdmin ? "annual" : "monthly"),
+          currentPeriodEnd: (clinicData as unknown as Clinic)?.current_period_end || null,
+          lastPaymentDate: (clinicData as unknown as Clinic)?.last_payment_date || null,
           n8nWorkflows: automationsRef.current,
+          clinicSettings: clinicSettingsData,
         });
 
         setLoadingStep("ready");
@@ -232,19 +252,116 @@ export function AuthGuard({ children }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Sadece mount anında çalışır
 
+  // 1.5. Aşama: Super Admin Klinik Değişimi (Pathname veya Allowed değiştikçe çalışır)
+  useEffect(() => {
+    // allowed check is critical as initAuth must be done
+    if (!allowed || !clinicCtx.isSuperAdmin) return;
+
+    const parts = pathname.split("/");
+    const urlSlug = parts[1];
+
+    // Platform veya login dışı bir slug varsa ve context'teki slug farklıysa güncelle
+    const isSpecialPath = ["platform", "login", ""].includes(urlSlug);
+
+    if (!isSpecialPath && urlSlug !== clinicCtx.clinicSlug) {
+      const updateClinicContext = async () => {
+        try {
+          const { data: clinicData, error: clinicError } = await supabase
+            .from("clinics")
+            .select("id, name, slug, is_active, working_hours, working_hours_overrides, subscription_status, billing_cycle, current_period_end, last_payment_date")
+            .eq("slug", urlSlug)
+            .maybeSingle();
+
+          if (clinicError || !clinicData) {
+            console.error("Clinic not found for slug:", urlSlug);
+            return;
+          }
+
+          const [autoResData, settingsResData] = await Promise.all([
+            supabase
+              .from("clinic_automations")
+              .select("automation_id, is_visible, is_enabled, schedule_time, schedule_day")
+              .eq("clinic_id", clinicData.id),
+            supabase
+              .from("clinic_settings")
+              .select("id, clinic_id, message_templates, notification_settings, assistant_timings, created_at, updated_at")
+              .eq("clinic_id", clinicData.id)
+              .maybeSingle()
+          ]);
+
+          let automations: ClinicAutomation[] = [];
+          if (autoResData?.data) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            automations = autoResData.data.map((a: any) => ({
+              id: a.automation_id,
+              name: SYSTEM_AUTOMATIONS.find(s => s.id === a.automation_id)?.name || a.automation_id,
+              visible: a.is_visible,
+              enabled: a.is_enabled,
+              time: a.schedule_time ? a.schedule_time.substring(0, 5) : "09:00",
+              day: a.schedule_day
+            }));
+          }
+
+          setClinicCtx(prev => ({
+            ...prev,
+            clinicId: clinicData.id,
+            clinicName: clinicData.name,
+            clinicSlug: clinicData.slug,
+            workingHours: (clinicData.working_hours as WorkingHours) || DEFAULT_WORKING_HOURS,
+            workingHoursOverrides: clinicData.working_hours_overrides || [],
+            subscriptionStatus: (clinicData as unknown as Clinic).subscription_status || "active",
+            billingCycle: (clinicData as unknown as Clinic).billing_cycle || "annual",
+            currentPeriodEnd: clinicData.current_period_end || null,
+            lastPaymentDate: clinicData.last_payment_date || null,
+            n8nWorkflows: automations,
+            clinicSettings: settingsResData.data,
+            isAdmin: true, // Super admin kliniğin içindeyken klinikte de admin sayılır
+          }));
+        } catch (err) {
+          console.error("Error switching clinic context for superadmin:", err);
+        }
+      };
+      updateClinicContext();
+    }
+    // Eğer platform sayfalarına döndüyse ve context'te bir klinik varsa temizle
+    else if (isSpecialPath && clinicCtx.clinicId !== null) {
+      setClinicCtx(prev => ({
+        ...prev,
+        clinicId: null,
+        clinicName: null,
+        clinicSlug: null,
+        workingHours: DEFAULT_WORKING_HOURS,
+        workingHoursOverrides: [],
+        subscriptionStatus: "active",
+        billingCycle: "annual",
+        currentPeriodEnd: null,
+        lastPaymentDate: null,
+        n8nWorkflows: [],
+        clinicSettings: null,
+        isAdmin: true,
+      }));
+    }
+  }, [pathname, allowed, clinicCtx.isSuperAdmin, clinicCtx.clinicSlug, clinicCtx.clinicId]);
+
   // 2. Aşama: URL ve Slug Kontrolü (Sayfa geçişlerinde çalışır, veritabanına gitmez)
   useEffect(() => {
     if (!allowed) return;
 
     if (pathname !== "/") {
+      const urlSlug = pathname.split("/")[1];
+
       if (!clinicCtx.isSuperAdmin && clinicCtx.clinicSlug) {
-        const urlSlug = pathname.split("/")[1];
         if (urlSlug !== clinicCtx.clinicSlug) {
           router.replace(`/${clinicCtx.clinicSlug}`);
         }
       } else if (clinicCtx.isSuperAdmin) {
-        if (!pathname.startsWith("/platform")) {
-          router.replace("/platform/clinics");
+        // Super Admin checks
+        if (!pathname.startsWith("/platform") && !pathname.startsWith("/login")) {
+          // If at root or unknown path, redirect to platform
+          if (urlSlug === "") {
+            router.replace("/platform/clinics/activity");
+          }
+          // Otherwise allow visit (Effect 1.5 will load context)
         }
       }
     }

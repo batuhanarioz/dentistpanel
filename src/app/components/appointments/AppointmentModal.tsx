@@ -39,6 +39,8 @@ interface AppointmentModalProps {
     handleSubmit: (e: React.FormEvent) => void;
     handleDelete: () => void;
     handleUseDuplicate: () => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    treatmentDefinitions: any[];
 }
 
 export function AppointmentModal(props: AppointmentModalProps) {
@@ -71,6 +73,7 @@ export function AppointmentModal(props: AppointmentModalProps) {
                                 todaySchedule={props.todaySchedule}
                                 form={props.form}
                                 setForm={props.setForm}
+                                treatmentDefinitions={props.treatmentDefinitions}
                             />
 
                             <PatientPicker

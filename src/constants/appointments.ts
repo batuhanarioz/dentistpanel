@@ -1,14 +1,4 @@
-export const TREATMENTS = [
-    { value: "MUAYENE", label: "Muayene", duration: 30 },
-    { value: "DOLGU", label: "Dolgu", duration: 60 },
-    { value: "KANAL", label: "Kanal Tedavisi", duration: 90 },
-    { value: "TEMIZLIK", label: "Diş Temizliği", duration: 45 },
-    { value: "CEKIM", label: "Diş Çekimi", duration: 45 },
-    { value: "IMPLANT", label: "İmplant", duration: 120 },
-    { value: "BEYAZLATMA", label: "Diş Beyazlatma", duration: 60 },
-    { value: "PROTEZ", label: "Protez", duration: 90 },
-    { value: "ORTODONTI", label: "Ortodonti Muayene", duration: 30 },
-];
+// TREATMENTS removed - fetched from DB matching treatment_definitions table
 
 export const CHANNEL_OPTIONS = [
     { value: "web", label: "Web" },

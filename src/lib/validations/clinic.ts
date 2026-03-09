@@ -18,12 +18,10 @@ export const createClinicSchema = z.object({
     email: z.string().email("Geçersiz e-posta adresi"),
     address: z.string().optional().nullable(),
     working_hours: workingHoursSchema.optional(),
-    plan_id: z.string().default("starter"),
-    credits: z.number().default(0),
-    trial_ends_at: z.string().optional().nullable(),
-    automations_enabled: z.boolean().default(false),
-    n8n_workflow_id: z.string().optional().nullable(),
-    n8n_workflows: z.array(z.any()).optional().default([]),
+    subscription_status: z.string().default("trialing"),
+    billing_cycle: z.string().default("monthly"),
+    current_period_end: z.string().optional().nullable(),
+    last_payment_date: z.string().optional().nullable(),
     adminPassword: z.string().min(6, "Şifre en az 6 karakter olmalıdır"),
 });
 
@@ -36,8 +34,13 @@ export const toggleClinicAutomationSchema = z.object({
 export const updateClinicSchema = z.object({
     id: z.string().min(1, "Klinik ID zorunludur"),
     name: z.string().min(2, "Klinik adı en az 2 karakter olmalıdır").optional(),
+    slug: z.string().optional(),
     phone: z.string().optional().nullable(),
+    email: z.string().optional(),
     address: z.string().optional().nullable(),
     working_hours: workingHoursSchema.optional(),
+    subscription_status: z.string().optional(),
+    billing_cycle: z.string().optional(),
+    current_period_end: z.string().optional().nullable(),
+    last_payment_date: z.string().optional().nullable(),
 });
-

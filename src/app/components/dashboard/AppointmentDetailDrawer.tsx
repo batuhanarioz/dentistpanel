@@ -163,7 +163,7 @@ export function AppointmentDetailDrawer({
                                 </div>
 
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Atanan Doktor</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Atanan Hekim</label>
                                     <select
                                         value={appointment.doctor_id || ""}
                                         onChange={(e) => {
@@ -173,7 +173,7 @@ export function AppointmentDetailDrawer({
                                         }}
                                         className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500 focus:bg-white transition-all"
                                     >
-                                        <option value="">Doktor Atanmadı</option>
+                                        <option value="">Hekim Atanmadı</option>
                                         {doctors.map(d => <option key={d.id} value={d.id}>{d.full_name}</option>)}
                                     </select>
                                 </div>
@@ -200,7 +200,7 @@ export function AppointmentDetailDrawer({
                                 </div>
 
                                 <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Tedavi Notu (Doktor)</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Tedavi Notu (Hekim)</label>
                                     <textarea
                                         value={localTreatmentNote}
                                         onChange={(e) => setLocalTreatmentNote(e.target.value)}
@@ -220,7 +220,8 @@ export function AppointmentDetailDrawer({
                                                     treatment_note: localTreatmentNote,
                                                     estimated_amount: parseFloat(localEstimatedAmount) || 0
                                                 })
-                                                .eq("id", appointment.id);
+                                                .eq("id", appointment.id)
+                                                .eq("clinic_id", appointment.clinic_id);
 
                                             if (!error) {
                                                 // We might want to trigger a refresh in the parent as well

@@ -9,6 +9,9 @@ import { AppointmentDetailDrawer } from "@/app/components/dashboard/AppointmentD
 import { DashboardAnalytics } from "@/app/components/dashboard/DashboardAnalytics";
 import { GuidedTour, restartTour } from "@/app/components/GuidedTour";
 import { useClinic } from "@/app/context/ClinicContext";
+import { QuickPaymentModal } from "@/app/components/dashboard/QuickPaymentModal";
+import { TreatmentNoteModal } from "@/app/components/dashboard/TreatmentNoteModal";
+import { SmartAssistantSection } from "@/app/components/dashboard/SmartAssistantSection";
 
 export default function DashboardView() {
     const { userEmail } = useClinic();
@@ -16,6 +19,7 @@ export default function DashboardView() {
     const {
         appointments,
         loading,
+        checklistLoading,
         doctors,
         controlItems,
         viewOffsetAppointments,
@@ -31,6 +35,8 @@ export default function DashboardView() {
     const confirmedCount = appointments.filter((a) => a.status === "confirmed").length;
 
     const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+    const [paymentAppointment, setPaymentAppointment] = useState<{ id: string, patientName: string, amount: number, patientId?: string, itemId?: string, code?: string } | null>(null);
+    const [noteAppointment, setNoteAppointment] = useState<{ id: string; patientName: string; itemId?: string; } | null>(null);
 
     const handleReminderClick = (appointmentId: string) => {
         const appt = appointments.find((a) => a.id === appointmentId);
@@ -100,7 +106,7 @@ export default function DashboardView() {
                         isToday={viewOffsetAppointments === 0}
                         appointments={appointments}
                         loading={loading}
-                        onOffsetChange={() => setViewOffsetAppointments((prev: number) => (prev === 0 ? 1 : 0))}
+                        onOffsetChange={() => setViewOffsetAppointments((prev: 0 | 1) => (prev === 0 ? 1 : 0))}
                         onReminderClick={handleReminderClick}
                     />
                 </div>
@@ -108,12 +114,31 @@ export default function DashboardView() {
                 <ControlListSection
                     isToday={viewOffsetControls === 0}
                     controlItems={controlItems}
-                    onOffsetChange={() => setViewOffsetControls((prev: number) => (prev === 0 ? 1 : 0))}
-                    onItemClick={handleControlItemClick}
+                    onStatusChange={handleStatusChange}
+                    onPaymentClick={(item) => setPaymentAppointment({
+                        id: item.appointmentId,
+                        patientName: item.patientName,
+                        amount: item.estimatedAmount,
+                        patientId: item.patientId,
+                        itemId: item.id,
+                        code: item.code
+                    })}
+                    onTreatmentNoteClick={(item) => setNoteAppointment({
+                        id: item.appointmentId,
+                        patientName: item.patientName,
+                        itemId: item.id
+                    })}
+                    onCardClick={handleControlItemClick}
+                    doctors={doctors}
+                    onAssignDoctor={handleAssignDoctor}
+                    loading={checklistLoading}
                 />
             </div>
 
-            <DashboardAnalytics />
+            <div className="grid grid-cols-1 gap-6">
+                <SmartAssistantSection />
+                <DashboardAnalytics />
+            </div>
 
             <AppointmentDetailDrawer
                 appointmentId={selectedAppointmentId}
@@ -122,6 +147,35 @@ export default function DashboardView() {
                 onAssignDoctor={handleAssignDoctor}
                 doctors={doctors}
             />
+
+            {paymentAppointment && (
+                <QuickPaymentModal
+                    open={!!paymentAppointment}
+                    onClose={() => setPaymentAppointment(null)}
+                    appointmentId={paymentAppointment.id}
+                    patientName={paymentAppointment.patientName}
+                    patientId={paymentAppointment.patientId}
+                    initialAmount={paymentAppointment.amount}
+                    checklistItemId={paymentAppointment.itemId}
+                    code={paymentAppointment.code}
+                    onSuccess={() => {
+                        window.location.reload();
+                    }}
+                />
+            )}
+
+            {noteAppointment && (
+                <TreatmentNoteModal
+                    open={!!noteAppointment}
+                    onClose={() => setNoteAppointment(null)}
+                    appointmentId={noteAppointment.id}
+                    patientName={noteAppointment.patientName}
+                    checklistItemId={noteAppointment.itemId}
+                    onSuccess={() => {
+                        window.location.reload();
+                    }}
+                />
+            )}
         </div>
     );
 }

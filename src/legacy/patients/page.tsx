@@ -327,7 +327,7 @@ export default function PatientsPage() {
 
           // --- Randevu Detay Tablosu ---
           csv += "RANDEVU GECMISI\n";
-          csv += "Tarih;Saat;Islem;Doktor;Durum;Hasta Notu;Doktor Tedavi Notu\n";
+          csv += "Tarih;Saat;Islem;Hekim;Durum;Hasta Notu;Hekim Tedavi Notu\n";
           appointments.forEach((a) => {
             const d = new Date(a.starts_at);
             const e = new Date(a.ends_at);
@@ -359,10 +359,10 @@ export default function PatientsPage() {
             const e = new Date(a.ends_at);
             txt += `${i + 1}. ${d.toLocaleDateString("tr-TR")} ${d.toTimeString().slice(0, 5)}-${e.toTimeString().slice(0, 5)}\n`;
             txt += `   İşlem: ${a.treatment_type || "Muayene"}\n`;
-            txt += `   Doktor: ${a.doctor_name || "Atanmadı"}\n`;
+            txt += `   Hekim: ${a.doctor_name || "Atanmadı"}\n`;
             txt += `   Durum: ${statusLabelMap[a.status] ?? a.status}\n`;
             if (a.patient_note) txt += `   Hasta Notu: ${a.patient_note}\n`;
-            if (a.internal_note) txt += `   Doktor Tedavi Notu: ${a.internal_note}\n`;
+            if (a.internal_note) txt += `   Hekim Tedavi Notu: ${a.internal_note}\n`;
             txt += "\n";
           });
           const blob = new Blob([txt], { type: "text/plain;charset=utf-8;" });
@@ -520,7 +520,7 @@ export default function PatientsPage() {
                           </span>
                         </div>
                         <div className="mt-1 text-[10px] text-slate-700">
-                          Doktor: {appt.doctor_name || "Atanmadı"}
+                          Hekim: {appt.doctor_name || "Atanmadı"}
                         </div>
                         {appt.patient_note && (
                           <p className="mt-1 text-[10px] text-slate-800">
@@ -530,7 +530,7 @@ export default function PatientsPage() {
                         )}
                         {appt.internal_note && (
                           <p className="mt-0.5 text-[10px] text-slate-800">
-                            <span className="font-semibold">Doktor tedavi notu: </span>
+                            <span className="font-semibold">Hekim tedavi notu: </span>
                             {appt.internal_note}
                           </p>
                         )}

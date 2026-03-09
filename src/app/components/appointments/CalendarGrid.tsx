@@ -1,6 +1,6 @@
 import React from "react";
 import { CalendarAppointment } from "@/hooks/useAppointmentManagement";
-import { TREATMENTS, STATUS_COLORS } from "@/constants/appointments";
+import { STATUS_COLORS } from "@/constants/appointments";
 
 interface CalendarGridProps {
     appointments: CalendarAppointment[];
@@ -114,7 +114,7 @@ export function CalendarGrid({
                                                 <div className="flex items-center gap-1.5 md:gap-2">
                                                     {a.treatmentType && (
                                                         <span className="inline-flex items-center rounded-lg bg-white/80 border py-0.5 md:py-1 px-2 md:px-2.5 font-bold text-slate-600 shadow-sm">
-                                                            {TREATMENTS.find(t => t.value === a.treatmentType)?.label || a.treatmentType}
+                                                            {a.treatmentType}
                                                         </span>
                                                     )}
                                                     <span className="px-1.5 md:px-2 py-0.5 md:py-1 rounded-lg bg-slate-100/50 font-bold text-slate-500 uppercase tracking-widest text-[8px] md:text-[9px]">

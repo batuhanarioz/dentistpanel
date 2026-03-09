@@ -1,68 +1,85 @@
 import React from "react";
-import type { SubscriptionPlan } from "@/types/database";
 
 interface SubscriptionSectionProps {
-    formPlanId: string;
-    setFormPlanId: (val: string) => void;
-    formCredits: number;
-    setFormCredits: (val: number) => void;
-    formTrialEndsAt: string;
-    setFormTrialEndsAt: (val: string) => void;
-    plans: SubscriptionPlan[];
+    subscriptionStatus: string;
+    setSubscriptionStatus: (val: string) => void;
+    billingCycle: string;
+    setBillingCycle: (val: string) => void;
+    currentPeriodEnd: string;
+    setCurrentPeriodEnd: (val: string) => void;
+    lastPaymentDate: string;
+    setLastPaymentDate: (val: string) => void;
 }
 
 export function SubscriptionSection({
-    formPlanId,
-    setFormPlanId,
-    formCredits,
-    setFormCredits,
-    formTrialEndsAt,
-    setFormTrialEndsAt,
-    plans,
+    subscriptionStatus,
+    setSubscriptionStatus,
+    billingCycle,
+    setBillingCycle,
+    currentPeriodEnd,
+    setCurrentPeriodEnd,
+    lastPaymentDate,
+    setLastPaymentDate,
 }: SubscriptionSectionProps) {
     return (
-        <div className="space-y-3 pt-3 border-t border-slate-100">
-            <h4 className="text-[11px] font-semibold text-slate-900 uppercase tracking-wider">Abonelik ve Plan</h4>
-            <div className="grid grid-cols-1 gap-3">
+        <div className="space-y-4 pt-4 border-t border-slate-100">
+            <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                Abonelik Yönetimi
+            </h4>
+
+            <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                    <label className="block text-xs font-medium text-slate-700">Paket</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tight">Abonelik Durumu</label>
                     <select
-                        value={formPlanId}
-                        onChange={(e) => {
-                            const newPlanId = e.target.value;
-                            setFormPlanId(newPlanId);
-                            // Krediyi otomatik planın limitine çek
-                            const plan = plans.find(p => p.id === newPlanId);
-                            if (plan) setFormCredits(plan.monthly_credits);
-                        }}
-                        className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        value={subscriptionStatus}
+                        onChange={(e) => setSubscriptionStatus(e.target.value)}
+                        className="w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                     >
-                        {plans.map((p) => (
-                            <option key={p.id} value={p.id}>{p.name} ({p.monthly_price} ₺/ay)</option>
-                        ))}
+                        <option value="trialing">Deneme (Trial)</option>
+                        <option value="active">Aktif</option>
+                        <option value="past_due">Ödeme Gecikti</option>
+                        <option value="canceled">İptal Edildi</option>
                     </select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                        <label className="block text-xs font-medium text-slate-700">Kredi</label>
-                        <input
-                            type="number"
-                            value={formCredits}
-                            onChange={(e) => setFormCredits(parseInt(e.target.value) || 0)}
-                            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="block text-xs font-medium text-slate-700">Deneme Bitiş</label>
-                        <input
-                            type="datetime-local"
-                            value={formTrialEndsAt}
-                            onChange={(e) => setFormTrialEndsAt(e.target.value)}
-                            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                        />
-                    </div>
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tight">Ödeme Döngüsü</label>
+                    <select
+                        value={billingCycle}
+                        onChange={(e) => setBillingCycle(e.target.value)}
+                        className="w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    >
+                        <option value="monthly">Aylık Plan</option>
+                        <option value="annual">Yıllık Plan</option>
+                        <option value="pilot">Pilot Klinik</option>
+                    </select>
                 </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tight">Son Ödeme Tarihi</label>
+                    <input
+                        type="datetime-local"
+                        value={lastPaymentDate}
+                        onChange={(e) => setLastPaymentDate(e.target.value)}
+                        className="w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tight">Dönem Sonu Tarihi</label>
+                    <input
+                        type="datetime-local"
+                        value={currentPeriodEnd}
+                        onChange={(e) => setCurrentPeriodEnd(e.target.value)}
+                        className="w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    />
+                </div>
+            </div>
+
+            <p className="text-[10px] text-slate-400 italic">
+                * Bu bilgiler kliniğin panele erişimini ve faturalandırma takibini belirler.
+            </p>
         </div>
     );
 }

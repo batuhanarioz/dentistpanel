@@ -51,7 +51,8 @@ export default function AppointmentCalendarView({ initialAppointments, clinicId,
         closeModal,
         todaySchedule,
         isDayOff,
-        workingHourSlots
+        workingHourSlots,
+        treatmentDefinitions
     } = useAppointmentManagement({ appointments: initialAppointments, clinicId, slug });
 
     return (
@@ -113,6 +114,7 @@ export default function AppointmentCalendarView({ initialAppointments, clinicId,
                     handleSubmit={handleSubmit}
                     handleDelete={handleDelete}
                     handleUseDuplicate={handleUseDuplicate}
+                    treatmentDefinitions={treatmentDefinitions}
                 />
             )}
 

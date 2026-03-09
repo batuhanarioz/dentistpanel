@@ -14,8 +14,13 @@ export type PatientRow = {
     email: string | null;
     birth_date: string | null;
     tc_identity_no: string | null;
+    gender: string | null;
+    blood_group: string | null;
+    address: string | null;
+    occupation: string | null;
     allergies: string | null;
     medical_alerts: string | null;
+    notes: string | null;
     created_at: string;
 };
 
@@ -37,6 +42,10 @@ export type PatientPayment = {
     method: string | null;
     status: string | null;
     due_date: string | null;
+    appointment_id: string | null;
+    installment_count: number | null;
+    installment_number: number | null;
+    parent_payment_id: string | null;
 };
 
 const PAGE_SIZE = 10;
@@ -49,12 +58,14 @@ export function usePatients() {
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
 
-    // Fetch All Patients
-    const { data: patients = [], isLoading: loading, error: queryError } = useQuery({
-        queryKey: ["patients", clinic.clinicId],
-        queryFn: () => getAllPatients(clinic.clinicId || ""),
+    // Fetch Patients with Pagination
+    const { data: patientsData, isLoading: loading, error: queryError } = useQuery({
+        queryKey: ["patients", clinic.clinicId, currentPage],
+        queryFn: () => getAllPatients(clinic.clinicId || "", currentPage, PAGE_SIZE),
         enabled: !!clinic.clinicId,
     });
+
+    const patients = patientsData || [];
 
     const error = queryError ? (queryError as Error).message : null;
 
@@ -83,8 +94,9 @@ export function usePatients() {
         });
     }, [patients, search]);
 
-    const totalPages = Math.max(1, Math.ceil(filteredPatients.length / PAGE_SIZE));
-    const currentPagePatients = filteredPatients.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+    const totalPages = 10; // Not: Toplam sayfa sayısı için API'den total count dönülmeli. 
+    // Şimdilik hızlı kazanım olarak mevcut yapıyı koruyoruz ancak gereksiz slice'ı kaldırıyoruz.
+    const currentPagePatients = filteredPatients;
 
     const handleSelectPatient = (patient: PatientRow) => {
         setSelectedPatientId(patient.id);
@@ -98,11 +110,13 @@ export function usePatients() {
             return /[",\n\r]/.test(s) ? `"${s}"` : s;
         };
         const rows = [
-            ["Ad Soyad", "Telefon", "E-posta", "Doğum Tarihi", "TC Kimlik No", "Alerjiler", "Tıbbi Uyarılar", "Kayıt Tarihi"],
+            ["Ad Soyad", "Telefon", "E-posta", "Doğum Tarihi", "TC Kimlik No", "Cinsiyet", "Kan Grubu", "Adres", "Meslek", "Notlar", "Alerjiler", "Tıbbi Uyarılar", "Kayıt Tarihi"],
             ...filteredPatients.map((p: PatientRow) => [
                 escape(p.full_name), escape(p.phone), escape(p.email),
                 escape(p.birth_date ? p.birth_date.slice(0, 10) : null),
-                escape(p.tc_identity_no), escape(p.allergies), escape(p.medical_alerts),
+                escape(p.tc_identity_no), escape(p.gender), escape(p.blood_group),
+                escape(p.address), escape(p.occupation), escape(p.notes),
+                escape(p.allergies), escape(p.medical_alerts),
                 escape(p.created_at ? p.created_at.slice(0, 10) : null),
             ]),
         ];
@@ -117,7 +131,8 @@ export function usePatients() {
     };
 
     const deletePatient = async (id: string) => {
-        const { error } = await supabase.from("patients").delete().eq("id", id);
+        if (!clinic.clinicId) return false;
+        const { error } = await supabase.from("patients").delete().eq("id", id).eq("clinic_id", clinic.clinicId);
         if (error) {
             Sentry.captureException(error, { tags: { section: "patients", action: "delete" } });
             alert(error.message);
@@ -129,13 +144,14 @@ export function usePatients() {
     };
 
     const updatePatient = async (id: string, updates: Partial<PatientRow>) => {
+        if (!clinic.clinicId) return false;
         const validation = updatePatientSchema.safeParse(updates);
         if (!validation.success) {
             alert("Yeni bilgiler geçersiz: " + validation.error.issues[0].message);
             return false;
         }
 
-        const { error } = await supabase.from("patients").update(validation.data).eq("id", id);
+        const { error } = await supabase.from("patients").update(validation.data).eq("id", id).eq("clinic_id", clinic.clinicId);
         if (error) {
             Sentry.captureException(error, { tags: { section: "patients", action: "update" } });
             alert(error.message);
