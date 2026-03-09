@@ -60,30 +60,30 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
     ];
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4 overflow-y-auto" onClick={onClose}>
+        <div className="fixed inset-0 z-[100] flex items-start md:items-center justify-center bg-black/80 backdrop-blur-xl p-2 md:p-4 overflow-y-auto" onClick={onClose}>
             <div
-                className="bg-white rounded-[2.5rem] shadow-2xl border border-white/20 w-full max-w-4xl mx-auto overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col"
+                className="bg-white rounded-3xl md:rounded-[2.5rem] shadow-2xl border border-white/20 w-full max-w-4xl mx-auto overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col my-4 md:my-0"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="relative bg-black px-8 py-12 text-center overflow-hidden">
+                <div className="relative bg-black px-6 py-8 md:px-8 md:py-12 text-center overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full opacity-10">
-                        <div className="absolute -top-1/2 -left-1/4 w-full h-full bg-teal-500 rounded-full blur-[100px]"></div>
-                        <div className="absolute -bottom-1/2 -right-1/4 w-full h-full bg-emerald-500 rounded-full blur-[100px]"></div>
+                        <div className="absolute -top-1/2 -left-1/4 w-full h-full bg-teal-500 rounded-full blur-[80px] md:blur-[100px]"></div>
+                        <div className="absolute -bottom-1/2 -right-1/4 w-full h-full bg-emerald-500 rounded-full blur-[80px] md:blur-[100px]"></div>
                     </div>
 
                     <button
                         onClick={onClose}
-                        className="absolute top-6 right-6 h-10 w-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-10"
+                        className="absolute top-4 right-4 md:top-6 md:right-6 h-9 w-9 md:h-10 md:w-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-10"
                     >
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
 
                     <div className="relative z-10">
-                        <h2 className="text-4xl font-black text-white tracking-tight mb-4">Basit ve Şeffaf Fiyatlandırma</h2>
-                        <p className="text-slate-400 font-medium max-w-lg mx-auto leading-relaxed">
+                        <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-2 md:mb-4">Basit ve Şeffaf Fiyatlandırma</h2>
+                        <p className="text-slate-400 text-xs md:text-sm font-medium max-w-lg mx-auto leading-relaxed">
                             {billingCycle === "pilot"
                                 ? "Sektörün geleceğini birlikte tasarlayalım. Kliniğinize özel çözümler üretiyoruz."
                                 : "Tüm özellikler tek bir pakette. Kliniğinizin büyüklüğü ne olursa olsun, ihtiyacınız olan her şey burada."}
@@ -92,13 +92,13 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
                 </div>
 
                 {/* Content */}
-                <div className="p-8 md:p-12 bg-slate-50 overflow-y-auto max-h-[70vh] custom-scrollbar">
+                <div className="p-6 md:p-12 bg-slate-50 overflow-y-auto max-h-[75vh] md:max-h-[70vh] custom-scrollbar">
                     {/* Billing Toggle */}
-                    <div className="flex flex-wrap justify-center gap-3 mb-12">
+                    <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-8 md:mb-12">
                         <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-1">
                             <button
                                 onClick={() => setBillingCycle("monthly")}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${billingCycle === "monthly"
+                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all ${billingCycle === "monthly"
                                     ? "bg-black text-white shadow-md"
                                     : "text-slate-500 hover:bg-slate-50"
                                     }`}
@@ -107,13 +107,13 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
                             </button>
                             <button
                                 onClick={() => setBillingCycle("annual")}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${billingCycle === "annual"
+                                className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-2 ${billingCycle === "annual"
                                     ? "bg-black text-white shadow-md"
                                     : "text-slate-500 hover:bg-slate-50"
                                     }`}
                             >
                                 Yıllık
-                                <span className="bg-emerald-100 text-emerald-600 text-[10px] px-2 py-0.5 rounded-full font-black uppercase">
+                                <span className="bg-emerald-100 text-emerald-600 text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full font-black uppercase">
                                     En Avantajlı
                                 </span>
                             </button>
@@ -121,13 +121,13 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
 
                         <button
                             onClick={() => setBillingCycle("pilot")}
-                            className={`px-6 py-3 rounded-2xl text-sm font-bold transition-all flex items-center gap-2 border-2 ${billingCycle === "pilot"
+                            className={`px-5 md:px-6 py-2 md:py-3 rounded-2xl text-xs md:text-sm font-bold transition-all flex items-center gap-2 border-2 ${billingCycle === "pilot"
                                 ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-600/20"
                                 : "bg-white text-indigo-600 border-indigo-100 hover:border-indigo-200"
                                 }`}
                         >
-                            <Sparkles size={16} />
-                            Pilot Kliniğimiz Olun
+                            <Sparkles size={14} className="md:w-4 md:h-4" />
+                            Pilot Klinik
                         </button>
                     </div>
 
@@ -137,7 +137,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
                             <div className="p-8 border-b border-slate-50">
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
-                                        <h3 className="text-2xl font-black text-slate-900">
+                                        <h3 className="text-xl md:text-2xl font-black text-slate-900">
                                             {billingCycle === "pilot" ? "Pilot Klinik Paketi" : "NextGency OS Premium"}
                                         </h3>
                                         <p className="text-slate-500 text-sm mt-1">
@@ -149,7 +149,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
                                     </div>
                                 </div>
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-5xl font-black text-slate-900 tracking-tighter">
+                                    <span className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter">
                                         {currentPrice.toLocaleString("tr-TR")} ₺
                                     </span>
                                     {billingCycle !== "pilot" && <span className="text-lg text-slate-400 font-bold">/ ay</span>}
@@ -276,9 +276,9 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
                                     )}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-3 py-5 rounded-[2rem] text-lg font-black transition-all shadow-xl shadow-emerald-500/10 active:scale-95 group"
+                                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-3 py-4 md:py-5 rounded-2xl md:rounded-[2rem] text-base md:text-lg font-black transition-all shadow-xl shadow-emerald-500/10 active:scale-95 group"
                                 >
-                                    <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                                    <svg className="w-5 h-5 md:w-6 md:h-6 fill-current" viewBox="0 0 24 24">
                                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72 1.054 3.73 1.612 5.766 1.612h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                                     </svg>
                                     <span>WhatsApp ile Bilgi Al</span>
