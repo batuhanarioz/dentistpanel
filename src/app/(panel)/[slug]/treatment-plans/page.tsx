@@ -106,7 +106,7 @@ export default function TreatmentPlansPage() {
                             </svg>
                         </div>
                         <p className="text-sm font-bold text-slate-400">Tedavi planı bulunamadı.</p>
-                        <p className="text-xs text-slate-300 mt-1">Yeni bir plan oluşturmak için "Yeni Plan" butonuna tıklayın.</p>
+                        <p className="text-xs text-slate-300 mt-1">Yeni bir plan oluşturmak için &quot;Yeni Plan&quot; butonuna tıklayın.</p>
                         <button
                             onClick={() => setShowCreate(true)}
                             className="mt-4 flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-md transition-all mx-auto"
