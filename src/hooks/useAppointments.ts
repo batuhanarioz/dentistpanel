@@ -122,6 +122,7 @@ export function useAppointments() {
             return (data || []) as DoctorOption[];
         },
         enabled: !!clinicId,
+        staleTime: 10 * 60 * 1000, // Doktor listesi nadiren değişir — 10 dk cache
     });
 
     const fetchRange = useMemo(() => {
@@ -134,6 +135,7 @@ export function useAppointments() {
 
     const { data: rawAppointments = [], isLoading: loading } = useQuery({
         queryKey: ["appointments", fetchRange.start, fetchRange.end, clinicId],
+        staleTime: 60 * 1000, // Randevular sık değişir — 1 dk
         queryFn: async () => {
             if (!clinicId) return [];
             const { data, error } = await supabase
@@ -202,7 +204,7 @@ export function useAppointments() {
 
     const allSelectableDoctors = useMemo<DoctorOption[]>(() => {
         // Strict medical roles ONLY
-        const medicalRoles = [UserRole.DOKTOR, UserRole.DOCTOR, UserRole.ADMIN_DOCTOR];
+        const medicalRoles = [UserRole.DOKTOR, UserRole.ADMIN_DOCTOR];
 
         const list: DoctorOption[] = doctors
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -59,6 +59,9 @@ function SuperAdminNav({
           Platform
         </span>
       </div>
+      <button type="button" onClick={() => handleNav("/platform/clinics/monitoring")} className={linkClass("/platform/clinics/monitoring")}>
+        <span>USS Monitoring</span>
+      </button>
       <button type="button" onClick={() => handleNav("/platform/clinics/activity")} className={linkClass("/platform/clinics/activity")}>
         <span>Aktivite & Bildirimler</span>
       </button>
@@ -106,6 +109,10 @@ function ClinicNav({
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
       <a id="tour-patients" href={`${base}/patients`} className={linkClass(`${base}/patients`)} onClick={handleClick}>
         <span>Hasta Kayıtları</span>
+      </a>
+      <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
+      <a href={`${base}/treatment-plans`} className={linkClass(`${base}/treatment-plans`)} onClick={handleClick}>
+        <span>Tedavi Planları</span>
       </a>
       <div className="h-px mx-2 rounded-full bg-gradient-to-r from-teal-800/70 via-teal-700/70 to-emerald-500/70" />
       <a href={`${base}/appointments`} className={linkClass(`${base}/appointments`)} onClick={handleClick}>
@@ -286,6 +293,12 @@ function ShellInner({ children }: Props) {
         setHeaderTitle("Ekip ve Yetkiler");
         setHeaderSubtitle(
           "Klinik personelini yönetin, yetkileri düzenleyin ve işlem günlüğünü (audit logs) takip edin."
+        );
+        break;
+      case pathname === "/platform/clinics/monitoring":
+        setHeaderTitle("USS Monitoring");
+        setHeaderSubtitle(
+          "USS entegrasyon katmanının teknik durumunu, performansını ve hatalarını gözlemleyin."
         );
         break;
       case pathname === "/platform/clinics/activity":

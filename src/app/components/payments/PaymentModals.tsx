@@ -5,7 +5,7 @@ import { createPayments } from "@/lib/api";
 import { useClinic } from "@/app/context/ClinicContext";
 import { localDateStr } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabaseClient";
-import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS, PAYMENT_METHODS, PaymentStatus } from "@/constants/payments";
+import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS, PAYMENT_METHODS, PaymentStatus, normalizePaymentStatus, isPaid, isCancelled } from "@/constants/payments";
 
 // ─── Shared ──────────────────────────────────────────────────────────────────
 
@@ -131,7 +131,7 @@ export function NewPaymentModal({
                 agreed_total: effectiveAgreedTotal,
                 method: item.method,
                 // İlk taksit bugün tarihliyse direkt ödendi yap, değilse beklemede
-                status: i === 0 && item.dueDate === todayStr ? "paid" : "pending",
+                status: (i === 0 && item.dueDate === todayStr ? "paid" : "pending") as PaymentStatus,
                 due_date: item.dueDate,
                 installment_count: count,
                 installment_number: i + 1,
@@ -271,8 +271,8 @@ export function NewPaymentModal({
                                         <div className="mt-3 grid grid-cols-2 gap-1.5">
                                             {existingPayments.map((ep, idx) => (
                                                 <div key={ep.id} className="flex items-center justify-between text-[10px] font-bold bg-white px-2.5 py-1.5 rounded-lg border border-slate-200">
-                                                    <span>{(ep.status === "paid" || ep.status === "Ödendi") ? "✅" : (ep.status === "cancelled" || ep.status === "İptal") ? "❌" : "⏳"} Taksit {ep.installment_number || idx + 1}: {ep.due_date ? new Date(ep.due_date).toLocaleDateString("tr-TR") : ""}</span>
-                                                    <span className={(ep.status === "cancelled" || ep.status === "İptal") ? "line-through text-slate-400" : "text-slate-700"}>{Number(ep.amount).toLocaleString()} ₺</span>
+                                                    <span>{isPaid(ep.status) ? "✅" : isCancelled(ep.status) ? "❌" : "⏳"} Taksit {ep.installment_number || idx + 1}: {ep.due_date ? new Date(ep.due_date).toLocaleDateString("tr-TR") : ""}</span>
+                                                    <span className={isCancelled(ep.status) ? "line-through text-slate-400" : "text-slate-700"}>{Number(ep.amount).toLocaleString()} ₺</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -410,34 +410,53 @@ interface DetailModalProps {
     setAmount: (v: string) => void;
     method: string;
     setMethod: (v: string) => void;
-    onUpdate: () => void;
-    onDelete: () => void;
+    onUpdate: (dueDate: string, note: string) => void;
+    onCancel: () => void;
 }
 
-export function PaymentDetailModal({ isOpen, onClose, payment, status, setStatus, amount, setAmount, method, setMethod, onUpdate, onDelete }: DetailModalProps) {
+type SiblingPayment = { id: string; amount: number; status: string | null; due_date: string | null; installment_number: number | null; };
+
+export function PaymentDetailModal({ isOpen, onClose, payment, status, setStatus, amount, setAmount, method, setMethod, onUpdate, onCancel }: DetailModalProps) {
+    const { clinicId } = useClinic();
+    const [showCancelConfirm, setShowCancelConfirm] = React.useState(false);
+    const [siblings, setSiblings] = React.useState<SiblingPayment[]>([]);
+    const [localDueDate, setLocalDueDate] = React.useState("");
+    const [localNote, setLocalNote] = React.useState("");
+
     React.useEffect(() => {
         if (payment?.status) {
-            let normalized: PaymentStatus = "pending";
-            if (payment.status === 'Ödendi' || payment.status === 'paid') normalized = 'paid';
-            else if (payment.status === 'Beklemede' || payment.status === 'planned' || payment.status === 'pending') normalized = 'pending';
-            else if (payment.status === 'İptal' || payment.status === 'cancelled') normalized = 'cancelled';
-            else if (payment.status === 'partial' || payment.status === 'Kısmi') normalized = 'partial';
-
-            if (status !== normalized) {
-                setStatus(normalized);
-            }
+            const normalized = normalizePaymentStatus(payment.status);
+            if (status !== normalized) setStatus(normalized);
         }
-    }, [payment, isOpen, status, setStatus]); // Added status and setStatus to dependency array
+        setLocalDueDate(payment?.due_date ?? "");
+        setLocalNote(payment?.note ?? "");
+        setShowCancelConfirm(false);
+        setSiblings([]);
+    }, [payment, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Taksit kardeşlerini çek
+    React.useEffect(() => {
+        if (!isOpen || !payment?.appointment_id || !payment.installment_count || payment.installment_count <= 1 || !clinicId) return;
+        supabase.from("payments")
+            .select("id, amount, status, due_date, installment_number")
+            .eq("appointment_id", payment.appointment_id)
+            .eq("clinic_id", clinicId)
+            .order("installment_number", { ascending: true })
+            .then(({ data }) => setSiblings((data || []) as SiblingPayment[]));
+    }, [isOpen, payment?.appointment_id, payment?.installment_count, clinicId]);
 
     if (!isOpen || !payment) return null;
 
     const apptDate = payment.appointment?.starts_at ? new Date(payment.appointment.starts_at) : null;
+    const agreedTotal = payment.agreed_total;
+    const totalSiblingsPaid = siblings.filter(s => isPaid(s.status)).reduce((sum, s) => sum + s.amount, 0);
+    const remaining = agreedTotal ? Math.max(0, agreedTotal - totalSiblingsPaid) : null;
 
-    // Status mapping is now handled via PAYMENT_STATUS_LABELS and local status state
+    const statusIconMap: Record<string, string> = { paid: "✅", cancelled: "❌", pending: "⏳", planned: "📅" };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="px-6 py-5 bg-gradient-to-r from-teal-600 to-emerald-500 text-white relative shrink-0">
@@ -445,20 +464,18 @@ export function PaymentDetailModal({ isOpen, onClose, payment, status, setStatus
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                     <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl font-black">
+                        <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl font-black shrink-0">
                             {(payment.patient?.full_name || "H")[0].toUpperCase()}
                         </div>
-                        <div>
-                            <h2 className="text-base font-bold">{payment.patient?.full_name || "Hasta"}</h2>
+                        <div className="min-w-0">
+                            <h2 className="text-base font-bold truncate">{payment.patient?.full_name || "Hasta"}</h2>
                             <div className="flex items-center gap-2 mt-0.5">
                                 <p className="text-teal-100 text-xs font-medium">{payment.patient?.phone || "—"}</p>
                                 {payment.patient?.phone && (
                                     <a href={`https://wa.me/90${payment.patient.phone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
                                         onClick={e => e.stopPropagation()}
-                                        className="flex items-center gap-1 bg-[#25D366] hover:bg-[#20bd5a] px-2 py-0.5 rounded-full text-[9px] font-black text-white transition-colors">
-                                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 fill-current" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-                                        </svg>
+                                        className="flex items-center gap-1 bg-[#25D366] hover:bg-[#20bd5a] px-2 py-0.5 rounded-full text-[9px] font-black text-white transition-colors shrink-0">
+                                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" /></svg>
                                         WhatsApp
                                     </a>
                                 )}
@@ -467,43 +484,71 @@ export function PaymentDetailModal({ isOpen, onClose, payment, status, setStatus
                     </div>
                 </div>
 
-                <div className="p-6 space-y-5">
-                    {/* Randevu Bilgi Kartı */}
+                <div className="p-6 space-y-4 overflow-y-auto flex-1">
+
+                    {/* Randevu + Anlaşılan Toplam */}
                     {apptDate && (
                         <div className="bg-slate-50 rounded-2xl border border-slate-200/60 overflow-hidden">
                             <div className="px-4 py-2 bg-slate-100/80 border-b border-slate-200/60">
                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">İlgili Randevu</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-px bg-slate-100/40">
-                                <div className="bg-white px-4 py-3">
-                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Tarih</div>
-                                    <div className="text-xs font-bold text-slate-800">{apptDate.toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" })}</div>
+                            <div className="grid grid-cols-3 gap-px bg-slate-100/40">
+                                <div className="bg-white px-3 py-2.5">
+                                    <div className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Tarih</div>
+                                    <div className="text-[11px] font-bold text-slate-800">{apptDate.toLocaleDateString("tr-TR")}</div>
                                 </div>
-                                <div className="bg-white px-4 py-3">
-                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Saat</div>
-                                    <div className="text-xs font-bold text-slate-800">{apptDate.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</div>
+                                <div className="bg-white px-3 py-2.5">
+                                    <div className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Saat</div>
+                                    <div className="text-[11px] font-bold text-slate-800">{apptDate.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</div>
                                 </div>
-                                <div className="bg-white px-4 py-3 col-span-2">
-                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">İşlem Türü</div>
-                                    <div className="text-xs font-bold text-slate-800">{payment.appointment?.treatment_type || "Belirtilmemiş"}</div>
+                                <div className="bg-white px-3 py-2.5">
+                                    <div className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider mb-0.5">İşlem</div>
+                                    <div className="text-[11px] font-bold text-slate-800 truncate">{payment.appointment?.treatment_type || "—"}</div>
                                 </div>
+                            </div>
+                            {agreedTotal && agreedTotal > 0 && (
+                                <div className="grid grid-cols-3 gap-px bg-slate-100/40 border-t border-slate-100">
+                                    <div className="bg-white px-3 py-2.5">
+                                        <div className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Anlaşılan</div>
+                                        <div className="text-[11px] font-bold text-slate-700">{agreedTotal.toLocaleString("tr-TR")} ₺</div>
+                                    </div>
+                                    <div className="bg-white px-3 py-2.5">
+                                        <div className="text-[8.5px] font-black text-emerald-500 uppercase tracking-wider mb-0.5">Ödenen</div>
+                                        <div className="text-[11px] font-bold text-emerald-700">{totalSiblingsPaid.toLocaleString("tr-TR")} ₺</div>
+                                    </div>
+                                    <div className="bg-white px-3 py-2.5">
+                                        <div className="text-[8.5px] font-black text-rose-400 uppercase tracking-wider mb-0.5">Kalan</div>
+                                        <div className="text-[11px] font-bold text-rose-600">{remaining?.toLocaleString("tr-TR")} ₺</div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Taksit listesi */}
+                    {siblings.length > 1 && (
+                        <div className="space-y-1.5">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                Taksit Planı ({payment.installment_number}/{payment.installment_count})
+                            </p>
+                            <div className="grid grid-cols-2 gap-1.5">
+                                {siblings.map(s => {
+                                    const isCurrent = s.id === payment.id;
+                                    return (
+                                        <div key={s.id} className={`flex items-center justify-between text-[10px] font-bold px-2.5 py-2 rounded-xl border transition-all ${isCurrent ? "bg-teal-50 border-teal-200 text-teal-800" : "bg-white border-slate-100 text-slate-600"}`}>
+                                            <span className="flex items-center gap-1">
+                                                {statusIconMap[normalizePaymentStatus(s.status)] ?? "⏳"}
+                                                <span>{s.due_date ? new Date(s.due_date).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }) : "—"}</span>
+                                            </span>
+                                            <span className={isCurrent ? "font-black" : ""}>{s.amount.toLocaleString("tr-TR")} ₺</span>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
 
-                    {/* Taksit Rozeti */}
-                    {payment.installment_count && payment.installment_count > 1 && (
-                        <div className="flex items-center justify-between px-4 py-3 bg-emerald-50 rounded-2xl border border-emerald-100">
-                            <div>
-                                <div className="text-[9px] font-black text-emerald-600 uppercase tracking-wider mb-0.5">Taksit Bilgisi</div>
-                                <div className="text-sm font-black text-emerald-800">{payment.installment_number}. Taksit / Toplam {payment.installment_count}</div>
-                            </div>
-                            <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-sm">
-                                {payment.installment_number}/{payment.installment_count}
-                            </div>
-                        </div>
-                    )}
-
+                    {/* Durum */}
                     <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ödeme Durumu</label>
                         <div className="flex rounded-2xl border-2 border-slate-100 bg-slate-50 p-1 gap-1">
@@ -512,7 +557,7 @@ export function PaymentDetailModal({ isOpen, onClose, payment, status, setStatus
                                 const config = PAYMENT_STATUS_COLORS[s];
                                 return (
                                     <button key={s} onClick={() => setStatus(s)}
-                                        className={`flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all ${active ? `${config.bg.replace('bg-', 'bg-').replace('-50', '-500')} text-white shadow` : "text-slate-400 hover:text-slate-700 hover:bg-white"}`}>
+                                        className={`flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all ${active ? `${config.bg.replace("-50", "-500")} text-white shadow` : "text-slate-400 hover:text-slate-700 hover:bg-white"}`}>
                                         {PAYMENT_STATUS_LABELS[s]}
                                     </button>
                                 );
@@ -520,43 +565,70 @@ export function PaymentDetailModal({ isOpen, onClose, payment, status, setStatus
                         </div>
                     </div>
 
-                    {/* Tutar & Yöntem */}
+                    {/* Tutar, Yöntem, Vade */}
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tutar</label>
                             <div className="relative">
                                 <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
-                                    className="w-full h-11 rounded-2xl border-2 border-slate-100 bg-white px-4 pr-8 text-sm font-extrabold focus:border-teal-500 outline-none transition-all" />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 font-bold">₺</span>
+                                    className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 pr-7 text-sm font-extrabold focus:border-teal-500 outline-none transition-all" />
+                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 font-bold text-sm">₺</span>
                             </div>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Yöntem</label>
                             <select value={method} onChange={e => setMethod(e.target.value)}
-                                className="w-full h-11 rounded-2xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-teal-500 outline-none transition-all">
+                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-teal-500 outline-none transition-all">
                                 {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                         </div>
+                        <div className="space-y-1.5 col-span-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vade Tarihi</label>
+                            <input type="date" value={localDueDate} onChange={e => setLocalDueDate(e.target.value)}
+                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-teal-500 outline-none transition-all" />
+                        </div>
                     </div>
 
-                    {payment.note && (
-                        <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Ödeme Notu</p>
-                            <p className="text-xs font-semibold text-indigo-700 italic">{payment.note}</p>
-                        </div>
-                    )}
+                    {/* Not (düzenlenebilir) */}
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Not</label>
+                        <textarea
+                            value={localNote}
+                            onChange={e => setLocalNote(e.target.value)}
+                            rows={2}
+                            placeholder="Ödeme ile ilgili not..."
+                            className="w-full rounded-xl border-2 border-slate-100 bg-white px-3 py-2 text-xs font-medium focus:border-teal-500 outline-none transition-all resize-none placeholder:text-slate-300"
+                        />
+                    </div>
 
                     {/* Eylemler */}
-                    <div className="flex gap-2.5 pt-1">
-                        <button onClick={onDelete}
-                            className="h-11 px-4 rounded-2xl border-2 border-slate-100 text-[11px] font-extrabold uppercase tracking-wide text-slate-400 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 transition-all flex items-center gap-1.5">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-                            İptal Et
-                        </button>
-                        <button onClick={onUpdate} className="flex-1 h-11 bg-slate-900 text-white rounded-2xl font-extrabold text-xs shadow-xl shadow-slate-200 hover:bg-slate-800 active:scale-[0.98] transition-all">
-                            Kaydet & Kapat
-                        </button>
-                    </div>
+                    {showCancelConfirm ? (
+                        <div className="flex items-center justify-between bg-rose-50 border border-rose-100 rounded-2xl px-4 py-3 animate-in slide-in-from-bottom-2 duration-200">
+                            <p className="text-[11px] font-black text-rose-700">Bu ödeme iptal edilsin mi?</p>
+                            <div className="flex gap-2">
+                                <button onClick={() => setShowCancelConfirm(false)}
+                                    className="px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-[10px] font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                                    Hayır
+                                </button>
+                                <button onClick={onCancel}
+                                    className="px-3 py-1.5 rounded-xl bg-rose-600 text-white text-[10px] font-bold hover:bg-rose-700 transition-colors">
+                                    Evet, İptal Et
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex gap-2.5 pt-1">
+                            <button
+                                onClick={() => setShowCancelConfirm(true)}
+                                className="h-11 px-4 rounded-2xl border-2 border-slate-100 text-[11px] font-extrabold uppercase tracking-wide text-slate-400 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 transition-all whitespace-nowrap">
+                                Ödemeyi İptal Et
+                            </button>
+                            <button onClick={() => onUpdate(localDueDate, localNote)}
+                                className="flex-1 h-11 bg-slate-900 text-white rounded-2xl font-extrabold text-xs shadow-xl shadow-slate-200 hover:bg-slate-800 active:scale-[0.98] transition-all">
+                                Kaydet & Kapat
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

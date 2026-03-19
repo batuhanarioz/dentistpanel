@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 import { changePasswordSchema } from "@/lib/validations/auth";
+import { changePasswordLimiter, getClientIp } from "@/lib/rateLimit";
 
 /**
  * Kullanıcının kendi şifresini değiştirmesi.
@@ -11,6 +12,12 @@ import { changePasswordSchema } from "@/lib/validations/auth";
  * Doğruysa yeni şifre supabaseAdmin ile güncellenir.
  */
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const { success } = await changePasswordLimiter.limit(ip);
+  if (!success) {
+    return NextResponse.json({ error: "Çok fazla deneme. 15 dakika sonra tekrar deneyin." }, { status: 429 });
+  }
+
   // 1) Bearer token ile oturum doğrula
   const authHeader = req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {

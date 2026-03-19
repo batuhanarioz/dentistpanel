@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr } from "@/lib/dateUtils";
-import { UserRole, Appointment, Payment, Patient, TreatmentDefinition } from "@/types/database";
+import { UserRole, Appointment, Payment } from "@/types/database";
 import { useClinic } from "@/app/context/ClinicContext";
-import { startOfDay, endOfDay, subDays, format, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
+import { isPaid, isPending } from "@/constants/payments";
+import { startOfDay, endOfDay, subDays, format, eachDayOfInterval } from "date-fns";
 
 export type AppointmentRow = Appointment;
 
@@ -25,9 +26,9 @@ export function useReports() {
     // Raw Data
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [payments, setPayments] = useState<Payment[]>([]);
-    const [patients, setPatients] = useState<Patient[]>([]);
+    const [patients, setPatients] = useState<{ id: string }[]>([]);
     const [doctors, setDoctors] = useState<{ id: string; full_name: string }[]>([]);
-    const [treatmentTypes, setTreatmentTypes] = useState<TreatmentDefinition[]>([]);
+    const [treatmentTypes, setTreatmentTypes] = useState<{ id: string; name: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
     const { rangeStart, rangeEnd, rangeLabel } = useMemo(() => {
@@ -123,13 +124,13 @@ export function useReports() {
             // Fetch treatment types
             const { data: treatments } = await supabase
                 .from("treatment_definitions")
-                .select("*")
+                .select("id, name")
                 .eq("clinic_id", clinicId);
 
-            // Fetch new patients created in this period
+            // Fetch new patients created in this period (count only)
             const { data: newPatients } = await supabase
                 .from("patients")
-                .select("*")
+                .select("id")
                 .eq("clinic_id", clinicId)
                 .gte("created_at", rangeStart)
                 .lte("created_at", rangeEnd);
@@ -163,28 +164,47 @@ export function useReports() {
         if (loading) return null;
 
         const totalRevenue = payments
-            .filter(p => p.status === 'paid' || p.status === 'Ödendi')
+            .filter(p => isPaid(p.status))
             .reduce((sum, p) => sum + Number(p.amount), 0);
 
         const pendingPayments = payments
-            .filter(p => p.status === 'pending' || p.status === 'Beklemede' || p.status === 'planned')
+            .filter(p => isPending(p.status))
             .reduce((sum, p) => sum + Number(p.amount), 0);
 
         const totalAppointments = filteredData.length;
-        const recurringPatients = new Set(filteredData.map(a => a.patient_id)).size;
-
         const noShowCount = filteredData.filter(a => a.status === 'no_show').length;
         const noShowRate = totalAppointments > 0 ? (noShowCount / totalAppointments) * 100 : 0;
 
-        // Revenue over time
+        // appointment_id → doctor_id lookup: O(n) Map, döngü içinde find() yok
+        const apptDoctorMap = new Map<string, string | null>(
+            appointments.map(a => [a.id, a.doctor_id ?? null])
+        );
+
+        // Günlük revenue: payments'ı bir kez dolaşıp Map'e topla — O(n) vs O(days×n)
+        const revenueByDay = new Map<string, number>();
+        for (const p of payments) {
+            if (!isPaid(p.status)) continue;
+            const dayStr = format(new Date(p.created_at), 'yyyy-MM-dd');
+            revenueByDay.set(dayStr, (revenueByDay.get(dayStr) ?? 0) + Number(p.amount));
+        }
+
+        // Doktor başına ödeme toplamı: O(n) Map — her doktor için ayrı filter yok
+        const revenueByDoctor = new Map<string, number>();
+        for (const p of payments) {
+            if (!isPaid(p.status) || !p.appointment_id) continue;
+            const doctorId = apptDoctorMap.get(p.appointment_id);
+            if (!doctorId) continue;
+            revenueByDoctor.set(doctorId, (revenueByDoctor.get(doctorId) ?? 0) + Number(p.amount));
+        }
+
+        // Günlük randevu sayısı: O(n) Map — her gün için filteredData'yı taramak yerine
+        const apptsByDay = new Map<string, number>();
+        for (const a of filteredData) {
+            const dayStr = format(new Date(a.starts_at), 'yyyy-MM-dd');
+            apptsByDay.set(dayStr, (apptsByDay.get(dayStr) ?? 0) + 1);
+        }
+
         const days = eachDayOfInterval({ start: new Date(rangeStart), end: new Date(rangeEnd) });
-        const revenueTrend = days.map(day => {
-            const dayStr = format(day, 'yyyy-MM-dd');
-            const dayRevenue = payments
-                .filter(p => (p.status === 'paid' || p.status === 'Ödendi') && format(new Date(p.created_at), 'yyyy-MM-dd') === dayStr)
-                .reduce((sum, p) => sum + Number(p.amount), 0);
-            return { date: dayStr, revenue: dayRevenue };
-        });
 
         return {
             kpis: {
@@ -198,27 +218,25 @@ export function useReports() {
                 avgRevenuePerAppt: totalAppointments > 0 ? totalRevenue / totalAppointments : 0
             },
             trends: {
-                revenueTrend,
-                appointmentTrend: days.map(day => ({
-                    date: format(day, 'yyyy-MM-dd'),
-                    count: filteredData.filter(a => isSameDay(new Date(a.starts_at), day)).length
-                }))
+                revenueTrend: days.map(day => {
+                    const dayStr = format(day, 'yyyy-MM-dd');
+                    return { date: dayStr, revenue: revenueByDay.get(dayStr) ?? 0 };
+                }),
+                appointmentTrend: days.map(day => {
+                    const dayStr = format(day, 'yyyy-MM-dd');
+                    return { date: dayStr, count: apptsByDay.get(dayStr) ?? 0 };
+                })
             },
             doctorPerformance: doctors.map(d => {
                 const docAppts = filteredData.filter(a => a.doctor_id === d.id);
-                const docRevenue = payments
-                    .filter(p => {
-                        const appt = appointments.find(a => a.id === p.appointment_id);
-                        return appt?.doctor_id === d.id && (p.status === 'paid' || p.status === 'Ödendi');
-                    })
-                    .reduce((sum, p) => sum + Number(p.amount), 0);
-
                 return {
                     id: d.id,
                     name: d.full_name,
                     appointments: docAppts.length,
-                    revenue: docRevenue,
-                    noShowRate: docAppts.length > 0 ? (docAppts.filter(a => a.status === 'no_show').length / docAppts.length) * 100 : 0
+                    revenue: revenueByDoctor.get(d.id) ?? 0,
+                    noShowRate: docAppts.length > 0
+                        ? (docAppts.filter(a => a.status === 'no_show').length / docAppts.length) * 100
+                        : 0
                 };
             }),
             treatmentStats: treatmentTypes.map(t => {

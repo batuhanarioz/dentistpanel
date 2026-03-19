@@ -67,6 +67,7 @@ export function useDashboard() {
             return data;
         },
         enabled: !!clinic.clinicId,
+        staleTime: 60 * 1000, // Randevular sık değişir — 1 dk
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,7 +97,7 @@ export function useDashboard() {
 
     // Fetch Doctors
     const { data: doctorsData = [] } = useQuery({
-        queryKey: ["doctors"],
+        queryKey: ["doctors", clinic.clinicId],
         queryFn: async () => {
             if (!clinic.clinicId) return [];
             const { data } = await supabase.from("users")
@@ -105,6 +106,8 @@ export function useDashboard() {
                 .eq("role", UserRole.DOKTOR);
             return (data || []) as DoctorOption[];
         },
+        enabled: !!clinic.clinicId,
+        staleTime: 10 * 60 * 1000, // Doktorlar nadiren değişir — 10 dk
     });
 
     const doctors = doctorsData;

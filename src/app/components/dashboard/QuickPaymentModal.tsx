@@ -5,6 +5,8 @@ import { createPayments } from "@/lib/api";
 import { useClinic } from "@/app/context/ClinicContext";
 import { localDateStr } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabaseClient";
+import type { PaymentStatus } from "@/types/database";
+import { isPaid, isCancelled } from "@/constants/payments";
 
 interface QuickPaymentModalProps {
     open: boolean;
@@ -175,7 +177,7 @@ export function QuickPaymentModal({
                     amount: item.amount,
                     agreed_total: agreedTotal > 0 ? agreedTotal : amount,
                     method: item.method,
-                    status: i === 0 && item.dueDate === localDateStr() ? "paid" : "pending",
+                    status: (i === 0 && item.dueDate === localDateStr() ? "paid" : "pending") as PaymentStatus,
                     due_date: item.dueDate,
                     installment_count: count,
                     installment_number: i + 1,
@@ -313,11 +315,11 @@ export function QuickPaymentModal({
                                     {existingPayments.map((ep, idx) => (
                                         <div key={ep.id} className="flex items-center justify-between text-xs font-bold bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm">
                                             <div className="flex items-center gap-2">
-                                                <span>{(ep.status === 'paid' || ep.status === 'Ödendi') ? '✅' : (ep.status === 'cancelled' || ep.status === 'İptal') ? '❌' : '⏳'}</span>
-                                                <span className={`${(ep.status === 'cancelled' || ep.status === 'İptal') ? 'line-through text-slate-400' : 'text-slate-700'}`}>Taksit {ep.installment_number || idx + 1}: {ep.due_date ? new Date(ep.due_date).toLocaleDateString('tr-TR') : ''}</span>
+                                                <span>{isPaid(ep.status) ? '✅' : isCancelled(ep.status) ? '❌' : '⏳'}</span>
+                                                <span className={`${isCancelled(ep.status) ? 'line-through text-slate-400' : 'text-slate-700'}`}>Taksit {ep.installment_number || idx + 1}: {ep.due_date ? new Date(ep.due_date).toLocaleDateString('tr-TR') : ''}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className={`${(ep.status === 'cancelled' || ep.status === 'İptal') ? 'line-through text-slate-400' : 'text-slate-900'}`}>{Number(ep.amount).toLocaleString()} ₺</span>
+                                                <span className={`${isCancelled(ep.status) ? 'line-through text-slate-400' : 'text-slate-900'}`}>{Number(ep.amount).toLocaleString()} ₺</span>
                                             </div>
                                         </div>
                                     ))}

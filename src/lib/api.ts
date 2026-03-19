@@ -1,8 +1,9 @@
 import { supabase } from "@/lib/supabaseClient";
-import { UserRole, Payment, AppointmentStatus, ClinicSettings, TreatmentDefinition } from "@/types/database";
+import { UserRole, Payment, AppointmentStatus, AppointmentChannel, ClinicSettings, TreatmentDefinition, TreatmentPlan, TreatmentPlanItem, PatientAnamnesis } from "@/types/database";
 import { CHANNEL_LABEL_MAP } from "@/constants/dashboard";
 
-// Inline type – previously lived in the deleted useAppointmentManagement hook
+// ─── Inline types ──────────────────────────────────────────────────────────────
+
 export interface CalendarAppointment {
     id: string;
     date: string;
@@ -31,6 +32,41 @@ export interface CalendarAppointment {
     patientId: string;
 }
 
+interface RawAppointmentRow {
+    id: string;
+    starts_at: string;
+    ends_at: string;
+    patient_id: string;
+    doctor_id: string | null;
+    channel: AppointmentChannel;
+    treatment_type: string | null;
+    status: AppointmentStatus;
+    patient_note: string | null;
+    internal_note: string | null;
+    treatment_note: string | null;
+    tags: string[] | null;
+    source_conversation_id: string | null;
+    source_message_id: string | null;
+    estimated_amount: number | null;
+}
+
+interface RawPatientRow {
+    id: string;
+    full_name: string;
+    phone: string | null;
+    email: string | null;
+    birth_date: string | null;
+    allergies: string | null;
+    medical_alerts: string | null;
+}
+
+interface RawDoctorRow {
+    id: string;
+    full_name: string;
+}
+
+// ─── API functions ──────────────────────────────────────────────────────────────
+
 export async function getClinicBySlug(slug: string) {
     const { data } = await supabase.from("clinics").select("id, name, slug").eq("slug", slug).maybeSingle();
     return data;
@@ -39,15 +75,11 @@ export async function getClinicBySlug(slug: string) {
 export async function getAppointmentsForDate(date: string, clinicId: string): Promise<CalendarAppointment[]> {
     if (!clinicId) return [];
 
-    // date is YYYY-MM-DD. 
-    // We want to fetch all appointments that overlap with this day.
-    // For simplicity, we fetch all that start on this day.
-    // Using simple string comparison for timestamps works well in Supabase/Postgres.
     const { data, error } = await supabase
         .from("appointments")
         .select(`
-            id, starts_at, ends_at, patient_id, doctor_id, channel, treatment_type, status, 
-            patient_note, internal_note, treatment_note, tags, source_conversation_id, 
+            id, starts_at, ends_at, patient_id, doctor_id, channel, treatment_type, status,
+            patient_note, internal_note, treatment_note, tags, source_conversation_id,
             source_message_id, estimated_amount
         `)
         .eq("clinic_id", clinicId)
@@ -60,41 +92,47 @@ export async function getAppointmentsForDate(date: string, clinicId: string): Pr
         return [];
     }
 
-    const patientIds = Array.from(new Set(data.map((a) => a.patient_id).filter(Boolean))) as string[];
-    const doctorIds = Array.from(new Set(data.map((a) => a.doctor_id).filter(Boolean))) as string[];
+    const rows = data as RawAppointmentRow[];
+    const patientIds = Array.from(new Set(rows.map((a) => a.patient_id).filter(Boolean)));
+    const doctorIds  = Array.from(new Set(rows.map((a) => a.doctor_id).filter((id): id is string => id !== null)));
 
     const [patientsRes, doctorsRes] = await Promise.all([
-        patientIds.length ? supabase.from("patients").select("id, full_name, phone, email, birth_date, allergies, medical_alerts").eq("clinic_id", clinicId).in("id", patientIds) : Promise.resolve({ data: [], error: null }),
-        doctorIds.length ? supabase.from("users").select("id, full_name").eq("clinic_id", clinicId).in("id", doctorIds) : Promise.resolve({ data: [], error: null }),
+        patientIds.length
+            ? supabase.from("patients").select("id, full_name, phone, email, birth_date, allergies, medical_alerts").eq("clinic_id", clinicId).in("id", patientIds)
+            : Promise.resolve({ data: [] as RawPatientRow[], error: null }),
+        doctorIds.length
+            ? supabase.from("users").select("id, full_name").eq("clinic_id", clinicId).in("id", doctorIds)
+            : Promise.resolve({ data: [] as RawDoctorRow[], error: null }),
     ]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const patientsMap = Object.fromEntries((patientsRes.data || []).map((p: any) => [p.id, p]));
-    const doctorsMap = Object.fromEntries((doctorsRes.data || []).map((d: { id: string, full_name: string }) => [d.id, d.full_name]));
+    const patientsMap = Object.fromEntries((patientsRes.data ?? []).map((p) => [p.id, p]));
+    const doctorsMap  = Object.fromEntries((doctorsRes.data  ?? []).map((d) => [d.id, d.full_name]));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mapped: CalendarAppointment[] = (data || []).map((row: any) => {
+    // Formatter'ları döngü dışında bir kez oluştur
+    const timeFmt = new Intl.DateTimeFormat("tr-TR", {
+        timeZone: "Asia/Istanbul",
+        hour: "numeric",
+        minute: "numeric",
+        hour12: false,
+    });
+    const dateFmt = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Istanbul",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    });
+
+    return rows.map((row): CalendarAppointment => {
         const startDate = new Date(row.starts_at);
-        const endDate = new Date(row.ends_at);
+        const endDate   = new Date(row.ends_at);
         const durationMinutes = Math.max(10, Math.round((endDate.getTime() - startDate.getTime()) / 60000) || 30);
-        const patient = patientsMap[row.patient_id];
+        const patient = patientsMap[row.patient_id] as RawPatientRow | undefined;
 
-        const trTime = new Intl.DateTimeFormat('tr-TR', {
-            timeZone: 'Asia/Istanbul',
-            hour: 'numeric',
-            minute: 'numeric',
-            hour12: false
-        }).formatToParts(startDate);
+        const trTime = timeFmt.formatToParts(startDate);
+        const hour   = parseInt(trTime.find((p) => p.type === "hour")?.value   ?? "0");
+        const minute = parseInt(trTime.find((p) => p.type === "minute")?.value ?? "0");
 
-        const hour = parseInt(trTime.find(p => p.type === 'hour')?.value || '0');
-        const minute = parseInt(trTime.find(p => p.type === 'minute')?.value || '0');
-
-        const localDate = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'Asia/Istanbul',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        }).format(startDate);
+        const localDate = dateFmt.format(startDate);
 
         return {
             id: row.id,
@@ -106,40 +144,43 @@ export async function getAppointmentsForDate(date: string, clinicId: string): Pr
             phone: patient?.phone ?? "",
             email: patient?.email ?? "",
             birthDate: patient?.birth_date ?? "",
-            doctor: row.doctor_id ? doctorsMap[row.doctor_id] : "",
+            doctor: row.doctor_id ? (doctorsMap[row.doctor_id] ?? "") : "",
             doctorId: row.doctor_id,
-            channel: CHANNEL_LABEL_MAP[row.channel as string] || row.channel,
+            channel: CHANNEL_LABEL_MAP[row.channel] ?? row.channel,
             treatmentType: row.treatment_type ?? "",
-            status: row.status as AppointmentStatus,
-            dbStatus: row.status as AppointmentStatus,
-            patientNote: row.patient_note || undefined,
-            internalNote: row.internal_note || undefined,
-            treatmentNote: row.treatment_note || undefined,
-            patientAllergies: patient?.allergies,
-            patientMedicalAlerts: patient?.medical_alerts,
-            tags: row.tags || [],
-            sourceConversationId: row.source_conversation_id || undefined,
-            sourceMessageId: row.source_message_id || undefined,
+            status: row.status,
+            dbStatus: row.status,
+            patientNote: row.patient_note ?? undefined,
+            internalNote: row.internal_note ?? undefined,
+            treatmentNote: row.treatment_note ?? undefined,
+            patientAllergies: patient?.allergies ?? undefined,
+            patientMedicalAlerts: patient?.medical_alerts ?? undefined,
+            tags: row.tags ?? [],
+            sourceConversationId: row.source_conversation_id ?? undefined,
+            sourceMessageId: row.source_message_id ?? undefined,
             estimatedAmount: row.estimated_amount?.toString(),
             patientId: row.patient_id,
         };
     });
-
-    return mapped;
 }
 
 export async function getDoctors(clinicId: string) {
     if (!clinicId) return [];
-    const { data } = await supabase.from("users").select("id, full_name").eq("clinic_id", clinicId).eq("role", UserRole.DOKTOR);
-    return data || [];
+    const { data } = await supabase
+        .from("users")
+        .select("id, full_name")
+        .eq("clinic_id", clinicId)
+        .eq("role", UserRole.DOKTOR);
+    return (data ?? []) as RawDoctorRow[];
 }
 
 export async function getAllPatients(clinicId: string, page: number = 1, pageSize: number = 50) {
     if (!clinicId) return [];
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
+    const to   = from + pageSize - 1;
 
-    const { data, error } = await supabase.from("patients")
+    const { data, error } = await supabase
+        .from("patients")
         .select("id, full_name, phone, email, birth_date, tc_identity_no, gender, blood_group, address, occupation, allergies, medical_alerts, notes, created_at")
         .eq("clinic_id", clinicId)
         .order("created_at", { ascending: false })
@@ -149,7 +190,21 @@ export async function getAllPatients(clinicId: string, page: number = 1, pageSiz
         console.error("getAllPatients error:", error);
         return [];
     }
-    return data || [];
+    return data ?? [];
+}
+
+interface DashboardAppointmentRow {
+    id: string;
+    starts_at: string;
+    ends_at: string;
+    patient_id: string;
+    doctor_id: string | null;
+    channel: AppointmentChannel;
+    status: AppointmentStatus;
+    treatment_type: string | null;
+    estimated_amount: number | null;
+    patients: { full_name: string; phone: string | null } | null;
+    doctor: { full_name: string } | null;
 }
 
 export async function getDashboardData(date: string, clinicId: string) {
@@ -171,15 +226,14 @@ export async function getDashboardData(date: string, clinicId: string) {
         return [];
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data || []).map((row: any) => ({
+    return (data as unknown as DashboardAppointmentRow[]).map((row) => ({
         id: row.id,
         startsAt: row.starts_at,
         endsAt: row.ends_at,
         patientName: row.patients?.full_name ?? "İsimsiz Hasta",
         patientPhone: row.patients?.phone ?? null,
         doctorName: row.doctor?.full_name ?? "Hekim atanmadı",
-        doctorId: row.doctor_id ?? null,
+        doctorId: row.doctor_id,
         channel: row.channel,
         status: row.status,
         treatmentType: row.treatment_type ?? null,
@@ -187,14 +241,31 @@ export async function getDashboardData(date: string, clinicId: string) {
     }));
 }
 
+interface ChecklistItemRow {
+    id: string;
+    status: string;
+    appointment_id: string;
+    definition_id: string;
+    appointments: {
+        id: string;
+        starts_at: string;
+        ends_at: string;
+        treatment_type: string | null;
+        status: AppointmentStatus;
+        clinic_id: string;
+        patient_id: string;
+        estimated_amount: number | null;
+        patients: { full_name: string };
+    };
+    checklist_definitions: { code: string; title: string; tone: string };
+}
+
 export async function getChecklistItems(clinicId: string, date: string) {
     if (!clinicId) return [];
 
-    // Veritabanı düzeyinde görevleri yenile (yeni biten randevular vb. için)
-    const { error: rpcError } = await supabase.rpc('refresh_checklist_items', { p_clinic_id: clinicId });
+    const { error: rpcError } = await supabase.rpc("refresh_checklist_items", { p_clinic_id: clinicId });
     if (rpcError) console.error("refresh_checklist_items rpc error:", rpcError);
 
-    // Sadece belirtilen güne ait randevuların görevlerini getir
     const { data, error } = await supabase
         .from("checklist_items")
         .select(`
@@ -215,8 +286,7 @@ export async function getChecklistItems(clinicId: string, date: string) {
         return [];
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data || []).map((row: any) => ({
+    return (data as unknown as ChecklistItemRow[]).map((row) => ({
         id: row.id,
         status: row.status,
         appointmentId: row.appointment_id,
@@ -229,7 +299,7 @@ export async function getChecklistItems(clinicId: string, date: string) {
         startsAt: row.appointments.starts_at,
         endsAt: row.appointments.ends_at,
         treatmentType: row.appointments.treatment_type,
-        appointmentStatus: row.appointments.status
+        appointmentStatus: row.appointments.status,
     }));
 }
 
@@ -238,7 +308,7 @@ export async function updateChecklistItemStatus(itemId: string, status: string, 
         .from("checklist_items")
         .update({
             status,
-            completed_at: status === 'completed' ? new Date().toISOString() : null
+            completed_at: status === "completed" ? new Date().toISOString() : null,
         })
         .eq("id", itemId)
         .eq("clinic_id", clinicId);
@@ -246,53 +316,57 @@ export async function updateChecklistItemStatus(itemId: string, status: string, 
 }
 
 export async function getChecklistConfigs(clinicId: string) {
-    // Yeni sistem: checklist_definitions ve checklist_clinic_roles tablolarını birleştir
     const [defsRes, rolesRes] = await Promise.all([
         supabase.from("checklist_definitions").select("id, code, title, tone"),
-        supabase.from("checklist_clinic_roles").select("definition_id, role").eq("clinic_id", clinicId)
+        supabase.from("checklist_clinic_roles").select("definition_id, role").eq("clinic_id", clinicId),
     ]);
 
     const mapping: Record<string, { roles: string[]; enabled: boolean }> = {};
 
-    defsRes.data?.forEach(def => {
-        const rolesForDef = rolesRes.data?.filter(r => r.definition_id === def.id).map(r => r.role) || [];
-        mapping[def.code] = {
-            roles: rolesForDef,
-            enabled: true // Yeni sistemde ayrı bir is_enabled yok, rol ataması yoksa o rol görmez
-        };
+    defsRes.data?.forEach((def) => {
+        const rolesForDef = rolesRes.data?.filter((r) => r.definition_id === def.id).map((r) => r.role) ?? [];
+        mapping[def.code] = { roles: rolesForDef, enabled: true };
     });
 
     return mapping;
 }
 
 export async function getTaskConfigs(clinicId: string) {
-    // Geriye dönük uyumluluk için eski ismi koruyoruz ama yeni yapıdan besliyoruz
     const configs = await getChecklistConfigs(clinicId);
     const legacyMapping: Record<string, { role: string; enabled: boolean }> = {};
-
     Object.entries(configs).forEach(([code, data]) => {
-        legacyMapping[code] = {
-            role: data.roles[0] || "", // Eski kod tek rol bekliyor olabilir
-            enabled: data.roles.length > 0
-        };
+        legacyMapping[code] = { role: data.roles[0] ?? "", enabled: data.roles.length > 0 };
     });
     return legacyMapping;
 }
 
 export async function createPayments(payments: Partial<Payment>[]) {
-    // Parent_id takibi için eğer taksitli ise ilkini kaydedip id'sini alıp diğerlerine set etmek gerekebilir.
-    // Şimdilik client-side id üretilip gönderilebilir veya Supabase insert ile toplu eklenebilir.
     const { data, error } = await supabase
         .from("payments")
-        .insert(payments.map(p => ({ ...p, clinic_id: p.clinic_id || payments[0]?.clinic_id })))
+        .insert(payments.map((p) => ({ ...p, clinic_id: p.clinic_id ?? payments[0]?.clinic_id })))
         .select("id, amount, status");
     return { data, error };
 }
 
 export async function getPaymentsForAppointments(appointmentIds: string[]) {
     if (!appointmentIds.length) return {};
-    const { data } = await supabase.from("payments").select("id, appointment_id").in("appointment_id", appointmentIds);
-    return Object.fromEntries((data || []).map((p: { appointment_id: string }) => [p.appointment_id, true]));
+    const { data } = await supabase
+        .from("payments")
+        .select("id, appointment_id")
+        .in("appointment_id", appointmentIds);
+    return Object.fromEntries((data ?? []).map((p: { appointment_id: string }) => [p.appointment_id, true]));
+}
+
+interface PatientAppointmentRow {
+    id: string;
+    starts_at: string;
+    ends_at: string;
+    status: AppointmentStatus;
+    treatment_type: string | null;
+    doctor: { full_name: string } | { full_name: string }[] | null;
+    patient_note: string | null;
+    internal_note: string | null;
+    treatment_note: string | null;
 }
 
 export async function getPatientDetails(patientId: string) {
@@ -310,8 +384,7 @@ export async function getPatientDetails(patientId: string) {
     ]);
 
     return {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        appointments: (apptRes.data || []).map((row: any) => {
+        appointments: ((apptRes.data ?? []) as PatientAppointmentRow[]).map((row) => {
             const doctorData = (Array.isArray(row.doctor) ? row.doctor[0] : row.doctor) as { full_name: string } | null;
             return {
                 id: row.id,
@@ -325,18 +398,28 @@ export async function getPatientDetails(patientId: string) {
                 treatment_note: row.treatment_note,
             };
         }),
-        payments: (payRes.data || []).map((row: Partial<Payment>) => ({
+        payments: ((payRes.data ?? []) as Partial<Payment>[]).map((row) => ({
             id: row.id!,
             amount: Number(row.amount),
-            method: row.method || null,
-            status: row.status || null,
-            due_date: row.due_date || null,
-            appointment_id: row.appointment_id || null,
-            installment_count: row.installment_count || null,
-            installment_number: row.installment_number || null,
-            parent_payment_id: row.parent_payment_id || null,
+            method: row.method ?? null,
+            status: row.status ?? null,
+            due_date: row.due_date ?? null,
+            appointment_id: row.appointment_id ?? null,
+            installment_count: row.installment_count ?? null,
+            installment_number: row.installment_number ?? null,
+            parent_payment_id: row.parent_payment_id ?? null,
         })),
     };
+}
+
+interface TodayPaymentRow {
+    id: string;
+    amount: number;
+    status: string | null;
+    due_date: string | null;
+    patient_id: string;
+    appointment_id: string;
+    patients: { full_name: string; phone: string | null } | null;
 }
 
 export async function getTodayPayments(clinicId: string, date: string) {
@@ -357,8 +440,7 @@ export async function getTodayPayments(clinicId: string, date: string) {
         return [];
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data || []).map((row: any) => ({
+    return (data as unknown as TodayPaymentRow[]).map((row) => ({
         id: row.id,
         amount: Number(row.amount),
         status: row.status,
@@ -366,7 +448,7 @@ export async function getTodayPayments(clinicId: string, date: string) {
         patientName: row.patients?.full_name ?? "İsimsiz",
         patientPhone: row.patients?.phone ?? null,
         patientId: row.patient_id,
-        appointmentId: row.appointment_id
+        appointmentId: row.appointment_id,
     }));
 }
 
@@ -388,10 +470,8 @@ export async function getClinicSettings(clinicId: string): Promise<ClinicSetting
 export async function updateClinicSettings(clinicId: string, settings: Partial<ClinicSettings>) {
     if (!clinicId) return { error: "Clinic ID is required" };
 
-    // id ve clinic_id'nin güncellenmesini istemiyoruz
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { id, clinic_id, created_at, updated_at, ...updateData } = settings as any;
+    const { id: _id, clinic_id: _cid, created_at: _ca, updated_at: _ua, ...updateData } = settings as ClinicSettings & { id?: string };
 
     const { data, error } = await supabase
         .from("clinic_settings")
@@ -402,7 +482,6 @@ export async function updateClinicSettings(clinicId: string, settings: Partial<C
 
     return { data, error };
 }
-
 
 export async function getTreatmentDefinitions(clinicId: string): Promise<TreatmentDefinition[]> {
     if (!clinicId) return [];
@@ -416,7 +495,7 @@ export async function getTreatmentDefinitions(clinicId: string): Promise<Treatme
         console.error("getTreatmentDefinitions error:", error);
         return [];
     }
-    return data || [];
+    return data ?? [];
 }
 
 export async function upsertTreatmentDefinition(clinicId: string, definition: Partial<TreatmentDefinition>) {
@@ -439,4 +518,321 @@ export async function deleteTreatmentDefinition(id: string, clinicId: string) {
         .eq("clinic_id", clinicId);
 
     return { error };
+}
+
+// ─── Treatment Plans ────────────────────────────────────────────────────────
+
+export interface TreatmentPlanWithItems extends TreatmentPlan {
+    items: TreatmentPlanItem[];
+    patient?: { full_name: string; phone: string | null };
+    doctor?: { full_name: string } | null;
+}
+
+export async function getTreatmentPlans(clinicId: string, patientId?: string): Promise<TreatmentPlanWithItems[]> {
+    if (!clinicId) return [];
+    let query = supabase
+        .from("treatment_plans")
+        .select(`
+            id, clinic_id, patient_id, appointment_id, next_appointment_id,
+            doctor_id, created_by, status, title, note, total_estimated_amount,
+            created_at, updated_at,
+            patient:patients(full_name, phone),
+            doctor:users!doctor_id(full_name),
+            items:treatment_plan_items(
+                id, clinic_id, treatment_plan_id, patient_id, tooth_no,
+                procedure_name, description, quantity, unit_price, total_price,
+                assigned_doctor_id, status, sort_order, created_at, updated_at
+            )
+        `)
+        .eq("clinic_id", clinicId)
+        .order("created_at", { ascending: false });
+
+    if (patientId) query = query.eq("patient_id", patientId);
+
+    const { data, error } = await query;
+    if (error) { console.error("getTreatmentPlans error:", error); return []; }
+
+    return (data ?? []).map((plan) => ({
+        ...plan,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        patient: Array.isArray(plan.patient) ? plan.patient[0] : (plan.patient as any),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        doctor: Array.isArray(plan.doctor) ? plan.doctor[0] : (plan.doctor as any),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        items: ((plan.items as any[]) ?? []).sort((a: TreatmentPlanItem, b: TreatmentPlanItem) => a.sort_order - b.sort_order),
+    })) as TreatmentPlanWithItems[];
+}
+
+export async function createTreatmentPlan(
+    clinicId: string,
+    plan: {
+        patient_id: string;
+        appointment_id?: string | null;
+        doctor_id?: string | null;
+        created_by?: string | null;
+        status?: TreatmentPlan["status"];
+        title?: string | null;
+        note?: string | null;
+        total_estimated_amount?: number | null;
+    }
+): Promise<{ data: TreatmentPlan | null; error: unknown }> {
+    const { data, error } = await supabase
+        .from("treatment_plans")
+        .insert({ ...plan, clinic_id: clinicId, status: plan.status ?? "planned" })
+        .select("id, clinic_id, patient_id, appointment_id, next_appointment_id, doctor_id, created_by, status, title, note, total_estimated_amount, created_at, updated_at")
+        .single();
+    return { data, error };
+}
+
+export async function updateTreatmentPlan(
+    id: string,
+    clinicId: string,
+    updates: Partial<Pick<TreatmentPlan, "status" | "title" | "note" | "total_estimated_amount" | "next_appointment_id">>
+): Promise<{ error: unknown }> {
+    const { error } = await supabase
+        .from("treatment_plans")
+        .update(updates)
+        .eq("id", id)
+        .eq("clinic_id", clinicId);
+    return { error };
+}
+
+export async function deleteTreatmentPlan(id: string, clinicId: string): Promise<{ error: unknown }> {
+    const { error } = await supabase
+        .from("treatment_plans")
+        .delete()
+        .eq("id", id)
+        .eq("clinic_id", clinicId);
+    return { error };
+}
+
+export async function upsertTreatmentPlanItem(
+    clinicId: string,
+    item: Omit<Partial<TreatmentPlanItem>, "total_price" | "created_at" | "updated_at"> & {
+        treatment_plan_id: string;
+        patient_id: string;
+        procedure_name: string;
+        quantity: number;
+        unit_price: number;
+    }
+): Promise<{ data: TreatmentPlanItem | null; error: unknown }> {
+    const { data, error } = await supabase
+        .from("treatment_plan_items")
+        .upsert({ ...item, clinic_id: clinicId })
+        .select("id, clinic_id, treatment_plan_id, patient_id, tooth_no, procedure_name, description, quantity, unit_price, total_price, assigned_doctor_id, status, sort_order, created_at, updated_at")
+        .single();
+    return { data, error };
+}
+
+export async function deleteTreatmentPlanItem(id: string, clinicId: string): Promise<{ error: unknown }> {
+    const { error } = await supabase
+        .from("treatment_plan_items")
+        .delete()
+        .eq("id", id)
+        .eq("clinic_id", clinicId);
+    return { error };
+}
+
+/** Tedavi planı + isteğe bağlı sonraki randevuyu tek seferde oluşturur */
+export async function createTreatmentPlanWithAppointment(
+    clinicId: string,
+    plan: {
+        patient_id: string;
+        appointment_id?: string | null;
+        doctor_id?: string | null;
+        created_by?: string | null;
+        title?: string | null;
+        note?: string | null;
+        total_estimated_amount?: number | null;
+        items: Array<{
+            procedure_name: string;
+            tooth_no?: string | null;
+            description?: string | null;
+            quantity: number;
+            unit_price: number;
+            assigned_doctor_id?: string | null;
+            sort_order?: number;
+        }>;
+    },
+    nextAppointment?: {
+        starts_at: string;       // ISO string
+        ends_at: string;
+        treatment_type?: string | null;
+        doctor_id?: string | null;
+        channel?: AppointmentChannel;
+    } | null
+): Promise<{ planId: string | null; appointmentId: string | null; error: unknown }> {
+    // 1. Planı oluştur
+    const { data: planData, error: planError } = await createTreatmentPlan(clinicId, {
+        patient_id: plan.patient_id,
+        appointment_id: plan.appointment_id ?? null,
+        doctor_id: plan.doctor_id ?? null,
+        created_by: plan.created_by ?? null,
+        title: plan.title ?? null,
+        note: plan.note ?? null,
+        total_estimated_amount: plan.total_estimated_amount ?? null,
+        status: "planned",
+    });
+
+    if (planError || !planData) return { planId: null, appointmentId: null, error: planError };
+
+    // 2. Plan itemlarını ekle
+    if (plan.items.length > 0) {
+        const itemRows = plan.items.map((item, idx) => ({
+            clinic_id: clinicId,
+            treatment_plan_id: planData.id,
+            patient_id: plan.patient_id,
+            procedure_name: item.procedure_name,
+            tooth_no: item.tooth_no ?? null,
+            description: item.description ?? null,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            assigned_doctor_id: item.assigned_doctor_id ?? null,
+            sort_order: item.sort_order ?? idx,
+            status: "planned",
+        }));
+
+        const { error: itemsError } = await supabase.from("treatment_plan_items").insert(itemRows);
+        if (itemsError) return { planId: planData.id, appointmentId: null, error: itemsError };
+    }
+
+    // 3. Sonraki randevuyu oluştur (isteğe bağlı)
+    let appointmentId: string | null = null;
+    if (nextAppointment) {
+        const { data: apptData, error: apptError } = await supabase
+            .from("appointments")
+            .insert({
+                clinic_id: clinicId,
+                patient_id: plan.patient_id,
+                doctor_id: nextAppointment.doctor_id ?? plan.doctor_id ?? null,
+                starts_at: nextAppointment.starts_at,
+                ends_at: nextAppointment.ends_at,
+                treatment_type: nextAppointment.treatment_type ?? null,
+                channel: nextAppointment.channel ?? "phone",
+                status: "confirmed",
+            })
+            .select("id")
+            .single();
+
+        if (apptError) return { planId: planData.id, appointmentId: null, error: apptError };
+        appointmentId = apptData?.id ?? null;
+
+        // Planı next_appointment_id ile güncelle
+        if (appointmentId) {
+            await supabase
+                .from("treatment_plans")
+                .update({ next_appointment_id: appointmentId })
+                .eq("id", planData.id)
+                .eq("clinic_id", clinicId);
+        }
+    }
+
+    return { planId: planData.id, appointmentId, error: null };
+}
+
+// ─── Dental Chart ─────────────────────────────────────────────────────────────
+
+import type { DentalChart, TeethData } from "@/types/database";
+
+export async function getDentalChart(
+    patientId: string,
+    clinicId: string
+): Promise<DentalChart | null> {
+    if (!patientId || !clinicId) return null;
+    const { data, error } = await supabase
+        .from("dental_charts")
+        .select("id, clinic_id, patient_id, teeth_data, updated_at, updated_by")
+        .eq("patient_id", patientId)
+        .eq("clinic_id", clinicId)
+        .maybeSingle();
+    if (error) {
+        console.error("getDentalChart error:", error);
+        return null;
+    }
+    return data as DentalChart | null;
+}
+
+export async function saveDentalChart(
+    patientId: string,
+    clinicId: string,
+    updatedBy: string,
+    teethData: TeethData
+): Promise<{ data: DentalChart | null; error: unknown }> {
+    const { data, error } = await supabase
+        .from("dental_charts")
+        .upsert(
+            {
+                patient_id: patientId,
+                clinic_id: clinicId,
+                updated_by: updatedBy,
+                teeth_data: teethData,
+            },
+            { onConflict: "clinic_id,patient_id" }
+        )
+        .select("id, clinic_id, patient_id, teeth_data, updated_at, updated_by")
+        .single();
+    return { data: data as DentalChart | null, error };
+}
+
+// ─── Patient Anamnesis ─────────────────────────────────────────────────────────
+
+export async function getAnamnesis(
+    patientId: string,
+    clinicId: string
+): Promise<PatientAnamnesis | null> {
+    if (!patientId || !clinicId) return null;
+    const { data, error } = await supabase
+        .from("patient_anamnesis")
+        .select("*")
+        .eq("patient_id", patientId)
+        .eq("clinic_id", clinicId)
+        .maybeSingle();
+    if (error) {
+        console.error("getAnamnesis error:", error);
+        return null;
+    }
+    return data as PatientAnamnesis | null;
+}
+
+export async function saveAnamnesis(
+    patientId: string,
+    clinicId: string,
+    updatedBy: string,
+    anamnesis: Omit<PatientAnamnesis, "id" | "clinic_id" | "patient_id" | "updated_at" | "updated_by">
+): Promise<{ data: PatientAnamnesis | null; error: unknown }> {
+    const { data, error } = await supabase
+        .from("patient_anamnesis")
+        .upsert(
+            {
+                patient_id: patientId,
+                clinic_id: clinicId,
+                updated_by: updatedBy,
+                ...anamnesis,
+            },
+            { onConflict: "clinic_id,patient_id" }
+        )
+        .select("*")
+        .single();
+
+    // Geriye dönük uyumluluk: patients.allergies ve medical_alerts alanlarını güncelle
+    if (!error) {
+        const allergyText = [
+            ...(anamnesis.allergies_list ?? []),
+            anamnesis.allergies_other,
+        ].filter(Boolean).join(", ");
+        const conditionText = [
+            ...(anamnesis.systemic_conditions ?? []),
+            anamnesis.systemic_other,
+        ].filter(Boolean).join(", ");
+        await supabase
+            .from("patients")
+            .update({
+                allergies: allergyText || null,
+                medical_alerts: conditionText || null,
+            })
+            .eq("id", patientId)
+            .eq("clinic_id", clinicId);
+    }
+
+    return { data: data as PatientAnamnesis | null, error };
 }

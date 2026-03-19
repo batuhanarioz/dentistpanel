@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { CSVUploadModal } from "@/app/components/patients/CSVUploadModal";
 import { useClinic } from "@/app/context/ClinicContext";
+import { isPaid, isPending, isPartial } from "@/constants/payments";
 
 type PatientRow = {
   id: string;
@@ -315,10 +316,10 @@ export default function PatientsPage() {
         const completedCount = appointments.filter((a) => a.status === "completed").length;
         const cancelledCount = appointments.filter((a) => a.status === "cancelled" || a.status === "no_show").length;
         const totalPaid = payments
-          .filter((p) => p.status === "paid" || p.status === "Ödendi")
+          .filter((p) => isPaid(p.status))
           .reduce((s, p) => s + p.amount, 0);
         const totalPlanned = payments
-          .filter((p) => p.status === "pending" || p.status === "planned" || p.status === "partial" || p.status === "Beklemede" || p.status === "Kısmi")
+          .filter((p) => isPending(p.status) || isPartial(p.status))
           .reduce((s, p) => s + p.amount, 0);
 
         const todayStr = new Date().toLocaleDateString("tr-TR").replace(/\./g, "-");

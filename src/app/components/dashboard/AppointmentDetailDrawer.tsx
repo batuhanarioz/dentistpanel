@@ -3,6 +3,12 @@ import { supabase } from "@/lib/supabaseClient";
 import { STATUS_LABEL_MAP, STATUS_BADGE_CLASS } from "@/constants/dashboard";
 import { DashboardAppointment } from "@/hooks/useDashboard";
 import { Appointment } from "@/types/database";
+import { CreateTreatmentPlanModal } from "@/app/components/treatments/CreateTreatmentPlanModal";
+import { ToothChart } from "@/app/components/dental/ToothChart";
+import { useDentalChart } from "@/hooks/useDentalChart";
+import { AnamnesisSection } from "@/app/components/patients/AnamnesisSection";
+import { useAnamnesis, useAnamnesisMutation } from "@/hooks/useAnamnesis";
+import type { PatientAnamnesis } from "@/types/database";
 
 interface AppointmentDetailDrawerProps {
     appointmentId: string | null;
@@ -32,6 +38,24 @@ export function AppointmentDetailDrawer({
     const [saving, setSaving] = useState(false);
     const [localTreatmentNote, setLocalTreatmentNote] = useState("");
     const [localEstimatedAmount, setLocalEstimatedAmount] = useState("");
+    const [showCreatePlan, setShowCreatePlan] = useState(false);
+    const [showDentalChart, setShowDentalChart] = useState(false);
+    const [presentChartDrawer, setPresentChartDrawer] = useState(false);
+    const [showAnamnesis, setShowAnamnesis] = useState(false);
+
+    const { data: dentalChart } = useDentalChart(appointment?.patient_id ?? undefined);
+    const { data: anamnesis, isLoading: anamnesisLoading } = useAnamnesis(appointment?.patient_id ?? undefined);
+    const saveAnamnesisMutation = useAnamnesisMutation(appointment?.patient_id ?? undefined);
+    const handleSaveAnamnesis = async (
+        draft: Omit<PatientAnamnesis, "id" | "clinic_id" | "patient_id" | "updated_at" | "updated_by">
+    ) => { await saveAnamnesisMutation.mutateAsync(draft); };
+
+    // Auto-expand chart section when patient has chart data
+    useEffect(() => {
+        if (dentalChart && Object.keys(dentalChart.teeth_data ?? {}).length > 0) {
+            setShowDentalChart(true);
+        }
+    }, [dentalChart]);
 
     const fetchDetail = useCallback(async (id: string) => {
         setLoading(true);
@@ -245,11 +269,105 @@ export function AppointmentDetailDrawer({
                                         {appointment.patient_note || "Bu randevu için eklenmiş bir not bulunmuyor."}
                                     </div>
                                 </div>
+
+                                {/* Anamnez */}
+                                <div className="rounded-2xl border border-slate-100 overflow-hidden">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAnamnesis(v => !v)}
+                                        className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-amber-50 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className="h-5 w-5 rounded-md bg-amber-100 flex items-center justify-center">
+                                                <svg className="h-3 w-3 text-amber-700" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+                                                </svg>
+                                            </span>
+                                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Anamnez</span>
+                                            {anamnesis && (anamnesis.systemic_conditions.length > 0 || anamnesis.allergies_list.length > 0 || anamnesis.uses_anticoagulants || anamnesis.has_pacemaker) && (
+                                                <span className="px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[8px] font-black">Dikkat</span>
+                                            )}
+                                        </div>
+                                        <svg className={`h-3.5 w-3.5 text-slate-400 transition-transform ${showAnamnesis ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                        </svg>
+                                    </button>
+                                    {showAnamnesis && appointment?.patient_id && (
+                                        <div className="p-4 bg-white">
+                                            <AnamnesisSection
+                                                patientId={appointment.patient_id}
+                                                data={anamnesis}
+                                                isLoading={anamnesisLoading}
+                                                onSave={handleSaveAnamnesis}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Diş Şeması */}
+                                <div className="rounded-2xl border border-slate-100 overflow-hidden">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowDentalChart(v => !v)}
+                                        className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-emerald-50 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className="h-5 w-5 rounded-md bg-emerald-100 flex items-center justify-center">
+                                                <svg className="h-3 w-3 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H7a2 2 0 00-2 2v1a4 4 0 004 4h2a4 4 0 004-4V5a2 2 0 00-2-2h-2zM9 3v2m6-2v2M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6M9 21h6" />
+                                                </svg>
+                                            </span>
+                                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Diş Şeması</span>
+                                            {dentalChart && Object.keys(dentalChart.teeth_data ?? {}).length > 0 && (
+                                                <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[8px] font-black">
+                                                    {Object.keys(dentalChart.teeth_data).length} diş
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {dentalChart && Object.keys(dentalChart.teeth_data ?? {}).length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setPresentChartDrawer(true); }}
+                                                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#007f6e] text-white text-[8px] font-black uppercase tracking-widest hover:bg-[#006d5e] transition-colors"
+                                                >
+                                                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                                                    </svg>
+                                                    Göster
+                                                </button>
+                                            )}
+                                            <svg className={`h-3.5 w-3.5 text-slate-400 transition-transform ${showDentalChart ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                            </svg>
+                                        </div>
+                                    </button>
+                                    {showDentalChart && (
+                                        <div className="p-3 bg-white">
+                                            <ToothChart
+                                                teethData={dentalChart?.teeth_data ?? {}}
+                                                editMode={false}
+                                                patientName={appointment.patients?.full_name ?? undefined}
+                                                presentationOpen={presentChartDrawer}
+                                                onPresentationClose={() => setPresentChartDrawer(false)}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
                         {/* Footer Actions */}
-                        <div className="mt-auto border-t p-6 bg-slate-50/50">
+                        <div className="mt-auto border-t p-6 bg-slate-50/50 space-y-3">
+                            <button
+                                onClick={() => setShowCreatePlan(true)}
+                                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-teal-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-teal-100 hover:bg-teal-700 transition-all active:scale-[0.98]"
+                            >
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+                                </svg>
+                                Tedavi Planı Ekle
+                            </button>
                             <button
                                 onClick={() => window.open(`https://wa.me/${appointment.patients?.phone?.replace(/\D/g, "")}`, "_blank")}
                                 className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-4 text-sm font-bold text-white shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all active:scale-[0.98]"
@@ -272,6 +390,18 @@ export function AppointmentDetailDrawer({
                     </div>
                 )}
             </div>
+
+            {appointment && (
+                <CreateTreatmentPlanModal
+                    open={showCreatePlan}
+                    onClose={() => setShowCreatePlan(false)}
+                    onSuccess={() => setShowCreatePlan(false)}
+                    patientId={appointment.patient_id}
+                    patientName={appointment.patients?.full_name ?? ""}
+                    appointmentId={appointment.id}
+                    doctorId={appointment.doctor_id ?? undefined}
+                />
+            )}
         </>
     );
 }

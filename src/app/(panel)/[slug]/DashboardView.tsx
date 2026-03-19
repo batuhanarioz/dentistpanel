@@ -10,7 +10,7 @@ import { DashboardAnalytics } from "@/app/components/dashboard/DashboardAnalytic
 import { GuidedTour, restartTour } from "@/app/components/GuidedTour";
 import { useClinic } from "@/app/context/ClinicContext";
 import { QuickPaymentModal } from "@/app/components/dashboard/QuickPaymentModal";
-import { TreatmentNoteModal } from "@/app/components/dashboard/TreatmentNoteModal";
+import { TreatmentActionModal } from "@/app/components/dashboard/TreatmentActionModal";
 import { SmartAssistantSection } from "@/app/components/dashboard/SmartAssistantSection";
 
 export default function DashboardView() {
@@ -36,7 +36,7 @@ export default function DashboardView() {
 
     const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
     const [paymentAppointment, setPaymentAppointment] = useState<{ id: string, patientName: string, amount: number, patientId?: string, itemId?: string, code?: string } | null>(null);
-    const [noteAppointment, setNoteAppointment] = useState<{ id: string; patientName: string; itemId?: string; } | null>(null);
+    const [noteAppointment, setNoteAppointment] = useState<{ id: string; patientId: string; patientName: string; itemId?: string; } | null>(null);
 
     const handleReminderClick = (appointmentId: string) => {
         const appt = appointments.find((a) => a.id === appointmentId);
@@ -125,6 +125,7 @@ export default function DashboardView() {
                     })}
                     onTreatmentNoteClick={(item) => setNoteAppointment({
                         id: item.appointmentId,
+                        patientId: item.patientId,
                         patientName: item.patientName,
                         itemId: item.id
                     })}
@@ -165,10 +166,11 @@ export default function DashboardView() {
             )}
 
             {noteAppointment && (
-                <TreatmentNoteModal
+                <TreatmentActionModal
                     open={!!noteAppointment}
                     onClose={() => setNoteAppointment(null)}
                     appointmentId={noteAppointment.id}
+                    patientId={noteAppointment.patientId}
                     patientName={noteAppointment.patientName}
                     checklistItemId={noteAppointment.itemId}
                     onSuccess={() => {

@@ -34,12 +34,15 @@ export function PatientListTable({ patients, loading, onSelectPatient }: Patient
                             <th className="px-6 py-4">Hasta</th>
                             <th className="px-6 py-4">İletişim Bilgileri</th>
                             <th className="px-6 py-4">Kayıt Tarihi</th>
-                            <th className="px-6 py-4 text-right">Aksiyon</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {patients.map((p) => (
-                            <tr key={p.id} className="group transition-colors hover:bg-slate-50/80">
+                        {patients.map((p) => {
+                            const age = p.birth_date
+                                ? Math.floor((Date.now() - new Date(p.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+                                : null;
+                            return (
+                            <tr key={p.id} onClick={() => onSelectPatient(p)} className="group cursor-pointer transition-colors hover:bg-slate-50/80">
                                 <td className="whitespace-nowrap px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 text-xs font-black text-white shadow-sm shadow-emerald-100 uppercase">
@@ -49,8 +52,10 @@ export function PatientListTable({ patients, loading, onSelectPatient }: Patient
                                             <div className="font-bold text-slate-900 group-hover:text-teal-600 transition-colors">
                                                 {p.full_name}
                                             </div>
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                                                {p.birth_date ? p.birth_date.slice(0, 10) : "Doğum tarihi yok"}
+                                            <div className="text-[10px] font-bold text-slate-400 tracking-tight">
+                                                {p.birth_date
+                                                    ? `${new Date(p.birth_date).toLocaleDateString("tr-TR")} · ${age} yaş`
+                                                    : "Doğum tarihi yok"}
                                             </div>
                                         </div>
                                     </div>
@@ -64,16 +69,9 @@ export function PatientListTable({ patients, loading, onSelectPatient }: Patient
                                 <td className="whitespace-nowrap px-6 py-4 text-slate-500 text-[11px] font-bold">
                                     {p.created_at ? new Date(p.created_at).toLocaleDateString("tr-TR") : "-"}
                                 </td>
-                                <td className="whitespace-nowrap px-6 py-4 text-right">
-                                    <button
-                                        onClick={() => onSelectPatient(p)}
-                                        className="rounded-xl border bg-white px-4 py-2 text-xs font-black text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-95"
-                                    >
-                                        Detayları Gör
-                                    </button>
-                                </td>
                             </tr>
-                        ))}
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

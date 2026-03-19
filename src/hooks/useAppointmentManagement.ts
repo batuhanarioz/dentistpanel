@@ -7,7 +7,7 @@ import { useClinic } from "@/app/context/ClinicContext";
 import { CHANNEL_LABEL_MAP } from "@/constants/dashboard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAppointmentsForDate, getDoctors } from "@/lib/api";
-import { patientSchema } from "@/lib/validations/patient";
+import { patientSchema, toPatientDbPayload } from "@/lib/validations/patient";
 import { internalAppointmentSchema } from "@/lib/validations/appointment";
 
 export type CalendarAppointment = {
@@ -52,14 +52,12 @@ export interface AppointmentFormState {
     status: AppointmentStatus;
     patientNote: string;
     treatmentNote: string;
-    statusResult?: string; // result yerine statusResult kullanabiliriz ama mevcut yapıya sadık kalalım
     allergies: string;
     medicalAlerts: string;
     tags: string;
     conversationId: string;
     messageId: string;
     estimatedAmount: string;
-    result: string;
 }
 
 export interface PatientSearchResult {
@@ -156,7 +154,6 @@ export function useAppointmentManagement(initialData?: {
         conversationId: "",
         messageId: "",
         estimatedAmount: "",
-        result: "" as "" | "GERCEKLESTI" | "IPTAL",
     });
 
     const [patientMatchInfo, setPatientMatchInfo] = useState<string | null>(null);
@@ -173,7 +170,7 @@ export function useAppointmentManagement(initialData?: {
             doctor: doctors.length > 1 ? doctors[1] : "", channel: "web", durationMinutes: 30,
             treatmentType: "", status: "confirmed", patientNote: "", treatmentNote: "",
             allergies: "", medicalAlerts: "", tags: "", conversationId: "", messageId: "",
-            estimatedAmount: "", result: "",
+            estimatedAmount: "",
         });
         setPhoneNumber("");
         setPatientSearch("");
@@ -230,7 +227,7 @@ export function useAppointmentManagement(initialData?: {
             doctor: doctors.length > 1 ? doctors[1] : "", channel: "web", durationMinutes: 30,
             treatmentType: "", status: "confirmed", patientNote: "", treatmentNote: "",
             allergies: "", medicalAlerts: "", tags: "", conversationId: "", messageId: "",
-            estimatedAmount: "", result: "",
+            estimatedAmount: "",
         });
         setPhoneNumber("");
         setSelectedPatientId("");
@@ -264,7 +261,6 @@ export function useAppointmentManagement(initialData?: {
             conversationId: appt.sourceConversationId || "",
             messageId: appt.sourceMessageId || "",
             estimatedAmount: appt.estimatedAmount?.toString() || "",
-            result: "",
         });
         const fullPhone = appt.phone || "";
         let cleanPhone = fullPhone.replace(/\D/g, "");
@@ -319,7 +315,7 @@ export function useAppointmentManagement(initialData?: {
 
             const { data: p, error: pError } = await supabase.from("patients").insert({
                 clinic_id: clinic.clinicId,
-                ...patientValidation.data
+                ...toPatientDbPayload(patientValidation.data)
             }).select("id").single();
             if (pError) { alert("Hasta kaydı yapılamadı: " + pError.message); return; }
             patientId = p.id;
@@ -365,9 +361,6 @@ export function useAppointmentManagement(initialData?: {
             tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
             estimated_amount: form.estimatedAmount ? parseFloat(form.estimatedAmount) : null,
         };
-
-        if (editing?.id && form.result === "GERCEKLESTI") apptData.status = "completed" as AppointmentStatus;
-        if (editing?.id && form.result === "IPTAL") apptData.status = "cancelled" as AppointmentStatus;
 
         const apptValidation = internalAppointmentSchema.safeParse(apptData);
         if (!apptValidation.success) {

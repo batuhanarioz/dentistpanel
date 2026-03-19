@@ -11,9 +11,14 @@ const workingHoursSchema = z.record(
     dayScheduleSchema
 );
 
+const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 export const createClinicSchema = z.object({
     name: z.string().min(2, "Klinik adı en az 2 karakter olmalıdır"),
-    slug: z.string().min(2, "Slug en az 2 karakter olmalıdır"),
+    slug: z.string()
+        .min(2, "Slug en az 2 karakter olmalıdır")
+        .max(50, "Slug en fazla 50 karakter olabilir")
+        .regex(slugRegex, "Slug yalnızca küçük harf, rakam ve tire içerebilir (örn. klinik-adi)"),
     phone: z.string().optional().nullable(),
     email: z.string().email("Geçersiz e-posta adresi"),
     address: z.string().optional().nullable(),

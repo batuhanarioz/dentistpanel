@@ -193,7 +193,7 @@ function Modals({
         isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)}
         payment={selectedPayment} status={detailStatus} setStatus={setDetailStatus}
         amount={detailAmount} setAmount={setDetailAmount} method={detailMethod} setMethod={setDetailMethod}
-        onUpdate={handleUpdateStatus} onDelete={handleDelete}
+        onUpdate={handleUpdateStatus} onCancel={handleDelete}
       />
     </>
   );

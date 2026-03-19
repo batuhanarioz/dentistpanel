@@ -2,8 +2,15 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { UserRole } from "@/types/database";
 import { createClinicSchema } from "@/lib/validations/clinic";
+import { registerLimiter, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
+    const ip = getClientIp(req);
+    const { success } = await registerLimiter.limit(ip);
+    if (!success) {
+        return NextResponse.json({ error: "Çok fazla kayıt denemesi. 15 dakika sonra tekrar deneyin." }, { status: 429 });
+    }
+
     try {
         const body = await req.json().catch(() => ({}));
 

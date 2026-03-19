@@ -4,9 +4,14 @@ function makeQueryClient() {
     return new QueryClient({
         defaultOptions: {
             queries: {
-                // With SSR, we usually want to set some default staleTime
-                // above 0 to avoid refetching immediately on the client
-                staleTime: 60 * 1000,
+                // SSR hydration için 0'dan büyük olmalı.
+                // 5 dakika: doktorlar, tedavi tipleri gibi nadiren değişen data için yeterli.
+                // Randevu/ödeme gibi sık değişen sorgular kendi staleTime'larını override eder.
+                staleTime: 5 * 60 * 1000,
+                // Unused cache 10 dakika bellekte kalsın (tab değiştirince yeniden fetch olmasın)
+                gcTime: 10 * 60 * 1000,
+                // Network hatalarında 1 kez retry yeterli (default 3 = 3x yavaş UX)
+                retry: 1,
             },
         },
     });

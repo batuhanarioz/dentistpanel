@@ -14,3 +14,41 @@ export function localDateStr(date?: Date): string {
   // en-CA format is YYYY-MM-DD
   return formatter.format(d);
 }
+
+export type PaymentViewMode = "day" | "week" | "month" | "range";
+
+/**
+ * Ödeme listesi görünüm moduna göre [startDate, endDate) aralığı hesaplar.
+ * endDate exclusive (lt ile kullanılır), startDate inclusive (gte ile kullanılır).
+ */
+export function paymentDateRange(
+  viewMode: PaymentViewMode,
+  selectedDate: string,
+  startDate: string,
+  endDate: string,
+): { s: string; e: string } {
+  if (viewMode === "range") {
+    const d = new Date(endDate);
+    d.setDate(d.getDate() + 1);
+    return { s: startDate, e: localDateStr(d) };
+  }
+
+  const base = new Date(selectedDate);
+  let start = new Date(base);
+  let end = new Date(base);
+
+  if (viewMode === "day") {
+    end.setDate(end.getDate() + 1);
+  } else if (viewMode === "week") {
+    const diff = (base.getDay() + 6) % 7;
+    start.setDate(start.getDate() - diff);
+    end = new Date(start);
+    end.setDate(end.getDate() + 7);
+  } else {
+    // month
+    start = new Date(base.getFullYear(), base.getMonth(), 1);
+    end = new Date(base.getFullYear(), base.getMonth() + 1, 1);
+  }
+
+  return { s: localDateStr(start), e: localDateStr(end) };
+}

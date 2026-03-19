@@ -1,55 +1,22 @@
 import React from "react";
 import { CHANNEL_OPTIONS } from "@/constants/appointments";
-import { AppointmentFormState, CalendarAppointment } from "@/hooks/useAppointmentManagement";
+import { AppointmentFormState } from "@/hooks/useAppointmentManagement";
 import { AppointmentStatus } from "@/types/database";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
 
 interface AppointmentDetailsProps {
     form: AppointmentFormState;
     setForm: React.Dispatch<React.SetStateAction<AppointmentFormState>>;
-    editing: CalendarAppointment | null;
     doctors: string[];
     conflictWarning: string | null;
     today: string;
 }
 
 export function AppointmentDetails({
-    form, setForm, editing, doctors, conflictWarning, today
+    form, setForm, doctors, conflictWarning, today
 }: AppointmentDetailsProps) {
     return (
         <>
-            {editing && (() => {
-                const start = new Date(
-                    `${editing.date}T${editing.startHour.toString().padStart(2, "0")}:${(editing.startMinute ?? 0).toString().padStart(2, "0")}:00`
-                );
-                const end = new Date(start.getTime() + editing.durationMinutes * 60000);
-                const isPast = end < new Date();
-                if (!isPast) return null;
-                return (
-                    <div className="space-y-1 md:col-span-2">
-                        <label className="block text-xs font-medium text-slate-700">
-                            Randevu sonucu
-                        </label>
-                        <select
-                            value={form.result}
-                            onChange={(e) =>
-                                setForm((f) => ({
-                                    ...f,
-                                    result: e.target.value as "" | "GERCEKLESTI" | "IPTAL",
-                                }))
-                            }
-                            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
-                        >
-                            <option value="">
-                                Otomatik (varsayılan: Randevu gerçekleştirildi)
-                            </option>
-                            <option value="GERCEKLESTI">Randevu gerçekleştirildi</option>
-                            <option value="IPTAL">Randevu iptal edildi</option>
-                        </select>
-                    </div>
-                );
-            })()}
-
             {/* Moved to DateTimeSection */}
 
             <div className="space-y-1">

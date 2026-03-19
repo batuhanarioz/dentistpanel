@@ -4,7 +4,8 @@ import { UserRole } from "@/types/database";
 import { useClinic } from "@/app/context/ClinicContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAllPatients, getPatientDetails } from "@/lib/api";
-import { updatePatientSchema } from "@/lib/validations/patient";
+import { patientSchema, updatePatientSchema, toPatientDbPayload } from "@/lib/validations/patient";
+import type { z } from "zod";
 import * as Sentry from "@sentry/nextjs";
 
 export type PatientRow = {
@@ -57,6 +58,16 @@ export function usePatients() {
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
+
+    // Total count (for stats card)
+    const { data: totalCount = 0 } = useQuery({
+        queryKey: ["patientsCount", clinic.clinicId],
+        queryFn: async () => {
+            const { count } = await supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", clinic.clinicId!);
+            return count ?? 0;
+        },
+        enabled: !!clinic.clinicId,
+    });
 
     // Fetch Patients with Pagination
     const { data: patientsData, isLoading: loading, error: queryError } = useQuery({
@@ -130,6 +141,25 @@ export function usePatients() {
         URL.revokeObjectURL(url);
     };
 
+    const createPatient = async (data: z.infer<typeof patientSchema>) => {
+        if (!clinic.clinicId) return false;
+        const validation = patientSchema.safeParse(data);
+        if (!validation.success) {
+            alert("Geçersiz bilgiler: " + validation.error.issues[0].message);
+            return false;
+        }
+        const payload = toPatientDbPayload(validation.data);
+        const { error } = await supabase.from("patients").insert({ ...payload, clinic_id: clinic.clinicId });
+        if (error) {
+            Sentry.captureException(error, { tags: { section: "patients", action: "create" } });
+            alert(error.message);
+            return false;
+        }
+        queryClient.invalidateQueries({ queryKey: ["patients"] });
+        queryClient.invalidateQueries({ queryKey: ["patientsCount"] });
+        return true;
+    };
+
     const deletePatient = async (id: string) => {
         if (!clinic.clinicId) return false;
         const { error } = await supabase.from("patients").delete().eq("id", id).eq("clinic_id", clinic.clinicId);
@@ -151,7 +181,7 @@ export function usePatients() {
             return false;
         }
 
-        const { error } = await supabase.from("patients").update(validation.data).eq("id", id).eq("clinic_id", clinic.clinicId);
+        const { error } = await supabase.from("patients").update(toPatientDbPayload(validation.data as Parameters<typeof toPatientDbPayload>[0])).eq("id", id).eq("clinic_id", clinic.clinicId);
         if (error) {
             Sentry.captureException(error, { tags: { section: "patients", action: "update" } });
             alert(error.message);
@@ -166,7 +196,7 @@ export function usePatients() {
         loading, error, search, setSearch, currentPage, setCurrentPage, selectedPatient,
         appointments, payments, appointmentsLoading, detailOpen, setDetailOpen,
         patients, filteredPatients, totalPages, currentPagePatients, handleSelectPatient,
-        downloadPatientsCsv, deletePatient, updatePatient,
+        downloadPatientsCsv, createPatient, deletePatient, updatePatient, totalCount,
         isAdmin: clinic.userRole === UserRole.ADMIN || clinic.userRole === UserRole.SUPER_ADMIN
     };
 }

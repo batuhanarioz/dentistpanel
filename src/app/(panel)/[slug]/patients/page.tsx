@@ -4,6 +4,7 @@ import { usePatients } from "@/hooks/usePatients";
 import { PatientListTable } from "@/app/components/patients/PatientListTable";
 import { PatientDetailModal } from "@/app/components/patients/PatientDetailModal";
 import { CSVUploadModal } from "@/app/components/patients/CSVUploadModal";
+import { AddPatientModal } from "@/app/components/patients/AddPatientModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -27,13 +28,22 @@ export default function PatientsPage() {
     currentPagePatients,
     handleSelectPatient,
     downloadPatientsCsv,
+    createPatient,
     deletePatient,
     updatePatient,
+    totalCount,
     isAdmin
   } = usePatients();
 
   const queryClient = useQueryClient();
   const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const thisMonthCount = patients.filter(p => {
+    const d = new Date(p.created_at);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
 
   const refreshPatients = () => {
     queryClient.invalidateQueries({ queryKey: ["patients"] });
@@ -42,7 +52,7 @@ export default function PatientsPage() {
   return (
     <div className="space-y-6 italic-none">
       {/* Cards Section */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border bg-white p-4 shadow-sm transition-all hover:shadow-md">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 shadow-sm shadow-emerald-100">
@@ -52,7 +62,7 @@ export default function PatientsPage() {
             </div>
             <div>
               <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Toplam Hasta</p>
-              <p className="text-lg font-black text-slate-900">{patients.length}</p>
+              <p className="text-lg font-black text-slate-900">{totalCount}</p>
             </div>
           </div>
         </div>
@@ -60,25 +70,12 @@ export default function PatientsPage() {
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm shadow-indigo-100">
               <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
             </div>
             <div>
-              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Arama Sonucu</p>
-              <p className="text-lg font-black text-slate-900">{filteredPatients.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-2xl border bg-white p-4 shadow-sm col-span-2 md:col-span-1 transition-all hover:shadow-md">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-sm shadow-amber-100">
-              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Aktif Sayfa</p>
-              <p className="text-lg font-black text-slate-900">{currentPage} <span className="text-sm font-normal text-slate-400">/ {totalPages}</span></p>
+              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Bu Ay Yeni</p>
+              <p className="text-lg font-black text-slate-900">{thisMonthCount}</p>
             </div>
           </div>
         </div>
@@ -107,28 +104,39 @@ export default function PatientsPage() {
               />
             </div>
 
-            {isAdmin && (
-              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-                <button
-                  onClick={() => setIsCSVModalOpen(true)}
-                  className="w-full md:w-auto h-10 flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-100 bg-white px-6 text-xs font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 hover:border-emerald-200 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                  </svg>
-                  CSV Olarak Yükle
-                </button>
-                <button
-                  onClick={downloadPatientsCsv}
-                  className="w-full md:w-auto h-10 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-6 text-xs font-bold text-white shadow-lg shadow-emerald-100 hover:from-emerald-700 hover:to-teal-600 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12L12 16.5m0 0L16.5 12M12 16.5V3" />
-                  </svg>
-                  CSV Olarak İndir
-                </button>
-              </div>
-            )}
+            <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="w-full md:w-auto h-10 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-6 text-xs font-bold text-white shadow-lg shadow-emerald-100 hover:from-emerald-700 hover:to-teal-600 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Yeni Hasta Ekle
+              </button>
+              {isAdmin && (
+                <>
+                  <button
+                    onClick={() => setIsCSVModalOpen(true)}
+                    className="w-full md:w-auto h-10 flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-100 bg-white px-6 text-xs font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 hover:border-emerald-200 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    CSV Yükle
+                  </button>
+                  <button
+                    onClick={downloadPatientsCsv}
+                    className="w-full md:w-auto h-10 flex items-center justify-center gap-2 rounded-xl border-2 border-slate-100 bg-white px-6 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12L12 16.5m0 0L16.5 12M12 16.5V3" />
+                    </svg>
+                    CSV İndir
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -191,6 +199,15 @@ export default function PatientsPage() {
         isOpen={isCSVModalOpen}
         onClose={() => setIsCSVModalOpen(false)}
         onUploadComplete={refreshPatients}
+      />
+      <AddPatientModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={async (data) => {
+          const ok = await createPatient(data);
+          if (ok) refreshPatients();
+          return ok;
+        }}
       />
     </div>
   );
