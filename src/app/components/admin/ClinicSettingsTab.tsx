@@ -80,6 +80,7 @@ export function ClinicSettingsTab() {
     useEffect(() => {
         if (clinic.clinicSettings) {
             setLocalSettings(clinic.clinicSettings);
+            setChannels(clinic.clinicSettings.appointment_channels ?? []);
         }
     }, [clinic.clinicSettings]);
 
@@ -163,16 +164,20 @@ export function ClinicSettingsTab() {
         if (!clinic.clinicId || !localSettings) return;
         setIsLoading(true);
         setSaveMessage(null);
-
-        const { error } = await updateClinicSettings(clinic.clinicId, localSettings);
-
-        if (error) {
+        try {
+            // appointment_channels'ı channels state'inden al — localSettings'teki eski değeri ezmesin
+            const { error } = await updateClinicSettings(clinic.clinicId, { ...localSettings, appointment_channels: channels });
+            if (error) {
+                setSaveMessage({ type: 'error', text: "Ayarlar kaydedilirken bir hata oluştu." });
+            } else {
+                setSaveMessage({ type: 'success', text: "Ayarlar başarıyla kaydedildi." });
+                setTimeout(() => setSaveMessage(null), 3000);
+            }
+        } catch {
             setSaveMessage({ type: 'error', text: "Ayarlar kaydedilirken bir hata oluştu." });
-        } else {
-            setSaveMessage({ type: 'success', text: "Ayarlar başarıyla kaydedildi." });
-            setTimeout(() => setSaveMessage(null), 3000);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     const handleAddChannel = () => {
@@ -191,14 +196,19 @@ export function ClinicSettingsTab() {
         if (!clinic.clinicId) return;
         setIsLoading(true);
         setSaveMessage(null);
-        const { error } = await updateClinicSettings(clinic.clinicId, { appointment_channels: channels } as Partial<ClinicSettings>);
-        if (error) {
+        try {
+            const { error } = await updateClinicSettings(clinic.clinicId, { appointment_channels: channels } as Partial<ClinicSettings>);
+            if (error) {
+                setSaveMessage({ type: 'error', text: "Kanal ayarları kaydedilemedi." });
+            } else {
+                setSaveMessage({ type: 'success', text: "Kanal ayarları kaydedildi." });
+                setTimeout(() => setSaveMessage(null), 3000);
+            }
+        } catch {
             setSaveMessage({ type: 'error', text: "Kanal ayarları kaydedilemedi." });
-        } else {
-            setSaveMessage({ type: 'success', text: "Kanal ayarları kaydedildi." });
-            setTimeout(() => setSaveMessage(null), 3000);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     const updateMessageTemplate = (type: MessageType, text: string) => {
