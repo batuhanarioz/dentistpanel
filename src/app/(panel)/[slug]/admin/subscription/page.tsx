@@ -22,7 +22,7 @@ import {
 
 export default function SubscriptionPage() {
     const clinic = useClinic();
-    usePageHeader("Abonelik", "Paket yönetimi ve faturalandırma takibi");
+    usePageHeader("Abonelik");
 
     const [billingCycle, setBillingCycle] = useState<"monthly" | "annual" | "pilot">("annual");
     const [payments, setPayments] = useState<PaymentHistory[]>([]);

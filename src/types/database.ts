@@ -2,23 +2,26 @@
 // DB enum değerleri Türkçe adlar kullanıyor (DOKTOR, SEKRETER, FINANS)
 
 export enum UserRole {
-  SUPER_ADMIN  = "SUPER_ADMIN",
-  ADMIN        = "ADMIN",
-  ADMIN_DOCTOR = "ADMIN_DOCTOR",
-  DOKTOR       = "DOKTOR",
-  SEKRETER     = "SEKRETER",
-  FINANS       = "FINANS",
+  SUPER_ADMIN = "SUPER_ADMIN",
+  ADMIN       = "ADMIN",
+  DOKTOR      = "DOKTOR",
+  SEKRETER    = "SEKRETER",
+  FINANS      = "FINANS",
 }
 
 export const USER_ROLES = Object.values(UserRole);
 
 export type AppointmentStatus =
   | "confirmed"
+  | "scheduled"
+  | "arrived"
+  | "in_treatment"
+  | "completed"
   | "cancelled"
-  | "no_show"
-  | "completed";
+  | "no_show";
 
-export type AppointmentChannel = "whatsapp" | "web" | "phone" | "walk_in";
+/** Dinamik kanal — DB'de text sütunu, değer klinik ayarlarından gelir. */
+export type AppointmentChannel = string;
 
 export type PaymentStatus =
   | "paid"
@@ -71,6 +74,8 @@ export interface ClinicSettings {
     SATISFACTION: AssistantTiming;
     PAYMENT: AssistantTiming;
   };
+  /** Kliniğe özel randevu kanalları. Boş dizi = tüm randevular "Belirtilmedi". */
+  appointment_channels: string[];
   created_at: string;
   updated_at: string;
 }

@@ -35,7 +35,7 @@ export function PatientNotes({ form, setForm }: PatientNotesProps) {
                     placeholder="Randevu sonrası doktor tarafından doldurulur..."
                 />
             </div>
-            {(form.channel === "WhatsApp" || form.channel === "whatsapp") && (
+            {form.channel === "whatsapp" && (
                 <>
                     <div className="space-y-1">
                         <label className="block text-xs font-medium text-slate-700">

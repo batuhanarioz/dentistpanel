@@ -90,13 +90,6 @@ const statusStyles: Record<string, string> = {
     no_show: "bg-rose-50 border-l-rose-700 text-rose-900 hover:bg-rose-100 grayscale",
 };
 
-const channelMap: Record<string, string> = {
-    web: "Web",
-    whatsapp: "WhatsApp",
-    phone: "Telefon",
-    walk_in: "Yüz yüze",
-};
-
 const statusMap: Record<string, { label: string; class: string }> = {
     confirmed: { label: "Onaylı", class: "bg-emerald-100 text-emerald-700 border-emerald-200" },
     completed: { label: "Tamamlandı", class: "bg-blue-100 text-blue-700 border-blue-200" },
@@ -105,12 +98,6 @@ const statusMap: Record<string, { label: string; class: string }> = {
     no_show: { label: "Gelmedi", class: "bg-rose-100 text-rose-700 border-rose-200" },
 };
 
-const channelBadgeClass: Record<string, string> = {
-    WhatsApp: "bg-green-50 text-green-700 border-green-200",
-    Web: "bg-sky-50 text-sky-700 border-sky-200",
-    Telefon: "bg-violet-50 text-violet-700 border-violet-200",
-    "Yüz yüze": "bg-orange-50 text-orange-700 border-orange-200",
-};
 
 interface CalendarViewProps {
     clinicId: string;
@@ -119,6 +106,8 @@ interface CalendarViewProps {
 }
 
 export default function CalendarView({ clinicId, initialView = 'week', initialDisplayMode = 'grid' }: CalendarViewProps) {
+    const getChannelLabel = (value: string) => value || "Belirtilmedi";
+
     // --- State ---
     const [currentDate, setCurrentDate] = useState(new Date());
     const [view, setView] = useState<ViewType>(initialView);
@@ -168,7 +157,7 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
             const { data: users } = await supabase
                 .from('users')
                 .select('id, full_name')
-                .in('role', ['DOCTOR', 'ADMIN_DOCTOR']);
+                .in('role', ['DOKTOR']);
 
             if (users) setDoctors(users);
         }
@@ -471,8 +460,8 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
                                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold border ${statusMap[selectedEvent.status]?.class}`}>
                                     {statusMap[selectedEvent.status]?.label}
                                 </span>
-                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${channelBadgeClass[selectedEvent.channel] || "bg-slate-100"}`}>
-                                    {selectedEvent.channel}
+                                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border bg-slate-50 text-slate-700 border-slate-200">
+                                    {getChannelLabel(selectedEvent.channel)}
                                 </span>
                             </div>
                         </div>
@@ -633,8 +622,8 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
                                 {!loading && events.map(event => {
                                     const timeRange = `${format(event.start, 'HH:mm')} - ${format(event.end, 'HH:mm')}`;
                                     const statusInfo = statusMap[event.status] || { label: "Bilinmiyor", class: "bg-gray-100" };
-                                    const channelClass = channelBadgeClass[channelMap[event.channel]] || channelBadgeClass[event.channel] || "bg-slate-100 text-slate-600";
-                                    const channelLabel = channelMap[event.channel] || event.channel;
+                                    const channelClass = "bg-slate-50 text-slate-600 border-slate-200";
+                                    const channelLabel = getChannelLabel(event.channel);
 
                                     return (
                                         <div key={event.id} onClick={() => handleEventClick(event)} className="grid grid-cols-[1fr_1.2fr_1fr_1.2fr] gap-4 items-center px-5 py-3.5 transition-all hover:bg-slate-50/80 group cursor-pointer">

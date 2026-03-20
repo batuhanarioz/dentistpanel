@@ -12,19 +12,7 @@ export const STATUS_BADGE_CLASS: Record<string, string> = {
     no_show: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
-export const CHANNEL_LABEL_MAP: Record<string, string> = {
-    whatsapp: "WhatsApp",
-    web: "Web",
-    phone: "Telefon",
-    walk_in: "Yüz yüze",
-};
-
-export const CHANNEL_COLOR_MAP: Record<string, string> = {
-    whatsapp: "from-emerald-500 to-green-500",
-    web: "from-sky-500 to-blue-500",
-    phone: "from-violet-500 to-purple-500",
-    walk_in: "from-orange-500 to-amber-500",
-};
+// CHANNEL_LABEL_MAP ve CHANNEL_COLOR_MAP kaldırıldı — kanallar artık klinik ayarlarından dinamik gelir
 
 export const CONTROL_TONE_STYLES: Record<
     string,

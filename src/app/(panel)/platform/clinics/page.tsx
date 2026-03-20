@@ -12,7 +12,7 @@ import { tr } from "date-fns/locale";
 type SuperAdminUser = { id: string; full_name: string | null; email: string | null; created_at: string };
 
 export default function PlatformSettingsPage() {
-  usePageHeader("Sistem Ayarları", "Platform genel ayarlarını ve yönetici kadrosunu yönetin.");
+  usePageHeader("Sistem Ayarları");
   const clinic = useClinic();
 
   const [superAdmins, setSuperAdmins] = useState<SuperAdminUser[]>([]);

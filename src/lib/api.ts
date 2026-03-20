@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
 import { UserRole, Payment, AppointmentStatus, AppointmentChannel, ClinicSettings, TreatmentDefinition, TreatmentPlan, TreatmentPlanItem, PatientAnamnesis } from "@/types/database";
-import { CHANNEL_LABEL_MAP } from "@/constants/dashboard";
 
 // ─── Inline types ──────────────────────────────────────────────────────────────
 
@@ -38,7 +37,7 @@ interface RawAppointmentRow {
     ends_at: string;
     patient_id: string;
     doctor_id: string | null;
-    channel: AppointmentChannel;
+    channel: AppointmentChannel | null;
     treatment_type: string | null;
     status: AppointmentStatus;
     patient_note: string | null;
@@ -146,7 +145,7 @@ export async function getAppointmentsForDate(date: string, clinicId: string): Pr
             birthDate: patient?.birth_date ?? "",
             doctor: row.doctor_id ? (doctorsMap[row.doctor_id] ?? "") : "",
             doctorId: row.doctor_id,
-            channel: CHANNEL_LABEL_MAP[row.channel] ?? row.channel,
+            channel: row.channel ?? "",
             treatmentType: row.treatment_type ?? "",
             status: row.status,
             dbStatus: row.status,
@@ -456,7 +455,7 @@ export async function getClinicSettings(clinicId: string): Promise<ClinicSetting
     if (!clinicId) return null;
     const { data, error } = await supabase
         .from("clinic_settings")
-        .select("id, clinic_id, message_templates, notification_settings, assistant_timings, created_at, updated_at")
+        .select("id, clinic_id, message_templates, notification_settings, assistant_timings, appointment_channels, created_at, updated_at")
         .eq("clinic_id", clinicId)
         .maybeSingle();
 
@@ -464,6 +463,7 @@ export async function getClinicSettings(clinicId: string): Promise<ClinicSetting
         console.error("getClinicSettings error:", error);
         return null;
     }
+    if (data && !data.appointment_channels) data.appointment_channels = [];
     return data;
 }
 

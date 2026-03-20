@@ -11,7 +11,7 @@ import { ClinicModal } from "@/app/components/platform/clinics/ClinicModal";
 import { usePageHeader } from "@/app/components/AppShell";
 
 export default function PlatformClinicsManagePage() {
-  usePageHeader("Klinik Yönetimi", "Tüm klinikleri ve paket durumlarını izleyin.");
+  usePageHeader("Klinik Yönetimi");
   const clinic = useClinic();
 
   const [clinics, setClinics] = useState<Clinic[]>([]);

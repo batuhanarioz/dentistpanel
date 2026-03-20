@@ -9,7 +9,7 @@ import { CreateTreatmentPlanModal } from "@/app/components/treatments/CreateTrea
 type StatusFilter = "ALL" | TreatmentPlanWithItems["status"];
 
 export default function TreatmentPlansPage() {
-    usePageHeader("Tedavi Planları", "Hasta tedavi planlarını yönetin");
+    usePageHeader("Tedavi Planları");
 
     const { data: plans = [], isLoading } = useTreatmentPlans();
     const { updateStatus, removePlan } = useTreatmentPlanMutations();

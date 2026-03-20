@@ -189,7 +189,7 @@ export function AuthGuard({ children }: Props) {
               .eq("clinic_id", appUser.clinic_id),
             supabase
               .from("clinic_settings")
-              .select("id, clinic_id, message_templates, notification_settings, assistant_timings, created_at, updated_at")
+              .select("id, clinic_id, message_templates, notification_settings, assistant_timings, appointment_channels, created_at, updated_at")
               .eq("clinic_id", appUser.clinic_id)
               .maybeSingle()
           ]);
@@ -287,7 +287,7 @@ export function AuthGuard({ children }: Props) {
               .eq("clinic_id", clinicData.id),
             supabase
               .from("clinic_settings")
-              .select("id, clinic_id, message_templates, notification_settings, assistant_timings, created_at, updated_at")
+              .select("id, clinic_id, message_templates, notification_settings, assistant_timings, appointment_channels, created_at, updated_at")
               .eq("clinic_id", clinicData.id)
               .maybeSingle()
           ]);

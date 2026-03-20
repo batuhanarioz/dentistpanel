@@ -18,7 +18,7 @@ const PLACEHOLDERS = [
 ];
 
 type MessageType = "REMINDER" | "SATISFACTION" | "PAYMENT";
-type SubSection = "general" | "checklist" | "assistant" | "treatments";
+type SubSection = "general" | "checklist" | "assistant" | "treatments" | "channels";
 
 type TaskDefinition = {
     id: string;
@@ -72,6 +72,10 @@ export function ClinicSettingsTab() {
     const [newTreatmentName, setNewTreatmentName] = useState("");
     const [newTreatmentDuration, setNewTreatmentDuration] = useState(30);
     const [isTreatmentsLoading, setIsTreatmentsLoading] = useState(false);
+
+    // Channel State
+    const [channels, setChannels] = useState<string[]>(clinic.clinicSettings?.appointment_channels ?? []);
+    const [newChannelName, setNewChannelName] = useState("");
 
     useEffect(() => {
         if (clinic.clinicSettings) {
@@ -166,6 +170,32 @@ export function ClinicSettingsTab() {
             setSaveMessage({ type: 'error', text: "Ayarlar kaydedilirken bir hata oluştu." });
         } else {
             setSaveMessage({ type: 'success', text: "Ayarlar başarıyla kaydedildi." });
+            setTimeout(() => setSaveMessage(null), 3000);
+        }
+        setIsLoading(false);
+    };
+
+    const handleAddChannel = () => {
+        const name = newChannelName.trim();
+        if (!name) return;
+        if (channels.includes(name)) return;
+        setChannels(prev => [...prev, name]);
+        setNewChannelName("");
+    };
+
+    const handleDeleteChannel = (name: string) => {
+        setChannels(prev => prev.filter(c => c !== name));
+    };
+
+    const handleSaveChannels = async () => {
+        if (!clinic.clinicId) return;
+        setIsLoading(true);
+        setSaveMessage(null);
+        const { error } = await updateClinicSettings(clinic.clinicId, { appointment_channels: channels } as Partial<ClinicSettings>);
+        if (error) {
+            setSaveMessage({ type: 'error', text: "Kanal ayarları kaydedilemedi." });
+        } else {
+            setSaveMessage({ type: 'success', text: "Kanal ayarları kaydedildi." });
             setTimeout(() => setSaveMessage(null), 3000);
         }
         setIsLoading(false);
@@ -383,6 +413,21 @@ export function ClinicSettingsTab() {
                             </svg>
                         </div>
                         <span>Tedavi Ayarları</span>
+                    </button>
+
+                    <button
+                        onClick={() => setActiveSub("channels")}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "channels"
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                            : "text-slate-500 hover:bg-slate-50"
+                            }`}
+                    >
+                        <div className={`p-1.5 rounded-lg ${activeSub === 'channels' ? 'bg-white/20' : 'bg-sky-50 text-sky-600'}`}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                            </svg>
+                        </div>
+                        <span>Kanal Yönetimi</span>
                     </button>
                 </div>
             </aside >
@@ -847,6 +892,78 @@ export function ClinicSettingsTab() {
                         </div>
                     )
                 }
+
+                {activeSub === "channels" && (
+                    <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+                        <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-900">Kanal Yönetimi</h3>
+                                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Randevularda kullanılacak kanalları tanımlayın.</p>
+                            </div>
+                            <button
+                                onClick={handleSaveChannels}
+                                disabled={isLoading}
+                                className="h-11 px-6 bg-gradient-to-r from-sky-600 to-indigo-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-sky-100 hover:shadow-sky-200 transition-all active:scale-[0.98] disabled:opacity-50"
+                            >
+                                {isLoading ? "Kaydediliyor..." : "Kaydet"}
+                            </button>
+                        </div>
+
+                        <div className="p-8 space-y-8">
+                            {/* Yeni kanal ekle */}
+                            <div className="p-6 rounded-[32px] bg-slate-50 border border-slate-200/60 shadow-inner">
+                                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <span className="w-1.5 h-4 bg-sky-500 rounded-full" />
+                                    Yeni Kanal Ekle
+                                </h4>
+                                <div className="flex gap-4">
+                                    <input
+                                        type="text"
+                                        placeholder="Örn: WhatsApp, Telefon, Instagram..."
+                                        value={newChannelName}
+                                        onChange={(e) => setNewChannelName(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddChannel(); } }}
+                                        className="flex-1 h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-sky-500/10 transition-all"
+                                    />
+                                    <button
+                                        onClick={handleAddChannel}
+                                        disabled={!newChannelName.trim()}
+                                        className="h-[52px] px-8 bg-gradient-to-r from-sky-600 to-indigo-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-sky-100 hover:shadow-sky-200 transition-all active:scale-[0.98] disabled:opacity-50"
+                                    >
+                                        Ekle
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Mevcut kanallar */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {channels.length === 0 ? (
+                                    <div className="col-span-full py-16 text-center border-2 border-dashed border-slate-100 rounded-[40px]">
+                                        <p className="text-xs font-bold text-slate-400 italic">Henüz kanal tanımlanmamış. Randevular &quot;Belirtilmedi&quot; olarak görünür.</p>
+                                    </div>
+                                ) : channels.map((ch) => (
+                                    <div key={ch} className="group relative p-5 rounded-[24px] border border-slate-100 bg-white hover:border-sky-200 transition-all shadow-sm hover:shadow-md flex items-center justify-between">
+                                        <span className="text-sm font-black text-slate-900">{ch}</span>
+                                        <button
+                                            onClick={() => handleDeleteChannel(ch)}
+                                            className="p-2 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {saveMessage && (
+                                <div className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold ${saveMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                                    {saveMessage.text}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </main >
         </div >
     );

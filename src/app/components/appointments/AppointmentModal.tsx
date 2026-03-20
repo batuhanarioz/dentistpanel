@@ -10,6 +10,8 @@ import { CreateTreatmentPlanModal } from "@/app/components/treatments/CreateTrea
 import { AnamnesisSection } from "@/app/components/patients/AnamnesisSection";
 import { useAnamnesis, useAnamnesisMutation } from "@/hooks/useAnamnesis";
 import type { PatientAnamnesis } from "@/types/database";
+import { supabase } from "@/lib/supabaseClient";
+import { useClinic } from "@/app/context/ClinicContext";
 
 interface AppointmentModalProps {
     isOpen: boolean;
@@ -33,24 +35,53 @@ interface AppointmentModalProps {
     duplicatePatient: PatientSearchResult | null;
     isNewPatient: boolean;
     patientMatchInfo: string | null;
-    matchedPatientAllergies: string | null;
-    matchedPatientMedicalAlerts: string | null;
     conflictWarning: string | null;
     phoneCountryCode: string;
     setPhoneCountryCode: (val: string) => void;
     phoneNumber: string;
     setPhoneNumber: (val: string) => void;
     handleSubmit: (e: React.FormEvent) => void;
-    handleDelete: () => void;
+    handleDelete: () => Promise<void>;
     handleUseDuplicate: () => void;
+    submitError?: string | null;
+    isSubmitting?: boolean;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     treatmentDefinitions: any[];
 }
 
 export function AppointmentModal(props: AppointmentModalProps) {
+    const { clinicId } = useClinic();
     const [showMoreInfo, setShowMoreInfo] = React.useState(false);
     const [showCreatePlan, setShowCreatePlan] = React.useState(false);
     const [showAnamnesisModal, setShowAnamnesisModal] = React.useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+    const [deleteError, setDeleteError] = React.useState<string | null>(null);
+    const [deleteLoading, setDeleteLoading] = React.useState(false);
+    const [linkedPlanCount, setLinkedPlanCount] = React.useState<number | null>(null);
+
+    // Silme onayı gösterildiğinde bağlı tedavi planı sayısını çek
+    React.useEffect(() => {
+        if (!showDeleteConfirm || !props.editing?.id || !clinicId) { setLinkedPlanCount(null); return; }
+        supabase
+            .from("treatment_plans")
+            .select("id", { count: "exact", head: true })
+            .eq("appointment_id", props.editing.id)
+            .eq("clinic_id", clinicId)
+            .then(({ count }) => setLinkedPlanCount(count ?? 0));
+    }, [showDeleteConfirm, props.editing?.id, clinicId]);
+
+    React.useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if (e.key !== "Escape") return;
+            e.stopImmediatePropagation();
+            if (showAnamnesisModal) { setShowAnamnesisModal(false); return; }
+            if (showCreatePlan) { setShowCreatePlan(false); return; }
+            if (showDeleteConfirm) { setShowDeleteConfirm(false); setDeleteError(null); return; }
+            props.onClose();
+        };
+        document.addEventListener("keydown", handler, true); // capture = true → önce bu çalışır
+        return () => document.removeEventListener("keydown", handler, true);
+    }, [showAnamnesisModal, showCreatePlan, showDeleteConfirm, props.onClose]);
 
     // Mevcut hasta seçiliyken anamnezi yükle
     const activePatientId = props.selectedPatientId || props.editing?.patientId;
@@ -77,6 +108,7 @@ export function AppointmentModal(props: AppointmentModalProps) {
                         onSubmit={props.handleSubmit}
                         phoneNumber={props.phoneNumber}
                         phoneCountryCode={props.phoneCountryCode}
+                        isSubmitting={props.isSubmitting}
                     />
 
                     <div className="relative max-h-[80vh] flex flex-col italic-none">
@@ -111,9 +143,6 @@ export function AppointmentModal(props: AppointmentModalProps) {
                                     form={props.form}
                                     patientMatchInfo={props.patientMatchInfo}
                                     isNewPatient={props.isNewPatient}
-                                    matchedPatientAllergies={props.matchedPatientAllergies}
-                                    matchedPatientMedicalAlerts={props.matchedPatientMedicalAlerts}
-                                    showAllInfo={showMoreInfo}
                                 />
 
                                 {showMoreInfo && (
@@ -156,12 +185,71 @@ export function AppointmentModal(props: AppointmentModalProps) {
                         </div>
 
                         <div className="px-6 pb-5">
-                            <ModalFooter
-                                editing={!!props.editing}
-                                handleDelete={props.handleDelete}
-                                onAddTreatmentPlan={props.editing ? () => setShowCreatePlan(true) : undefined}
-                                onOpenAnamnesis={activePatientId ? () => setShowAnamnesisModal(true) : undefined}
-                            />
+                            {/* Submit error */}
+                            {props.submitError && (
+                                <div className="mb-3 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+                                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-rose-100">
+                                        <svg className="h-3.5 w-3.5 text-rose-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold text-rose-800">İşlem tamamlanamadı</p>
+                                        <p className="text-xs text-rose-600 mt-0.5">{props.submitError}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Delete confirmation */}
+                            {showDeleteConfirm ? (
+                                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-4">
+                                    <div className="flex items-start gap-3 mb-3">
+                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-100">
+                                            <svg className="h-4 w-4 text-rose-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-rose-900">Bu randevuyu silmek istediğinize emin misiniz?</p>
+                                            <p className="text-xs text-rose-600 mt-0.5">Bu işlem geri alınamaz.</p>
+                                            {linkedPlanCount !== null && linkedPlanCount > 0 && (
+                                                <p className="text-xs text-rose-700 font-bold mt-1.5">
+                                                    ⚠️ Bu randevuya bağlı {linkedPlanCount} tedavi planı var. Randevu silinirse bu bağlantı kopar.
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {deleteError && (
+                                        <p className="mb-3 text-xs text-rose-700 bg-rose-100 border border-rose-200 rounded-lg px-3 py-2">{deleteError}</p>
+                                    )}
+                                    <div className="flex justify-end gap-2">
+                                        <button type="button" onClick={() => { setShowDeleteConfirm(false); setDeleteError(null); }} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                                            Vazgeç
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={deleteLoading}
+                                            onClick={async () => {
+                                                setDeleteLoading(true);
+                                                setDeleteError(null);
+                                                try { await props.handleDelete(); }
+                                                catch (err) { setDeleteError(err instanceof Error ? err.message : "Bir hata oluştu."); }
+                                                finally { setDeleteLoading(false); }
+                                            }}
+                                            className="rounded-lg bg-gradient-to-r from-red-600 to-rose-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60 hover:from-red-700 hover:to-rose-600 transition-all"
+                                        >
+                                            {deleteLoading ? "Siliniyor..." : "Evet, Sil"}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <ModalFooter
+                                    editing={!!props.editing}
+                                    handleDelete={() => setShowDeleteConfirm(true)}
+                                    onAddTreatmentPlan={props.editing ? () => setShowCreatePlan(true) : undefined}
+                                    onOpenAnamnesis={activePatientId ? () => setShowAnamnesisModal(true) : undefined}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>

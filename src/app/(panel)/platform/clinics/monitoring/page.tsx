@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 
 export default function MonitoringPage() {
-    usePageHeader("USS Monitoring", "Sistem genelindeki USS entegrasyon durumunu ve performansını gözlemleyin.");
+    usePageHeader("USS Monitoring");
     const clinic = useClinic();
 
     const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);

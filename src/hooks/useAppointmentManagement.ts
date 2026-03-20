@@ -2,9 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr } from "@/lib/dateUtils";
-import { DayOfWeek, AppointmentChannel, AppointmentStatus } from "@/types/database";
+import { DayOfWeek, AppointmentStatus } from "@/types/database";
 import { useClinic } from "@/app/context/ClinicContext";
-import { CHANNEL_LABEL_MAP } from "@/constants/dashboard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAppointmentsForDate, getDoctors } from "@/lib/api";
 import { patientSchema, toPatientDbPayload } from "@/lib/validations/patient";
@@ -24,8 +23,8 @@ export type CalendarAppointment = {
     doctorId: string | null;
     channel: string;
     treatmentType: string;
-    status: "confirmed" | "cancelled" | "no_show" | "completed";
-    dbStatus: "confirmed" | "cancelled" | "no_show" | "completed";
+    status: AppointmentStatus;
+    dbStatus: AppointmentStatus;
     patientNote?: string;
     internalNote?: string;
     treatmentNote?: string;
@@ -141,10 +140,10 @@ export function useAppointmentManagement(initialData?: {
         birthDate: "",
         tcIdentityNo: "",
         doctor: "",
-        channel: "web",
+        channel: "",
         durationMinutes: 30,
         treatmentType: "",
-        status: "confirmed" as "confirmed" | "cancelled" | "no_show" | "completed",
+        status: "confirmed" as AppointmentStatus,
         patientNote: "",
         treatmentNote: "",
         allergies: "",
@@ -161,13 +160,15 @@ export function useAppointmentManagement(initialData?: {
     const [conflictWarning, setConflictWarning] = useState<string | null>(null);
     const [matchedPatientAllergies, setMatchedPatientAllergies] = useState<string | null>(null);
     const [matchedPatientMedicalAlerts, setMatchedPatientMedicalAlerts] = useState<string | null>(null);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const closeModal = useCallback(() => {
         setModalOpen(false);
         setEditing(null);
         setForm({
             patientName: "", phone: "", email: "", birthDate: "", tcIdentityNo: "",
-            doctor: doctors.length > 1 ? doctors[1] : "", channel: "web", durationMinutes: 30,
+            doctor: doctors.length > 1 ? doctors[1] : "", channel: "", durationMinutes: 30,
             treatmentType: "", status: "confirmed", patientNote: "", treatmentNote: "",
             allergies: "", medicalAlerts: "", tags: "", conversationId: "", messageId: "",
             estimatedAmount: "",
@@ -181,50 +182,90 @@ export function useAppointmentManagement(initialData?: {
         setPatientMatchInfo(null);
         setMatchedPatientAllergies(null);
         setMatchedPatientMedicalAlerts(null);
+        setSubmitError(null);
+        setIsSubmitting(false);
     }, [doctors]);
 
     useEffect(() => {
+        if (!effectiveClinicId) return;
+        let cancelled = false;
         const searchPatients = async () => {
             if (patientSearch.length < 2) {
                 setPatientSearchResults([]);
                 return;
             }
             setPatientSearchLoading(true);
-            const { data } = await supabase.from("patients").select("id, full_name, phone, email, birth_date, allergies, medical_alerts").or(`full_name.ilike.%${patientSearch}%,phone.ilike.%${patientSearch}%`).limit(10);
-            setPatientSearchResults(data || []);
-            setPatientSearchLoading(false);
+            const { data } = await supabase.from("patients").select("id, full_name, phone, email, birth_date, allergies, medical_alerts").eq("clinic_id", effectiveClinicId).or(`full_name.ilike.%${patientSearch}%,phone.ilike.%${patientSearch}%`).limit(10);
+            if (!cancelled) {
+                setPatientSearchResults(data || []);
+                setPatientSearchLoading(false);
+            }
         };
         const timer = setTimeout(searchPatients, 300);
-        return () => clearTimeout(timer);
-    }, [patientSearch]);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [patientSearch, effectiveClinicId]);
 
     useEffect(() => {
+        if (!effectiveClinicId) return;
+        let cancelled = false;
         const checkDuplicate = async () => {
             let cleanPhone = phoneNumber.replace(/\D/g, "");
             if (cleanPhone.length === 11 && cleanPhone.startsWith("0")) cleanPhone = cleanPhone.substring(1);
             if (cleanPhone.length === 10 && !selectedPatientId) {
-                // Perform a targeted search instead of using a local list
                 const { data } = await supabase
                     .from("patients")
                     .select("id, full_name, phone, email, birth_date, allergies, medical_alerts")
+                    .eq("clinic_id", effectiveClinicId)
                     .ilike("phone", `%${cleanPhone}%`)
                     .limit(1);
-                setDuplicatePatient(data?.[0] || null);
+                if (!cancelled) setDuplicatePatient(data?.[0] || null);
             } else {
-                setDuplicatePatient(null);
+                if (!cancelled) setDuplicatePatient(null);
             }
         };
         const timer = setTimeout(checkDuplicate, 500);
-        return () => clearTimeout(timer);
-    }, [phoneNumber, selectedPatientId]);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [phoneNumber, selectedPatientId, effectiveClinicId]);
 
-    const openNew = (hour?: number, date?: string) => {
+    // Conflict checking
+    useEffect(() => {
+        if (!formDate || !formTime || !form.doctor || !effectiveClinicId) {
+            setConflictWarning(null);
+            return;
+        }
+        const drId = doctorsList.find(d => d.full_name === form.doctor)?.id;
+        if (!drId) { setConflictWarning(null); return; }
+
+        let cancelled = false;
+        const checkConflict = async () => {
+            // +03:00 (Istanbul) ile yorumla — tarayıcı timezone'undan bağımsız
+            const proposedStart = new Date(`${formDate}T${formTime}:00+03:00`);
+            const proposedEnd = new Date(proposedStart.getTime() + form.durationMinutes * 60000);
+            const { data } = await supabase
+                .from("appointments")
+                .select("id, starts_at, ends_at")
+                .eq("clinic_id", effectiveClinicId)
+                .eq("doctor_id", drId)
+                .not("status", "in", `(cancelled,no_show)`)
+                .lt("starts_at", proposedEnd.toISOString())
+                .gt("ends_at", proposedStart.toISOString());
+            if (!cancelled) {
+                const conflicts = (data || []).filter(a => a.id !== editing?.id);
+                setConflictWarning(conflicts.length > 0 ? "Bu saatte hekimin başka bir randevusu mevcut." : null);
+            }
+        };
+
+        const t = setTimeout(checkConflict, 600);
+        return () => { cancelled = true; clearTimeout(t); };
+    }, [formDate, formTime, form.doctor, form.durationMinutes, effectiveClinicId, editing?.id, doctorsList]);
+
+    const openNew = (hour?: number, date?: string, minute?: number, doctorName?: string) => {
         setEditing(null);
         setFormDate(date || selectedDate);
-        setFormTime(hour !== undefined ? `${hour.toString().padStart(2, "0")}:00` : "");
+        setFormTime(hour !== undefined ? `${hour.toString().padStart(2, "0")}:${(minute ?? 0).toString().padStart(2, "0")}` : "");
         setForm({
             patientName: "", phone: "", email: "", birthDate: "", tcIdentityNo: "",
-            doctor: doctors.length > 1 ? doctors[1] : "", channel: "web", durationMinutes: 30,
+            doctor: doctorName || (doctors.length > 1 ? doctors[1] : ""), channel: "", durationMinutes: 30,
             treatmentType: "", status: "confirmed", patientNote: "", treatmentNote: "",
             allergies: "", medicalAlerts: "", tags: "", conversationId: "", messageId: "",
             estimatedAmount: "",
@@ -293,102 +334,93 @@ export function useAppointmentManagement(initialData?: {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!clinic.clinicId) return;
+        if (!effectiveClinicId) return;
+        setSubmitError(null);
+        setIsSubmitting(true);
 
-        let patientId = selectedPatientId;
-        if (!patientId) {
-            // Validation
-            const patientValidation = patientSchema.safeParse({
-                full_name: form.patientName,
-                phone: form.phone,
-                email: form.email || null,
-                birth_date: form.birthDate || null,
-                tc_identity_no: form.tcIdentityNo || null,
-                allergies: form.allergies || null,
-                medical_alerts: form.medicalAlerts || null,
-            });
+        try {
+            let patientId = selectedPatientId;
+            if (!patientId) {
+                const patientValidation = patientSchema.safeParse({
+                    full_name: form.patientName,
+                    phone: form.phone,
+                    email: form.email || null,
+                    birth_date: form.birthDate || null,
+                    tc_identity_no: form.tcIdentityNo || null,
+                });
+                if (!patientValidation.success) {
+                    setSubmitError("Hasta bilgileri geçersiz: " + patientValidation.error.issues[0].message);
+                    return;
+                }
+                const { data: p, error: pError } = await supabase.from("patients").insert({
+                    clinic_id: effectiveClinicId,
+                    ...toPatientDbPayload(patientValidation.data)
+                }).select("id").single();
+                if (pError) { setSubmitError("Hasta kaydı yapılamadı: " + pError.message); return; }
+                patientId = p.id;
+            } else {
+                const patientValidation = patientSchema.partial().safeParse({
+                    full_name: form.patientName,
+                    phone: form.phone,
+                    email: form.email || null,
+                    birth_date: form.birthDate || null,
+                });
+                if (!patientValidation.success) {
+                    setSubmitError("Hasta bilgileri geçersiz: " + patientValidation.error.issues[0].message);
+                    return;
+                }
+                await supabase.from("patients").update(patientValidation.data).eq("id", patientId).eq("clinic_id", effectiveClinicId);
+            }
 
-            if (!patientValidation.success) {
-                alert("Hasta bilgileri geçersiz: " + patientValidation.error.issues[0].message);
+            const [h, m] = formTime.split(":").map(Number);
+            // +03:00 (Istanbul) ile yorumla — tarayıcı timezone'undan bağımsız
+            const start = new Date(`${formDate}T${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00+03:00`);
+            const end = new Date(start.getTime() + form.durationMinutes * 60000);
+            const drId = doctorsList.find(d => d.full_name === form.doctor)?.id || null;
+
+            const apptData = {
+                patient_id: patientId,
+                doctor_id: drId,
+                starts_at: start.toISOString(),
+                ends_at: end.toISOString(),
+                channel: form.channel || null,
+                status: form.status as AppointmentStatus,
+                treatment_type: form.treatmentType,
+                patient_note: form.patientNote || null,
+                treatment_note: form.treatmentNote || null,
+                tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
+                estimated_amount: form.estimatedAmount ? parseFloat(form.estimatedAmount) : null,
+            };
+
+            const apptValidation = internalAppointmentSchema.safeParse(apptData);
+            if (!apptValidation.success) {
+                setSubmitError("Randevu bilgileri geçersiz: " + apptValidation.error.issues[0].message);
                 return;
             }
 
-            const { data: p, error: pError } = await supabase.from("patients").insert({
-                clinic_id: clinic.clinicId,
-                ...toPatientDbPayload(patientValidation.data)
-            }).select("id").single();
-            if (pError) { alert("Hasta kaydı yapılamadı: " + pError.message); return; }
-            patientId = p.id;
-        } else {
-            // Update patient if info changed
-            const patientValidation = patientSchema.partial().safeParse({
-                full_name: form.patientName,
-                phone: form.phone,
-                email: form.email || null,
-                birth_date: form.birthDate || null,
-                allergies: form.allergies || null,
-                medical_alerts: form.medicalAlerts || null,
-            });
+            const payload = { clinic_id: effectiveClinicId, ...apptValidation.data };
 
-            if (!patientValidation.success) {
-                alert("Hasta bilgileri geçersiz: " + patientValidation.error.issues[0].message);
-                return;
+            if (editing) {
+                const { error } = await supabase.from("appointments").update(payload).eq("id", editing.id).eq("clinic_id", effectiveClinicId);
+                if (error) {
+                    Sentry.captureException(error, { tags: { section: "appointments", action: "update" } });
+                    setSubmitError("Güncelleme hatası: " + error.message);
+                    return;
+                }
+            } else {
+                const { error } = await supabase.from("appointments").insert(payload);
+                if (error) {
+                    Sentry.captureException(error, { tags: { section: "appointments", action: "insert" } });
+                    setSubmitError("Kayıt hatası: " + error.message);
+                    return;
+                }
             }
 
-            await supabase.from("patients").update(patientValidation.data).eq("id", patientId);
+            closeModal();
+            queryClient.invalidateQueries({ queryKey: ["appointments"] });
+        } finally {
+            setIsSubmitting(false);
         }
-
-        const [h, m] = formTime.split(":").map(Number);
-        const start = new Date(`${formDate}T${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00`);
-        const end = new Date(start.getTime() + form.durationMinutes * 60000);
-        const drId = doctorsList.find(d => d.full_name === form.doctor)?.id || null;
-
-        const reverseChannelMap = Object.fromEntries(
-            Object.entries(CHANNEL_LABEL_MAP).map(([k, v]) => [v, k])
-        );
-
-        const apptData = {
-            patient_id: patientId,
-            doctor_id: drId,
-            starts_at: start.toISOString(),
-            ends_at: end.toISOString(),
-            channel: (reverseChannelMap[form.channel] || form.channel.toLowerCase()) as AppointmentChannel,
-            status: form.status as AppointmentStatus,
-            treatment_type: form.treatmentType,
-            patient_note: form.patientNote || null,
-            treatment_note: form.treatmentNote || null,
-
-            tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
-            estimated_amount: form.estimatedAmount ? parseFloat(form.estimatedAmount) : null,
-        };
-
-        const apptValidation = internalAppointmentSchema.safeParse(apptData);
-        if (!apptValidation.success) {
-            alert("Randevu bilgileri geçersiz: " + apptValidation.error.issues[0].message);
-            return;
-        }
-
-        const payload = {
-            clinic_id: clinic.clinicId,
-            ...apptValidation.data
-        };
-
-        if (editing) {
-            const { error } = await supabase.from("appointments").update(payload).eq("id", editing.id);
-            if (error) {
-                Sentry.captureException(error, { tags: { section: "appointments", action: "update" } });
-                alert("Güncelleme hatası: " + error.message);
-            }
-        } else {
-            const { error } = await supabase.from("appointments").insert(payload);
-            if (error) {
-                Sentry.captureException(error, { tags: { section: "appointments", action: "insert" } });
-                alert(" Kayıt hatası: " + error.message);
-            }
-        }
-
-        closeModal();
-        queryClient.invalidateQueries({ queryKey: ["appointments", selectedDate] });
     };
 
     const selectedDayOfWeek = useMemo(() => {
@@ -419,16 +451,14 @@ export function useAppointmentManagement(initialData?: {
     }, [todaySchedule, appointments]);
 
     const handleDelete = async () => {
-        if (!editing || !confirm("Bu randevuyu silmek istediğinize emin misiniz?")) return;
-        const { error } = await supabase.from("appointments").delete().eq("id", editing.id);
+        if (!editing || !effectiveClinicId) return;
+        const { error } = await supabase.from("appointments").delete().eq("id", editing.id).eq("clinic_id", effectiveClinicId);
         if (error) {
             Sentry.captureException(error, { tags: { section: "appointments", action: "delete" } });
-            alert("Silme hatası: " + error.message);
+            throw new Error("Silme hatası: " + error.message);
         }
-        else {
-            closeModal();
-            queryClient.invalidateQueries({ queryKey: ["appointments", selectedDate] });
-        }
+        closeModal();
+        queryClient.invalidateQueries({ queryKey: ["appointments"] });
     };
 
     const handleUseDuplicate = () => {
@@ -477,6 +507,7 @@ export function useAppointmentManagement(initialData?: {
         phoneCountryCode, setPhoneCountryCode, patientSearch, setPatientSearch, patientSearchResults,
         patientSearchLoading, selectedPatientId, setSelectedPatientId, duplicatePatient, form, setForm,
         patientMatchInfo, isNewPatient, conflictWarning, matchedPatientAllergies, matchedPatientMedicalAlerts,
+        submitError, isSubmitting,
         openNew, openEdit, handleSubmit, handleDelete, handleUseDuplicate, closeModal,
         todaySchedule, isDayOff, workingHourSlots, appointmentsLoading, treatmentDefinitions
     };

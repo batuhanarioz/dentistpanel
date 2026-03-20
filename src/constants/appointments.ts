@@ -1,11 +1,5 @@
 // TREATMENTS removed - fetched from DB matching treatment_definitions table
-
-export const CHANNEL_OPTIONS = [
-    { value: "web", label: "Web" },
-    { value: "whatsapp", label: "WhatsApp" },
-    { value: "phone", label: "Telefon" },
-    { value: "walk_in", label: "Yüz yüze" },
-];
+// CHANNEL_OPTIONS removed - kanallar artık klinik ayarlarından dinamik olarak gelir
 
 export const STATUS_COLORS: Record<string, { card: string; dot: string }> = {
     confirmed: { // Planlandı
