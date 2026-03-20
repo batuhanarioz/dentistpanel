@@ -18,9 +18,6 @@ interface PatientPickerProps {
     form: AppointmentFormState;
     patientMatchInfo: string | null;
     isNewPatient: boolean;
-    matchedPatientAllergies: string | null;
-    matchedPatientMedicalAlerts: string | null;
-    showAllInfo?: boolean;
 }
 
 export function PatientPicker({
@@ -28,7 +25,6 @@ export function PatientPicker({
     patientSearchResults, patientSearchLoading, setForm,
     setPhoneCountryCode, setPhoneNumber, duplicatePatient, handleUseDuplicate,
     phoneCountryCode, phoneNumber, form, patientMatchInfo, isNewPatient,
-    matchedPatientAllergies, matchedPatientMedicalAlerts, showAllInfo = false
 }: PatientPickerProps) {
     return (
         <div className="space-y-1 md:col-span-2 border-t pt-3 mt-1">
@@ -214,41 +210,6 @@ export function PatientPicker({
                             ({isNewPatient ? "Yeni hasta" : "Mevcut hasta"})
                         </span>
                     </p>
-                )}
-                {(matchedPatientAllergies || matchedPatientMedicalAlerts) && (
-                    <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2 text-[11px]">
-                        <p className="font-semibold text-amber-800 mb-1">Hasta alerji / tıbbi uyarı</p>
-                        {matchedPatientAllergies && (
-                            <p className="text-amber-900"><span className="font-medium">Alerjiler:</span> {matchedPatientAllergies}</p>
-                        )}
-                        {matchedPatientMedicalAlerts && (
-                            <p className="text-amber-900 mt-0.5"><span className="font-medium">Tıbbi uyarılar:</span> {matchedPatientMedicalAlerts}</p>
-                        )}
-                    </div>
-                )}
-                {showAllInfo && isNewPatient && (
-                    <div className="mt-2 grid gap-2 md:grid-cols-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <div className="space-y-1">
-                            <label className="block text-[11px] font-medium text-slate-600">Alerjiler (opsiyonel)</label>
-                            <input
-                                type="text"
-                                value={form.allergies}
-                                onChange={(e) => setForm((f) => ({ ...f, allergies: e.target.value }))}
-                                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                placeholder="İlaç, lateks vb."
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="block text-[11px] font-medium text-slate-600">Tıbbi uyarılar (opsiyonel)</label>
-                            <input
-                                type="text"
-                                value={form.medicalAlerts}
-                                onChange={(e) => setForm((f) => ({ ...f, medicalAlerts: e.target.value }))}
-                                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                placeholder="Kan sulandırıcı, kalp vb."
-                            />
-                        </div>
-                    </div>
                 )}
             </div>
         </div>

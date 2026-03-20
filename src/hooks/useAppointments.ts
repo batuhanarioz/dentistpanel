@@ -31,6 +31,7 @@ export interface AppEvent {
     durationMinutes: number;
     patientName: string;
     patientPhone: string;
+    patientEmail: string;
     patientId: string;
     doctorId: string | null;
     doctorName: string;
@@ -141,7 +142,7 @@ export function useAppointments() {
             const { data, error } = await supabase
                 .from("appointments")
                 .select(`
-                    id, starts_at, ends_at, status, treatment_type, patient_note, internal_note, clinic_id, doctor_id,
+                    id, starts_at, ends_at, status, treatment_type, patient_note, treatment_note, clinic_id, doctor_id,
                     patients(id, full_name, phone, email, birth_date),
                     doctor:users!doctor_id(id, full_name)
                 `)
@@ -168,6 +169,8 @@ export function useAppointments() {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     phone: (row.patients as any)?.phone || "",
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    email: (row.patients as any)?.email || "",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     patientId: (row.patients as any)?.id,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     doctor: (row.doctor as any)?.full_name,
@@ -175,7 +178,8 @@ export function useAppointments() {
                     treatmentType: row.treatment_type || "",
                     status: row.status,
                     patientNote: row.patient_note,
-                    treatmentNote: row.internal_note,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    treatmentNote: (row as any).treatment_note,
                 };
             });
         },
@@ -192,6 +196,7 @@ export function useAppointments() {
             durationMinutes: ca.durationMinutes,
             patientName: ca.patientName,
             patientPhone: ca.phone || "",
+            patientEmail: ca.email || "",
             patientId: ca.patientId,
             doctorId: ca.doctorId,
             doctorName: ca.doctor || "Hekim atanmadı",
@@ -204,7 +209,7 @@ export function useAppointments() {
 
     const allSelectableDoctors = useMemo<DoctorOption[]>(() => {
         // Strict medical roles ONLY
-        const medicalRoles = [UserRole.DOKTOR, UserRole.ADMIN_DOCTOR];
+        const medicalRoles = [UserRole.DOKTOR];
 
         const list: DoctorOption[] = doctors
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

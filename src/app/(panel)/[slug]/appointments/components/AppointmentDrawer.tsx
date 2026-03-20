@@ -25,11 +25,8 @@ interface AppointmentDrawerProps {
     doctors: { id: string; full_name: string }[];
     onClose: () => void;
     onStatusChange: (id: string, status: ExtendedStatus) => void;
+    onEditClick?: (id: string) => void;
 }
-
-const STATUS_OPTIONS: ExtendedStatus[] = [
-    "confirmed", "arrived", "in_treatment", "completed", "no_show", "cancelled",
-];
 
 function fmt(iso: string, type: "time" | "date" | "datetime") {
     if (!iso) return "—";
@@ -44,6 +41,7 @@ export function AppointmentDrawer({
     doctors,
     onClose,
     onStatusChange,
+    onEditClick,
 }: AppointmentDrawerProps) {
     const { clinicId } = useClinic();
 
@@ -54,18 +52,27 @@ export function AppointmentDrawer({
     const isOpen = !!appointmentId;
 
     const fetchDetail = useCallback(async (id: string) => {
+        if (!clinicId) return;
         setLoading(true);
-        const { data, error } = await supabase
-            .from("appointments")
-            .select("id, starts_at, ends_at, status, treatment_type, patient_note, treatment_note, estimated_amount, doctor_id, patients(full_name, phone, email, birth_date), users!doctor_id(full_name)")
-            .eq("id", id)
-            .maybeSingle();
+        try {
+            const { data, error } = await supabase
+                .from("appointments")
+                .select("id, starts_at, ends_at, status, treatment_type, patient_note, treatment_note, estimated_amount, doctor_id, patients(full_name, phone, email, birth_date), users!doctor_id(full_name)")
+                .eq("id", id)
+                .eq("clinic_id", clinicId)
+                .maybeSingle();
 
-        if (data) {
-            setAppt(data as unknown as DrawerAppointmentDetail);
+            if (!error && data) {
+                setAppt(data as unknown as DrawerAppointmentDetail);
+            } else {
+                setAppt(null);
+            }
+        } catch {
+            setAppt(null);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-    }, []);
+    }, [clinicId]);
 
     useEffect(() => {
         if (appointmentId) fetchDetail(appointmentId);
@@ -216,7 +223,18 @@ export function AppointmentDrawer({
                         </div>
 
                         {/* ── Footer Actions ── */}
-                        <div className="p-6 bg-slate-50/50 border-t border-slate-100">
+                        <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex flex-col gap-3">
+                            {onEditClick && appt && (
+                                <button
+                                    onClick={() => { onEditClick(appt.id); onClose(); }}
+                                    className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-2xl bg-slate-800 hover:bg-slate-900 text-white text-sm font-black transition-all active:scale-[0.98]"
+                                >
+                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
+                                    </svg>
+                                    Randevuyu Düzenle
+                                </button>
+                            )}
                             <button
                                 onClick={handleWhatsApp}
                                 className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-black shadow-lg shadow-emerald-200 transition-all active:scale-[0.98] group"

@@ -119,7 +119,7 @@ export function useReports() {
                 .from("users")
                 .select("id, full_name")
                 .eq("clinic_id", clinicId)
-                .in("role", [UserRole.DOKTOR, UserRole.ADMIN_DOCTOR]);
+                .in("role", [UserRole.DOKTOR]);
 
             // Fetch treatment types
             const { data: treatments } = await supabase

@@ -6,9 +6,10 @@ interface ModalHeaderProps {
     onSubmit?: (e: React.FormEvent | React.MouseEvent) => void;
     phoneNumber?: string;
     phoneCountryCode?: string;
+    isSubmitting?: boolean;
 }
 
-export function ModalHeader({ editing, formDate, formTime, onClose, onSubmit, phoneNumber, phoneCountryCode }: ModalHeaderProps) {
+export function ModalHeader({ editing, formDate, formTime, onClose, onSubmit, phoneNumber, phoneCountryCode, isSubmitting }: ModalHeaderProps) {
     return (
         <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-500 px-6 py-4">
             <div className="flex items-center justify-between">
@@ -54,9 +55,10 @@ export function ModalHeader({ editing, formDate, formTime, onClose, onSubmit, ph
                     <button
                         type="button"
                         onClick={(e) => onSubmit?.(e)}
-                        className="rounded-lg bg-white px-4 py-1.5 text-xs font-bold text-indigo-700 hover:bg-slate-50 transition-all shadow-md active:scale-95"
+                        disabled={isSubmitting}
+                        className="rounded-lg bg-white px-4 py-1.5 text-xs font-bold text-indigo-700 hover:bg-slate-50 transition-all shadow-md active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                        {editing ? "Kaydet" : "Oluştur"}
+                        {isSubmitting ? "Kaydediliyor..." : editing ? "Kaydet" : "Oluştur"}
                     </button>
                 </div>
             </div>

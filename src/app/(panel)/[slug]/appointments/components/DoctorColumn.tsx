@@ -21,6 +21,7 @@ interface DoctorColumnProps {
         newMinute: number,
         newDoctorId: string
     ) => void;
+    onSlotClick?: (hour: number, minute: number, doctorId: string) => void;
 }
 
 export function DoctorColumn({
@@ -33,6 +34,7 @@ export function DoctorColumn({
     zoom,
     onCardClick,
     onEventDrop,
+    onSlotClick,
 }: DoctorColumnProps) {
     const columnRef = useRef<HTMLDivElement>(null);
     const [isDragOver, setIsDragOver] = useState(false);
@@ -59,6 +61,24 @@ export function DoctorColumn({
     };
 
     const handleDragLeave = () => setIsDragOver(false);
+
+    const handleColumnClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!onSlotClick) return;
+        const target = e.target as HTMLElement;
+        // Only fire for clicks on the column background or grid lines
+        if (target !== columnRef.current && target.dataset.slotBg !== "true") return;
+        const scrollEl = columnRef.current?.closest("[data-scroll]") as HTMLElement | null;
+        const scrollTop = scrollEl?.scrollTop ?? 0;
+        const colRect = columnRef.current!.getBoundingClientRect();
+        const rawY = e.clientY - colRect.top + scrollTop;
+        const clampedY = Math.max(0, Math.min(rawY, totalHeight));
+        const slotIdx = Math.floor(clampedY / slotHeight);
+        const snappedMinutes = slotIdx * SLOT_DURATION;
+        const newHour = startHour + Math.floor(snappedMinutes / 60);
+        const newMinute = snappedMinutes % 60;
+        if (newHour >= endHour) return;
+        onSlotClick(newHour, newMinute, doctor.id);
+    };
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -108,18 +128,20 @@ export function DoctorColumn({
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`relative transition-colors duration-150 ${isDragOver ? "bg-indigo-50/60" : "bg-white"}`}
+                onClick={handleColumnClick}
+                className={`relative transition-colors duration-150 ${isDragOver ? "bg-teal-50/60" : "bg-white"} ${onSlotClick ? "cursor-crosshair" : ""}`}
                 style={{ height: `${totalHeight}px` }}
             >
                 {/* Drop indicator overlay */}
                 {isDragOver && (
-                    <div className="absolute inset-0 border-2 border-dashed border-indigo-300 pointer-events-none z-20 rounded-sm" />
+                    <div className="absolute inset-0 border-2 border-dashed border-teal-300 pointer-events-none z-20 rounded-sm" />
                 )}
 
                 {/* Background grid lines */}
                 {gridLines.map((i) => (
                     <div
                         key={i}
+                        data-slot-bg="true"
                         className={`absolute left-0 right-0 border-t ${i % (60 / SLOT_DURATION) === 0
                             ? "border-slate-200/60"
                             : "border-slate-100"

@@ -30,6 +30,7 @@ interface SchedulerGridProps {
         newMinute: number,
         newDoctorId: string
     ) => void;
+    onSlotClick?: (hour: number, minute: number, doctorId: string) => void;
 }
 
 export function SchedulerGrid({
@@ -41,6 +42,7 @@ export function SchedulerGrid({
     endHour,
     onEventClick,
     onEventDrop,
+    onSlotClick,
 }: SchedulerGridProps) {
     const SLOT_HEIGHT = 40;
     const SLOT_DURATION = zoom; // minutes (15, 30, or 60)
@@ -77,7 +79,7 @@ export function SchedulerGrid({
         <div className="flex-1 overflow-auto bg-slate-50/30 custom-scrollbar relative">
             <div className="flex min-w-full relative" style={{ minHeight: `${totalHeight + 50}px` }}>
                 {/* LEFT: sticky time column */}
-                <div className="flex-shrink-0 w-16 sticky left-0 z-30 bg-white border-r border-slate-200 shadow-[2px_0_10px_rgba(0,0,0,0.03)]">
+                <div className="flex-shrink-0 w-16 sticky left-0 z-30 bg-white border-r border-slate-200 shadow-[2px_0_10px_rgba(0,0,0,0.03)]" data-scroll>
                     {/* Header spacer */}
                     <div className="h-12 border-b border-slate-200 bg-slate-50/90 flex items-center justify-center sticky top-0 z-40">
                         <svg className="h-4 w-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -106,7 +108,7 @@ export function SchedulerGrid({
                                 className="flex-1 min-w-[260px] h-12 flex items-center justify-center border-r border-slate-100 px-3 shrink-0"
                             >
                                 <div className="flex items-center gap-2.5 overflow-hidden">
-                                    <div className="h-7 w-7 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-bold text-indigo-600 border border-indigo-100 shrink-0 uppercase">
+                                    <div className="h-7 w-7 rounded-full bg-teal-50 flex items-center justify-center text-[10px] font-bold text-teal-600 border border-teal-100 shrink-0 uppercase">
                                         {doctor.full_name?.toLowerCase().includes("atanmadı") ? '?' : (doctor.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'H')}
                                     </div>
                                     <span className="text-xs font-bold text-slate-700 truncate">
@@ -135,6 +137,7 @@ export function SchedulerGrid({
                                 zoom={zoom}
                                 onCardClick={onEventClick}
                                 onEventDrop={onEventDrop}
+                                onSlotClick={onSlotClick}
                             />
                         ))}
                     </div>

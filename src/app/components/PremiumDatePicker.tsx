@@ -16,11 +16,24 @@ type Props = {
   className?: string;
   /** Kompakt mod: daha küçük buton (form içi kullanım) */
   compact?: boolean;
+  /** Controlled mode: dışarıdan open state yönetimi */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Dropdown hizalaması */
+  align?: "left" | "right";
+  /** Click-outside dışında tutulacak ek ref (trigger button gibi) */
+  excludeRef?: React.RefObject<HTMLElement | null>;
 };
 
-export function PremiumDatePicker({ value, onChange, today: todayProp, className = "", compact }: Props) {
+export function PremiumDatePicker({ value, onChange, today: todayProp, className = "", compact, open: openProp, onOpenChange, align = "left", excludeRef }: Props) {
   const today = todayProp ?? localDateStr();
-  const [open, setOpen] = useState(false);
+  const isControlled = openProp !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? (openProp ?? false) : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (isControlled) onOpenChange?.(v);
+    else setInternalOpen(v);
+  };
   const [view, setView] = useState(() => {
     const [y, m] = value.split("-").map(Number);
     return { year: y, month: m - 1 };
@@ -36,11 +49,13 @@ export function PremiumDatePicker({ value, onChange, today: todayProp, className
   useEffect(() => {
     if (!open) return;
     const handle = (e: MouseEvent) => {
+      if (excludeRef?.current?.contains(e.target as Node)) return;
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, excludeRef]);
 
   const displayLabel = (() => {
     const [y, m, d] = value.split("-").map(Number);
@@ -77,23 +92,25 @@ export function PremiumDatePicker({ value, onChange, today: todayProp, className
 
   return (
     <div className={`relative ${className}`} ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={buttonClass}
-      >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-600">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+      {!isControlled && (
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className={buttonClass}
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-600">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+            </svg>
+          </span>
+          <span className="truncate">{displayLabel}</span>
+          <svg className={`h-4 w-4 text-slate-400 ml-auto shrink-0 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
           </svg>
-        </span>
-        <span className="truncate">{displayLabel}</span>
-        <svg className={`h-4 w-4 text-slate-400 ml-auto shrink-0 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-        </svg>
-      </button>
+        </button>
+      )}
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/50 min-w-[280px]">
+        <div className={`absolute top-full z-50 mt-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/50 min-w-[280px] ${align === "right" ? "right-0" : "left-0"}`}>
           <div className="grid grid-cols-2 gap-2 mb-4">
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Ay</label>
