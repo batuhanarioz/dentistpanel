@@ -18,8 +18,11 @@ export default function AdminUsersPage() {
     showCreateModal, setShowCreateModal, showEditModal, setShowEditModal, selectedUser,
     showPasswordModal, setShowPasswordModal, deleteTarget, setDeleteTarget, deleteProtected,
     showResetModal, setShowResetModal, setResetUserId,
-    saving, newEmail, setNewEmail, newFullName, setNewFullName, newPassword, setNewPassword, newRole, setNewRole,
-    editFullName, setEditFullName, editRole, setEditRole, editSaving,
+    saving, newEmail, setNewEmail, newFullName, setNewFullName, newPassword, setNewPassword,
+    newRole, setNewRole, newInvite, setNewInvite,
+    editFullName, setEditFullName, editRole, setEditRole,
+    editIsActive, setEditIsActive, editSpecialtyCode, setEditSpecialtyCode,
+    editWorkingHours, setEditWorkingHours, editSaving,
     resetPassword, setResetPassword, resetSaving, resetError, resetSuccess, setResetSuccess,
     handleCreateUser, handleUpdateUser, handleResetPassword, executeDeleteUser, openEditModal, openDeleteModal
   } = useAdminUsers();
@@ -153,6 +156,8 @@ export default function AdminUsersPage() {
         setPassword={setNewPassword}
         role={newRole}
         setRole={setNewRole}
+        invite={newInvite}
+        setInvite={setNewInvite}
         isSuperAdmin={isAdmin}
       />
 
@@ -167,6 +172,12 @@ export default function AdminUsersPage() {
         setFullName={setEditFullName}
         role={editRole}
         setRole={setEditRole}
+        isActive={editIsActive}
+        setIsActive={setEditIsActive}
+        specialtyCode={editSpecialtyCode}
+        setSpecialtyCode={setEditSpecialtyCode}
+        workingHours={editWorkingHours}
+        setWorkingHours={setEditWorkingHours}
         isSuperAdmin={isAdmin}
         currentUserId={currentUserId}
         onResetPassword={() => {

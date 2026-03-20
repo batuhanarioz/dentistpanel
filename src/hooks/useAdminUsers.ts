@@ -3,7 +3,21 @@ import { supabase } from "@/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
 import { UserRole } from "@/types/database";
 
-import { DOCTOR_LIMITS, PLAN_IDS } from "@/constants/plans";
+export type WorkingHourDay = {
+    enabled: boolean;
+    start: string;
+    end: string;
+};
+
+export type WorkingHours = {
+    monday: WorkingHourDay;
+    tuesday: WorkingHourDay;
+    wednesday: WorkingHourDay;
+    thursday: WorkingHourDay;
+    friday: WorkingHourDay;
+    saturday: WorkingHourDay;
+    sunday: WorkingHourDay;
+};
 
 export type UserRow = {
     id: string;
@@ -11,12 +25,28 @@ export type UserRow = {
     email: string | null;
     role: string;
     created_at: string;
+    is_active: boolean;
+    specialty_code: string | null;
+    working_hours: WorkingHours | null;
+    last_sign_in_at: string | null;
 };
 
 export type ClinicRow = {
     id: string;
     name: string;
 };
+
+const DEFAULT_WORKING_HOURS: WorkingHours = {
+    monday:    { enabled: true,  start: "09:00", end: "18:00" },
+    tuesday:   { enabled: true,  start: "09:00", end: "18:00" },
+    wednesday: { enabled: true,  start: "09:00", end: "18:00" },
+    thursday:  { enabled: true,  start: "09:00", end: "18:00" },
+    friday:    { enabled: true,  start: "09:00", end: "18:00" },
+    saturday:  { enabled: false, start: "09:00", end: "13:00" },
+    sunday:    { enabled: false, start: "09:00", end: "13:00" },
+};
+
+export { DEFAULT_WORKING_HOURS };
 
 export function useAdminUsers() {
     const clinic = useClinic();
@@ -39,23 +69,30 @@ export function useAdminUsers() {
     const [resetUserId, setResetUserId] = useState<string | null>(null);
     const [showChecklistModal, setShowChecklistModal] = useState(false);
 
-    // Form states
+    // Create form states
     const [saving, setSaving] = useState(false);
     const [newEmail, setNewEmail] = useState("");
     const [newFullName, setNewFullName] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [newRole, setNewRole] = useState<string>(UserRole.SEKRETER);
     const [newClinicId, setNewClinicId] = useState("");
+    const [newInvite, setNewInvite] = useState(false);
 
+    // Edit form states
     const [editFullName, setEditFullName] = useState("");
     const [editRole, setEditRole] = useState<string>(UserRole.SEKRETER);
+    const [editIsActive, setEditIsActive] = useState(true);
+    const [editSpecialtyCode, setEditSpecialtyCode] = useState<string>("");
+    const [editWorkingHours, setEditWorkingHours] = useState<WorkingHours | null>(null);
     const [editSaving, setEditSaving] = useState(false);
 
+    // Reset password states
     const [resetPassword, setResetPassword] = useState("");
     const [resetSaving, setResetSaving] = useState(false);
     const [resetError, setResetError] = useState<string | null>(null);
     const [resetSuccess, setResetSuccess] = useState(false);
 
+    // Self-update states
     const [selfNewEmail, setSelfNewEmail] = useState("");
     const [selfOldPassword, setSelfOldPassword] = useState("");
     const [selfNewPassword, setSelfNewPassword] = useState("");
@@ -63,17 +100,21 @@ export function useAdminUsers() {
     const [selfSaving, setSelfSaving] = useState(false);
     const [selfMessage, setSelfMessage] = useState<string | null>(null);
 
+    const getAccessToken = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        return session?.access_token ?? null;
+    };
+
     const refreshUsers = useCallback(async () => {
         if (!clinic.clinicId) return;
         setLoading(true);
-        const { data, error } = await supabase
-            .from("users")
-            .select("id, full_name, email, role, created_at")
-            .eq("clinic_id", clinic.clinicId)
-            .neq("role", UserRole.SUPER_ADMIN)
-            .order("created_at", { ascending: true });
-        if (error) setError(error.message);
-        else setUsers(data || []);
+        const token = await getAccessToken();
+        const res = await fetch("/api/admin/users", {
+            headers: { "Authorization": `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.error) setError(data.error);
+        else setUsers(data.users || []);
         setLoading(false);
     }, [clinic.clinicId]);
 
@@ -101,11 +142,6 @@ export function useAdminUsers() {
         init();
     }, [refreshUsers]);
 
-    const getAccessToken = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        return session?.access_token ?? null;
-    };
-
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
@@ -113,26 +149,23 @@ export function useAdminUsers() {
         const token = await getAccessToken();
         if (!token) { setError("Oturum bulunamadı."); setSaving(false); return; }
 
-        if (newRole === UserRole.DOKTOR) {
-            const currentDocs = users.filter(u => u.role === UserRole.DOKTOR).length;
-            const limit = DOCTOR_LIMITS[clinic.planId || PLAN_IDS.STARTER] || 1;
-            if (currentDocs >= limit) {
-                setError(`Limit aşıldı. En fazla ${limit} hekim ekleyebilirsiniz.`);
-                setSaving(false);
-                return;
-            }
-        }
-
         const res = await fetch("/api/admin/users", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ email: newEmail, fullName: newFullName, password: newPassword, role: newRole, clinicId: newClinicId || clinic.clinicId })
+            body: JSON.stringify({
+                email: newEmail,
+                fullName: newFullName,
+                password: newInvite ? undefined : newPassword,
+                role: newRole,
+                clinicId: newClinicId || clinic.clinicId,
+                invite: newInvite,
+            })
         });
         const data = await res.json();
         if (data.error) setError(data.error);
         else {
             setShowCreateModal(false);
-            setNewEmail(""); setNewFullName(""); setNewPassword("");
+            setNewEmail(""); setNewFullName(""); setNewPassword(""); setNewInvite(false);
             await refreshUsers();
         }
         setSaving(false);
@@ -147,7 +180,14 @@ export function useAdminUsers() {
         const res = await fetch("/api/admin/users", {
             method: "PATCH",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ userId: selectedUser.id, fullName: editFullName, role: editRole })
+            body: JSON.stringify({
+                id: selectedUser.id,
+                fullName: editFullName,
+                role: editRole,
+                isActive: editIsActive,
+                specialtyCode: editSpecialtyCode || null,
+                workingHours: editWorkingHours,
+            })
         });
         const data = await res.json();
         if (data.error) setError(data.error);
@@ -160,10 +200,10 @@ export function useAdminUsers() {
         setResetSaving(true);
         setResetError(null);
         const token = await getAccessToken();
-        const res = await fetch("/api/admin/users", {
-            method: "PATCH",
+        const res = await fetch("/api/admin/users/reset-password", {
+            method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ userId: resetUserId, password: resetPassword })
+            body: JSON.stringify({ id: resetUserId, password: resetPassword })
         });
         const data = await res.json();
         if (data.error) setResetError(data.error);
@@ -174,9 +214,10 @@ export function useAdminUsers() {
     const executeDeleteUser = async () => {
         if (!deleteTarget) return;
         const token = await getAccessToken();
-        const res = await fetch(`/api/admin/users?userId=${deleteTarget.id}`, {
+        const res = await fetch("/api/admin/users", {
             method: "DELETE",
-            headers: { "Authorization": `Bearer ${token}` }
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ id: deleteTarget.id }),
         });
         const data = await res.json();
         if (data.error) alert(data.error);
@@ -213,6 +254,9 @@ export function useAdminUsers() {
         setSelectedUser(user);
         setEditFullName(user.full_name || "");
         setEditRole(user.role);
+        setEditIsActive(user.is_active);
+        setEditSpecialtyCode(user.specialty_code || "");
+        setEditWorkingHours(user.working_hours);
         setShowEditModal(true);
     };
 
@@ -226,10 +270,14 @@ export function useAdminUsers() {
         showCreateModal, setShowCreateModal, showEditModal, setShowEditModal, selectedUser, setSelectedUser,
         showPasswordModal, setShowPasswordModal, deleteTarget, setDeleteTarget, deleteProtected,
         showResetModal, setShowResetModal, resetUserId, setResetUserId, showChecklistModal, setShowChecklistModal,
-        saving, newEmail, setNewEmail, newFullName, setNewFullName, newPassword, setNewPassword, newRole, setNewRole, newClinicId, setNewClinicId,
-        editFullName, setEditFullName, editRole, setEditRole, editSaving,
+        saving, newEmail, setNewEmail, newFullName, setNewFullName, newPassword, setNewPassword,
+        newRole, setNewRole, newClinicId, setNewClinicId, newInvite, setNewInvite,
+        editFullName, setEditFullName, editRole, setEditRole, editIsActive, setEditIsActive,
+        editSpecialtyCode, setEditSpecialtyCode, editWorkingHours, setEditWorkingHours, editSaving,
         resetPassword, setResetPassword, resetSaving, resetError, resetSuccess, setResetSuccess,
-        selfNewEmail, setSelfNewEmail, selfOldPassword, setSelfOldPassword, selfNewPassword, setSelfNewPassword, selfNewPasswordRepeat, setSelfNewPasswordRepeat, selfSaving, selfMessage,
-        handleCreateUser, handleUpdateUser, handleResetPassword, executeDeleteUser, handleUpdateSelf, openEditModal, openDeleteModal
+        selfNewEmail, setSelfNewEmail, selfOldPassword, setSelfOldPassword, selfNewPassword, setSelfNewPassword,
+        selfNewPasswordRepeat, setSelfNewPasswordRepeat, selfSaving, selfMessage,
+        handleCreateUser, handleUpdateUser, handleResetPassword, executeDeleteUser, handleUpdateSelf,
+        openEditModal, openDeleteModal,
     };
 }

@@ -4,6 +4,37 @@ import { UserRole } from "@/types/database";
 import { createUserSchema, updateUserSchema, deleteUserSchema } from "@/lib/validations/user";
 import { withAuth } from "@/lib/auth-middleware";
 
+export const GET = withAuth(
+  async (_req, auth) => {
+    if (!auth.clinicId) {
+      return NextResponse.json({ error: "Klinik bulunamadı" }, { status: 400 });
+    }
+
+    const { data: users, error } = await supabaseAdmin
+      .from("users")
+      .select("id, full_name, email, role, created_at, is_active, specialty_code, working_hours")
+      .eq("clinic_id", auth.clinicId)
+      .neq("role", UserRole.SUPER_ADMIN)
+      .order("created_at", { ascending: true });
+
+    if (error || !users) {
+      return NextResponse.json({ error: error?.message ?? "Kullanıcılar alınamadı" }, { status: 400 });
+    }
+
+    // Enrich with last_sign_in_at from auth
+    const { data: authData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+    const authMap = new Map((authData?.users ?? []).map(u => [u.id, u.last_sign_in_at ?? null]));
+
+    const enriched = users.map(u => ({
+      ...u,
+      last_sign_in_at: authMap.get(u.id) ?? null,
+    }));
+
+    return NextResponse.json({ users: enriched });
+  },
+  { requiredRole: "ADMIN_OR_SUPER" }
+);
+
 export const POST = withAuth(
   async (req, auth) => {
     const validation = createUserSchema.safeParse(
@@ -16,14 +47,12 @@ export const POST = withAuth(
       );
     }
 
-    const { email, password, fullName, role, clinicId: bodyClinicId } = validation.data;
+    const { email, password, fullName, role, clinicId: bodyClinicId, invite } = validation.data;
 
-    // SUPER_ADMIN klinik belirtebilir; ADMIN kendi klinik ID'sini kullanır
     const clinicId = auth.isSuperAdmin
       ? bodyClinicId ?? auth.clinicId
       : auth.clinicId;
 
-    // Sadece SUPER_ADMIN, SUPER_ADMIN oluşturabilir
     if (role === UserRole.SUPER_ADMIN && !auth.isSuperAdmin) {
       return NextResponse.json(
         { error: "SUPER_ADMIN rolünü yalnızca SUPER_ADMIN oluşturabilir" },
@@ -31,7 +60,6 @@ export const POST = withAuth(
       );
     }
 
-    // SUPER_ADMIN olmayan roller için clinic_id zorunlu
     if (role !== UserRole.SUPER_ADMIN && !clinicId) {
       return NextResponse.json(
         { error: "Klinik seçilmeden kullanıcı oluşturulamaz" },
@@ -39,30 +67,48 @@ export const POST = withAuth(
       );
     }
 
-    const { data: created, error: createError } =
-      await supabaseAdmin.auth.admin.createUser({
+    let userId: string;
+
+    if (invite) {
+      // Davet e-postası gönder
+      const { data: invited, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+        data: { full_name: fullName },
+      });
+      if (inviteError || !invited.user) {
+        return NextResponse.json(
+          { error: inviteError?.message ?? "Davet gönderilemedi" },
+          { status: 400 }
+        );
+      }
+      userId = invited.user.id;
+    } else {
+      if (!password) {
+        return NextResponse.json({ error: "Şifre zorunludur" }, { status: 400 });
+      }
+      const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
       });
-
-    if (createError || !created.user) {
-      return NextResponse.json(
-        { error: createError?.message ?? "Kullanıcı oluşturulamadı" },
-        { status: 400 }
-      );
+      if (createError || !created.user) {
+        return NextResponse.json(
+          { error: createError?.message ?? "Kullanıcı oluşturulamadı" },
+          { status: 400 }
+        );
+      }
+      userId = created.user.id;
     }
 
     const { error: insertError, data: appUser } = await supabaseAdmin
       .from("users")
       .insert({
-        id: created.user.id,
+        id: userId,
         clinic_id: role === UserRole.SUPER_ADMIN ? null : clinicId,
         full_name: fullName,
         email,
         role,
       })
-      .select("id, full_name, email, role, clinic_id, created_at")
+      .select("id, full_name, email, role, clinic_id, created_at, is_active, specialty_code")
       .maybeSingle();
 
     if (insertError || !appUser) {
@@ -89,9 +135,8 @@ export const PATCH = withAuth(
       );
     }
 
-    const { id, fullName, role } = validation.data;
+    const { id, fullName, role, isActive, specialtyCode, workingHours } = validation.data;
 
-    // ADMIN yalnızca kendi klinik kullanıcılarını güncelleyebilir
     if (!auth.isSuperAdmin) {
       const { data: target } = await supabaseAdmin
         .from("users")
@@ -108,9 +153,7 @@ export const PATCH = withAuth(
     }
 
     const updateData: Record<string, unknown> = {};
-    if (typeof fullName === "string") {
-      updateData.full_name = fullName;
-    }
+    if (typeof fullName === "string") updateData.full_name = fullName;
     if (role) {
       if (role === UserRole.SUPER_ADMIN && !auth.isSuperAdmin) {
         return NextResponse.json(
@@ -120,19 +163,19 @@ export const PATCH = withAuth(
       }
       updateData.role = role;
     }
+    if (typeof isActive === "boolean") updateData.is_active = isActive;
+    if (specialtyCode !== undefined) updateData.specialty_code = specialtyCode;
+    if (workingHours !== undefined) updateData.working_hours = workingHours;
 
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json(
-        { error: "Güncellenecek alan yok" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Güncellenecek alan yok" }, { status: 400 });
     }
 
     const { data, error } = await supabaseAdmin
       .from("users")
       .update(updateData)
       .eq("id", id)
-      .select("id, full_name, email, role, clinic_id, created_at")
+      .select("id, full_name, email, role, clinic_id, created_at, is_active, specialty_code, working_hours")
       .maybeSingle();
 
     if (error || !data) {
@@ -161,7 +204,6 @@ export const DELETE = withAuth(
 
     const { id } = validation.data;
 
-    // ADMIN yalnızca kendi klinik kullanıcılarını silebilir
     const { data: target, error: targetError } = await supabaseAdmin
       .from("users")
       .select("role, clinic_id")
@@ -182,7 +224,6 @@ export const DELETE = withAuth(
       );
     }
 
-    // ADMIN ve SUPER_ADMIN hesaplar silinemez (SUPER_ADMIN hariç)
     if (target.role === UserRole.ADMIN && !auth.isSuperAdmin) {
       return NextResponse.json(
         { error: "ADMIN rolüne sahip kullanıcıları yalnızca SUPER_ADMIN silebilir" },
@@ -197,7 +238,6 @@ export const DELETE = withAuth(
       );
     }
 
-    // Önce auth tarafında kullanıcıyı sil
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
     if (authError) {
       return NextResponse.json(
@@ -206,11 +246,7 @@ export const DELETE = withAuth(
       );
     }
 
-    const { error: deleteError } = await supabaseAdmin
-      .from("users")
-      .delete()
-      .eq("id", id);
-
+    const { error: deleteError } = await supabaseAdmin.from("users").delete().eq("id", id);
     if (deleteError) {
       return NextResponse.json(
         { error: deleteError.message ?? "Profil kaydı silinemedi" },

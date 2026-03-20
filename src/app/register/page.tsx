@@ -200,10 +200,6 @@ export default function RegisterPage() {
             }
 
             setSuccess(true);
-            // Wait 2 seconds before redirecting to login
-            setTimeout(() => {
-                router.push(`/login?email=${formData.email}`);
-            }, 3000);
 
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Kayıt işlemi sırasında bir hata oluştu.");
@@ -215,20 +211,24 @@ export default function RegisterPage() {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
                 <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-12 text-center space-y-6 border border-teal-100">
-                    <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600 animate-bounce">
-                        <CheckCircle2 className="w-10 h-10" />
+                    <div className="w-20 h-20 bg-teal-50 rounded-full flex items-center justify-center mx-auto text-teal-600">
+                        <Mail className="w-10 h-10" />
                     </div>
                     <div>
-                        <h2 className="text-3xl font-black text-slate-800 mb-2">Harika! Kaydınız Hazır</h2>
-                        <p className="text-slate-500 font-medium">Kliniğiniz başarıyla oluşturuldu. Giriş sayfasına yönlendiriliyorsunuz...</p>
+                        <h2 className="text-3xl font-black text-slate-800 mb-3">E-postanızı Kontrol Edin</h2>
+                        <p className="text-slate-500 font-medium leading-relaxed">
+                            <span className="font-bold text-slate-700">{formData.email}</span> adresine bir doğrulama bağlantısı gönderdik.
+                        </p>
+                        <p className="text-slate-400 text-sm mt-2">
+                            Bağlantıya tıkladıktan sonra hesabınız aktif olacak ve giriş yapabileceksiniz.
+                        </p>
                     </div>
-                    <div className="pt-4">
-                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-teal-500 animate-[progress_3s_linear]" />
-                        </div>
+                    <div className="bg-amber-50 border border-amber-100 rounded-2xl px-5 py-4 text-left space-y-1.5">
+                        <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">Mail gelmediyse</p>
+                        <p className="text-xs text-amber-600">Spam / Gereksiz posta klasörünü kontrol edin. Birkaç dakika sürebilir.</p>
                     </div>
-                    <Link href="/login" className="inline-flex items-center gap-2 text-teal-600 font-bold hover:text-teal-700">
-                        Hemen Giriş Yap <ArrowRight className="w-4 h-4" />
+                    <Link href={`/login?email=${encodeURIComponent(formData.email)}`} className="inline-flex items-center gap-2 text-teal-600 font-bold hover:text-teal-700">
+                        Giriş sayfasına git <ArrowRight className="w-4 h-4" />
                     </Link>
                 </div>
             </div>

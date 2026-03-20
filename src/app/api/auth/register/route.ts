@@ -105,14 +105,30 @@ export async function POST(req: Request) {
             );
         }
 
-        // 2. Create User in Supabase Auth
-        const { data: authUser, error: authError } =
-            await supabaseAdmin.auth.admin.createUser({
-                email,
-                password: adminPassword,
-                email_confirm: true,
-                user_metadata: { full_name: `${name} Admin` },
-            });
+        // 2. Create User in Supabase Auth (via anon signUp so confirmation email is sent)
+        const supabaseAnon = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { auth: { persistSession: false, autoRefreshToken: false } }
+        );
+
+        const { data: authUser, error: authError } = await supabaseAnon.auth.signUp({
+            email,
+            password: adminPassword,
+            options: {
+                emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://clinic.nextgency360.com"}/login`,
+                data: { full_name: `${name} Yetkilisi` },
+            },
+        });
+
+        // If identities is empty, email already exists in auth
+        if (!authUser?.user?.id || (authUser.user.identities && authUser.user.identities.length === 0)) {
+            await supabaseAdmin.from("clinics").delete().eq("id", clinic.id);
+            return NextResponse.json(
+                { error: "Bu e-posta adresi zaten kullanımda." },
+                { status: 400 }
+            );
+        }
 
         if (authError) {
             // Rollback clinic creation

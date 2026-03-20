@@ -16,6 +16,9 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const isDemoMode = searchParams.get("demo") === "true";
@@ -114,7 +117,13 @@ function LoginForm() {
     setLoading(false);
 
     if (signInError) {
-      setError(signInError.message || "Giriş yapılamadı.");
+      const msg = signInError.message ?? "";
+      if (msg.toLowerCase().includes("email not confirmed") || msg.toLowerCase().includes("email_not_confirmed")) {
+        setUnconfirmedEmail(email);
+        setError(null);
+      } else {
+        setError(msg || "Giriş yapılamadı.");
+      }
       return;
     }
 
@@ -148,6 +157,14 @@ function LoginForm() {
     }
 
     router.replace("/");
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!unconfirmedEmail) return;
+    setResendLoading(true);
+    const { error: resendError } = await supabase.auth.resend({ type: "signup", email: unconfirmedEmail });
+    setResendLoading(false);
+    if (!resendError) setResendSuccess(true);
   };
 
   return (
@@ -270,6 +287,36 @@ function LoginForm() {
                 {error && (
                   <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
                     <p className="text-sm font-medium text-rose-700">{error}</p>
+                  </div>
+                )}
+
+                {unconfirmedEmail && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <svg className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-amber-800">E-posta doğrulanmamış</p>
+                        <p className="text-xs text-amber-600 mt-0.5">
+                          <span className="font-medium">{unconfirmedEmail}</span> adresine gönderilen doğrulama linkine tıklayın.
+                        </p>
+                      </div>
+                    </div>
+                    {resendSuccess ? (
+                      <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
+                        Doğrulama e-postası tekrar gönderildi.
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleResendConfirmation}
+                        disabled={resendLoading}
+                        className="w-full rounded-lg bg-amber-100 border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-200 transition-colors disabled:opacity-60"
+                      >
+                        {resendLoading ? "Gönderiliyor..." : "Doğrulama e-postasını tekrar gönder"}
+                      </button>
+                    )}
                   </div>
                 )}
 
