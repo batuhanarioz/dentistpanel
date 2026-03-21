@@ -339,10 +339,27 @@ export async function getTaskConfigs(clinicId: string) {
     return legacyMapping;
 }
 
+function generateReceiptBase(): string {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `FIS-${y}${m}${d}-${rand}`;
+}
+
 export async function createPayments(payments: Partial<Payment>[]) {
+    // Taksitli ödemelerde aynı baz numarayı paylaşır: FIS-YYYYMMDD-XXXX-1, -2, -3...
+    // Tek ödeme ise suffix olmadan kullanılır: FIS-YYYYMMDD-XXXX
+    const base = generateReceiptBase();
+    const isMulti = payments.length > 1;
     const { data, error } = await supabase
         .from("payments")
-        .insert(payments.map((p) => ({ ...p, clinic_id: p.clinic_id ?? payments[0]?.clinic_id })))
+        .insert(payments.map((p, i) => ({
+            ...p,
+            clinic_id: p.clinic_id ?? payments[0]?.clinic_id,
+            receipt_number: p.receipt_number ?? (isMulti ? `${base}-${i + 1}` : base),
+        })))
         .select("id, amount, status");
     return { data, error };
 }

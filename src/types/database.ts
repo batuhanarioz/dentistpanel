@@ -187,8 +187,16 @@ export interface Payment {
   installment_number: number | null;
   parent_payment_id: string | null;
   created_at: string;
+  insurance_company: string | null;
+  insurance_amount: number | null;
+  insurance_status: string | null;
+  policy_number: string | null;
+  discount_amount: number | null;
+  receipt_number: string | null;
+  treatment_plan_item_id: string | null;
   // Join alanları
   patients?: { full_name: string; phone: string | null };
+  treatment_plan_item?: { id: string; procedure_name: string; tooth_no: string | null } | null;
 }
 
 export interface ClinicalProcedure {
