@@ -40,13 +40,15 @@ export function PaymentList({ payments, loading, today, onPaymentClick, onQuickC
     if (payments.length === 0) {
         return (
             <div className="px-5 py-14 text-center flex flex-col items-center gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 border shadow-sm">
-                    <svg className="h-7 w-7 text-slate-300" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg shadow-emerald-200/60">
+                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75" />
                     </svg>
                 </div>
-                <p className="text-sm font-bold text-slate-400">Bu dönemde ödeme kaydı bulunmuyor</p>
-                <p className="text-xs text-slate-300 font-medium">Farklı bir zaman aralığı seçin veya yeni kayıt ekleyin.</p>
+                <div>
+                    <p className="text-sm font-bold text-slate-700">Bu dönemde ödeme kaydı bulunmuyor</p>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">Farklı bir zaman aralığı seçin veya yeni kayıt ekleyin.</p>
+                </div>
             </div>
         );
     }

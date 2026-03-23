@@ -30,6 +30,23 @@ function getInitials(name: string): string {
     return name.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
 }
 
+const AVATAR_GRADIENTS = [
+    "from-teal-500 to-emerald-500",
+    "from-indigo-500 to-violet-500",
+    "from-rose-500 to-pink-500",
+    "from-amber-500 to-orange-400",
+    "from-blue-500 to-cyan-500",
+    "from-purple-500 to-indigo-500",
+    "from-emerald-500 to-green-600",
+    "from-sky-500 to-blue-600",
+];
+
+function getAvatarGradient(name: string): string {
+    let code = 0;
+    for (let i = 0; i < Math.min(name.length, 3); i++) code += name.charCodeAt(i);
+    return AVATAR_GRADIENTS[code % AVATAR_GRADIENTS.length];
+}
+
 export function GlobalPatientSearch({ variant = "light" }: Props) {
     const { clinicId } = useClinic();
 
@@ -146,12 +163,9 @@ export function GlobalPatientSearch({ variant = "light" }: Props) {
                             )}
                             <button
                                 onClick={() => setOpen(false)}
-                                className="ml-1 shrink-0 h-7 w-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
-                                title="Kapat"
+                                className="ml-1 shrink-0 h-7 px-2.5 flex items-center justify-center rounded-lg bg-slate-100 text-[10px] font-black text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors tracking-wide"
                             >
-                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                                </svg>
+                                Kapat
                             </button>
                         </div>
 
@@ -172,14 +186,23 @@ export function GlobalPatientSearch({ variant = "light" }: Props) {
                             )}
                             {results.length > 0 && (
                                 <ul className="py-2">
-                                    {results.map((p) => (
+                                    {results.map((p, idx) => {
+                                        let gradient = getAvatarGradient(p.full_name);
+                                        if (idx > 0) {
+                                            const prevGradient = getAvatarGradient(results[idx - 1].full_name);
+                                            if (gradient === prevGradient) {
+                                                const gi = AVATAR_GRADIENTS.indexOf(gradient);
+                                                gradient = AVATAR_GRADIENTS[(gi + 1) % AVATAR_GRADIENTS.length];
+                                            }
+                                        }
+                                        return (
                                         <li key={p.id}>
                                             <button
                                                 type="button"
                                                 onClick={() => handleSelect(p)}
                                                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors text-left group"
                                             >
-                                                <div className="h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-[11px] font-bold text-white shadow-sm">
+                                                <div className={`h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-[11px] font-bold text-white shadow-sm`}>
                                                     {getInitials(p.full_name)}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
@@ -195,7 +218,8 @@ export function GlobalPatientSearch({ variant = "light" }: Props) {
                                                 </svg>
                                             </button>
                                         </li>
-                                    ))}
+                                        );
+                                    })}
                                 </ul>
                             )}
                             {!query && (

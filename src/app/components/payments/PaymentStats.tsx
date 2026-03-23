@@ -21,17 +21,65 @@ export function PaymentStats({ stats }: PaymentStatsProps) {
 
     return (
         <div className="space-y-3">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <StatCard label="Toplam Tutar" value={stats.total} color="text-slate-900" bg="from-emerald-500 to-teal-500" icon={<svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>} />
-                <StatCard label="Tahsil Edilen" value={stats.paid} color="text-emerald-700" bg="from-emerald-400 to-green-500" icon={<svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path d="m4.5 12.75 6 6 9-13.5" /></svg>} />
-                <StatCard label="Bekleyen" value={stats.planned} color="text-amber-700" bg="from-amber-400 to-orange-500" icon={<svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>}
-                    badge={stats.overdueCount > 0 ? { label: `${stats.overdueCount} gecikmiş`, color: "bg-rose-500 text-white" } : undefined}
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
+                {/* Toplam Tutar */}
+                <StatCard
+                    label="Toplam Tutar"
+                    description="toplam tutar"
+                    value={stats.total}
+                    gradient="from-emerald-500 via-emerald-600 to-teal-600"
+                    shadowClass="shadow-emerald-200/60 hover:shadow-emerald-300/70"
+                    icon={
+                        <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    }
                 />
-                <StatCard label="Kayıt Sayısı" value={stats.count} color="text-slate-900" bg="from-slate-500 to-slate-600" icon={<svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25" /></svg>} isNumber />
+                {/* Tahsil Edilen */}
+                <StatCard
+                    label="Tahsil Edilen"
+                    description="ödeme alındı"
+                    value={stats.paid}
+                    gradient="from-green-400 via-emerald-500 to-teal-500"
+                    shadowClass="shadow-emerald-200/60 hover:shadow-emerald-300/70"
+                    icon={
+                        <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                        </svg>
+                    }
+                />
+                {/* Bekleyen */}
+                <StatCard
+                    label="Bekleyen"
+                    description={stats.overdueCount > 0 ? `${stats.overdueCount} gecikmiş` : "bekleyen ödeme"}
+                    value={stats.planned}
+                    gradient="from-amber-400 via-amber-500 to-orange-500"
+                    shadowClass="shadow-amber-200/60 hover:shadow-amber-300/70"
+                    hasAlert={stats.overdueCount > 0}
+                    icon={
+                        <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    }
+                />
+                {/* Kayıt Sayısı */}
+                <StatCard
+                    label="Kayıt Sayısı"
+                    description="ödeme kaydı"
+                    value={stats.count}
+                    gradient="from-slate-500 via-slate-600 to-slate-700"
+                    shadowClass="shadow-slate-200/60 hover:shadow-slate-300/70"
+                    isNumber
+                    icon={
+                        <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                        </svg>
+                    }
+                />
             </div>
 
             {(showRate || showMethod) && (
-                <div className={`grid gap-3 ${showRate && showMethod ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"}`}>
+                <div className={`grid gap-3 items-start ${showRate && showMethod ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"}`}>
                     {showRate && (
                         <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
                             <button
@@ -139,31 +187,31 @@ export function PaymentStats({ stats }: PaymentStatsProps) {
 
 interface StatCardProps {
     label: string;
+    description: string;
     value: number;
-    color: string;
-    bg: string;
+    gradient: string;
+    shadowClass: string;
     icon: React.ReactNode;
     isNumber?: boolean;
-    badge?: { label: string; color: string };
+    hasAlert?: boolean;
 }
 
-function StatCard({ label, value, color, bg, icon, isNumber, badge }: StatCardProps) {
+function StatCard({ label, description, value, gradient, shadowClass, icon, isNumber, hasAlert }: StatCardProps) {
     return (
-        <div className="rounded-2xl border bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br shadow-sm ${bg} shrink-0`}>
-                    {icon}
-                </div>
-                <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-[11px] text-slate-500 font-medium">{label}</p>
-                        {badge && (
-                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${badge.color}`}>{badge.label}</span>
-                        )}
-                    </div>
-                    <p className={`text-lg font-bold ${color}`}>{value.toLocaleString("tr-TR")} {!isNumber && <span className="text-sm font-semibold">₺</span>}</p>
-                </div>
+        <div className={`relative rounded-2xl overflow-hidden px-4 py-3.5 bg-gradient-to-br ${gradient} shadow-lg ${shadowClass} hover:-translate-y-0.5 transition-all duration-300 cursor-default shrink-0 w-44 md:w-auto`}>
+            <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10" />
+            <div className="absolute right-2 bottom-2 opacity-[0.12]">
+                {icon}
             </div>
+            {hasAlert && (
+                <div className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-white animate-pulse" />
+            )}
+            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/70 mb-1">{label}</p>
+            <p className="text-3xl font-black text-white leading-none">
+                {value.toLocaleString("tr-TR")}
+                {!isNumber && <span className="text-lg font-semibold"> ₺</span>}
+            </p>
+            <p className="text-[10px] text-white/70 font-semibold mt-1.5">{description}</p>
         </div>
     );
 }

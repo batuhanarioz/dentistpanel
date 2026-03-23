@@ -239,6 +239,7 @@ export function PatientDetailModal({
         ? `https://wa.me/${patient.phone.replace(/\D/g, "")}`
         : null;
 
+
     const statusMap: Record<string, string> = {
         confirmed: "Planlandı",
         completed: "Tamamlandı",
@@ -252,34 +253,37 @@ export function PatientDetailModal({
                 <div className="bg-[#f0f4f8] rounded-[2rem] shadow-2xl border-none w-full max-w-3xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200 my-auto" onClick={(e) => e.stopPropagation()}>
 
                     {/* Header Section */}
-                    <div className="bg-[#007f6e] p-6 text-white shrink-0">
-                        <div className="flex items-center justify-between">
+                    <div className="relative bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600 px-6 py-5 text-white shrink-0 overflow-hidden">
+                        {/* Dekoratif daireler */}
+                        <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10" />
+                        <div className="absolute -right-2 top-12 h-16 w-16 rounded-full bg-white/5" />
+                        <div className="flex items-center justify-between relative">
                             <div className="flex items-center gap-4">
-                                <div className="h-14 w-14 rounded-full bg-white flex items-center justify-center text-[#007f6e] text-xl font-bold shadow-lg">
+                                <div className="h-14 w-14 rounded-2xl bg-white flex items-center justify-center text-teal-600 text-xl font-black shadow-xl shrink-0 uppercase select-none">
                                     {patient.full_name[0]}
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <h2 className="text-xl font-bold leading-tight">{patient.full_name}</h2>
                                         {age !== null && (
-                                            <span className="text-[11px] font-bold bg-white/15 text-white px-2 py-0.5 rounded-full">{age} yaş</span>
+                                            <span className="text-[11px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full">{age} yaş</span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                                        <p className="text-xs text-emerald-100/80 font-medium">Kayıt: {new Date(patient.created_at).toLocaleDateString("tr-TR")}</p>
+                                    <div className="flex items-center gap-3 mt-1 flex-wrap">
+                                        <p className="text-[11px] text-white/70 font-medium">Kayıt: {new Date(patient.created_at).toLocaleDateString("tr-TR")}</p>
                                         {stats.lastVisit && (
-                                            <p className="text-xs text-emerald-100/80 font-medium">
+                                            <p className="text-[11px] text-white/70 font-medium">
                                                 Son Ziyaret: {new Date(stats.lastVisit.starts_at).toLocaleDateString("tr-TR")}
                                             </p>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => downloadData('csv')} className="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-white/10">CSV indir</button>
-                                <button onClick={() => downloadData('txt')} className="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-white/10">TXT indir</button>
-                                <button onClick={onClose} className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-colors border border-white/10 ml-2">
-                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <button onClick={() => downloadData('csv')} className="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors border border-white/20">CSV</button>
+                                <button onClick={() => downloadData('txt')} className="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors border border-white/20">TXT</button>
+                                <button onClick={onClose} className="bg-white/15 hover:bg-white/25 p-2 rounded-xl transition-colors border border-white/20 ml-1">
+                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
@@ -329,11 +333,11 @@ export function PatientDetailModal({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* İletişim */}
                             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
-                                <div className="flex items-center gap-2 text-[#007f6e]">
-                                    <div className="h-6 w-6 rounded-lg bg-emerald-50 flex items-center justify-center">
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.824-1.281-5.117-3.573-6.398-6.398l1.293-.97c.362-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+                                <div className="flex items-center gap-2">
+                                    <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shadow-sm">
+                                        <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.824-1.281-5.117-3.573-6.398-6.398l1.293-.97c.362-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
                                     </div>
-                                    <h3 className="text-xs font-black uppercase tracking-tight">İletişim</h3>
+                                    <h3 className="text-xs font-black uppercase tracking-tight text-teal-600">İletişim</h3>
                                 </div>
                                 <div className="space-y-3">
                                     <div>
@@ -341,7 +345,7 @@ export function PatientDetailModal({
                                         <div className="flex items-center justify-between group">
                                             {isEditing ? (
                                                 <input
-                                                    className="w-full text-sm font-bold border-b-2 border-slate-100 focus:border-[#007f6e] outline-none py-1"
+                                                    className="w-full text-sm font-bold border-b-2 border-slate-100 focus:border-teal-500 outline-none py-1"
                                                     value={editForm.phone || ""}
                                                     onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
                                                 />
@@ -361,7 +365,7 @@ export function PatientDetailModal({
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">E-posta</label>
                                         {isEditing ? (
                                             <input
-                                                className="w-full text-sm font-bold border-b-2 border-slate-100 focus:border-[#007f6e] outline-none py-1"
+                                                className="w-full text-sm font-bold border-b-2 border-slate-100 focus:border-teal-500 outline-none py-1"
                                                 value={editForm.email || ""}
                                                 onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
                                             />
@@ -374,11 +378,11 @@ export function PatientDetailModal({
 
                             {/* Kişisel Bilgiler */}
                             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
-                                <div className="flex items-center gap-2 text-indigo-500">
-                                    <div className="h-6 w-6 rounded-lg bg-indigo-50 flex items-center justify-center">
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                                <div className="flex items-center gap-2">
+                                    <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shadow-sm">
+                                        <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
                                     </div>
-                                    <h3 className="text-xs font-black uppercase tracking-tight">Kişisel Bilgiler</h3>
+                                    <h3 className="text-xs font-black uppercase tracking-tight text-indigo-500">Kişisel Bilgiler</h3>
                                 </div>
                                 <div className="space-y-3">
                                     <div>
@@ -388,12 +392,12 @@ export function PatientDetailModal({
                                                 <>
                                                     <input
                                                         type="date"
-                                                        className="w-1/2 text-xs font-bold border-b border-slate-100 focus:border-[#007f6e] outline-none py-1"
+                                                        className="w-1/2 text-xs font-bold border-b border-slate-100 focus:border-teal-500 outline-none py-1"
                                                         value={editForm.birth_date || ""}
                                                         onChange={e => setEditForm(f => ({ ...f, birth_date: e.target.value }))}
                                                     />
                                                     <input
-                                                        className="w-1/2 text-xs font-bold border-b border-slate-100 focus:border-[#007f6e] outline-none py-1"
+                                                        className="w-1/2 text-xs font-bold border-b border-slate-100 focus:border-teal-500 outline-none py-1"
                                                         value={editForm.tc_identity_no || ""}
                                                         onChange={e => setEditForm(f => ({ ...f, tc_identity_no: e.target.value }))}
                                                         placeholder="TC No"
@@ -417,7 +421,7 @@ export function PatientDetailModal({
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Cinsiyet</label>
                                             {isEditing ? (
                                                 <select
-                                                    className="w-full text-xs font-bold border-b border-slate-100 focus:border-[#007f6e] outline-none py-1 bg-transparent"
+                                                    className="w-full text-xs font-bold border-b border-slate-100 focus:border-teal-500 outline-none py-1 bg-transparent"
                                                     value={editForm.gender || ""}
                                                     onChange={e => setEditForm(f => ({ ...f, gender: e.target.value }))}
                                                 >
@@ -434,7 +438,7 @@ export function PatientDetailModal({
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Kan Grubu</label>
                                             {isEditing ? (
                                                 <select
-                                                    className="w-full text-xs font-bold border-b border-slate-100 focus:border-[#007f6e] outline-none py-1 bg-transparent"
+                                                    className="w-full text-xs font-bold border-b border-slate-100 focus:border-teal-500 outline-none py-1 bg-transparent"
                                                     value={editForm.blood_group || ""}
                                                     onChange={e => setEditForm(f => ({ ...f, blood_group: e.target.value }))}
                                                 >
@@ -459,7 +463,7 @@ export function PatientDetailModal({
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Meslek</label>
                                     {isEditing ? (
                                         <input
-                                            className="w-full text-xs font-bold border-b border-slate-100 focus:border-[#007f6e] outline-none py-1"
+                                            className="w-full text-xs font-bold border-b border-slate-100 focus:border-teal-500 outline-none py-1"
                                             value={editForm.occupation || ""}
                                             onChange={e => setEditForm(f => ({ ...f, occupation: e.target.value }))}
                                             placeholder="Meslek"
@@ -472,7 +476,7 @@ export function PatientDetailModal({
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Adres</label>
                                     {isEditing ? (
                                         <textarea
-                                            className="w-full text-xs font-medium border border-slate-100 rounded-lg p-2 focus:border-[#007f6e] outline-none bg-slate-50 mt-1"
+                                            className="w-full text-xs font-medium border border-slate-100 rounded-lg p-2 focus:border-teal-500 outline-none bg-slate-50 mt-1"
                                             rows={2}
                                             value={editForm.address || ""}
                                             onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))}
@@ -487,14 +491,14 @@ export function PatientDetailModal({
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Genel Notlar</label>
                                 {isEditing ? (
                                     <textarea
-                                        className="w-full text-xs font-medium border border-slate-100 rounded-lg p-2 focus:border-[#007f6e] outline-none bg-slate-50"
+                                        className="w-full text-xs font-medium border border-slate-100 rounded-lg p-2 focus:border-teal-500 outline-none bg-slate-50"
                                         rows={4}
                                         value={editForm.notes || ""}
                                         onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
                                         placeholder="Hasta hakkında genel klinik notlar..."
                                     />
                                 ) : (
-                                    <div className="bg-slate-50 rounded-xl p-3 h-full max-h-[120px] overflow-y-auto">
+                                    <div className="bg-slate-50 rounded-xl p-3 min-h-[72px] max-h-[140px] overflow-y-auto">
                                         <p className="text-xs font-medium text-slate-600 leading-relaxed">
                                             {patient.notes || "Henüz bir not eklenmemiş."}
                                         </p>
@@ -506,13 +510,13 @@ export function PatientDetailModal({
                         {/* Randevu Geçmişi Section */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 text-[#007f6e]">
-                                    <div className="h-6 w-6 rounded-lg bg-emerald-50 flex items-center justify-center">
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                <div className="flex items-center gap-2">
+                                    <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shadow-sm">
+                                        <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                                         </svg>
                                     </div>
-                                    <h3 className="text-xs font-black uppercase tracking-tight">Randevu Geçmişi</h3>
+                                    <h3 className="text-xs font-black uppercase tracking-tight text-teal-600">Randevu Geçmişi</h3>
                                 </div>
                                 <button
                                     type="button"
@@ -590,22 +594,20 @@ export function PatientDetailModal({
                                             {stats.totalPending.toLocaleString('tr-TR')} ₺ bekleyen
                                         </span>
                                     )}
-                                    {appointments.length > 0 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => patient && setPaymentTarget({
-                                                appointmentId: appointments[0].id,
-                                                patientName: patient.full_name,
-                                                amount: 0,
-                                            })}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl transition-colors"
-                                        >
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                                            </svg>
-                                            Yeni Ödeme
-                                        </button>
-                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => patient && setPaymentTarget({
+                                            appointmentId: appointments[0]?.id ?? "",
+                                            patientName: patient.full_name,
+                                            amount: 0,
+                                        })}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl transition-colors"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Yeni Ödeme
+                                    </button>
                                 </div>
                             </div>
 
@@ -945,7 +947,7 @@ export function PatientDetailModal({
                                     <button
                                         onClick={isEditing ? handleSave : () => { setIsEditing(true); setAnamnesisEditMode(true); setChartEditMode(true); }}
                                         disabled={saving}
-                                        className="w-full sm:w-auto px-6 sm:px-12 h-12 rounded-2xl bg-white border-2 border-slate-100 text-xs font-black text-slate-600 hover:border-[#007f6e] hover:text-[#007f6e] transition-all uppercase tracking-widest shadow-sm flex items-center justify-center gap-2"
+                                        className="w-full sm:w-auto px-6 sm:px-12 h-12 rounded-2xl bg-white border-2 border-slate-100 text-xs font-black text-slate-600 hover:border-[#007f6e] hover:text-teal-600 transition-all uppercase tracking-widest shadow-sm flex items-center justify-center gap-2"
                                     >
                                         {saving ? "..." : (isEditing ? "Kaydet" : "Düzenle")}
                                     </button>

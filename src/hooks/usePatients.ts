@@ -69,10 +69,10 @@ export function usePatients() {
         enabled: !!clinic.clinicId,
     });
 
-    // Fetch Patients with Pagination
+    // Fetch All Patients (Client-side pagination is handled in page.tsx)
     const { data: patientsData, isLoading: loading, error: queryError } = useQuery({
-        queryKey: ["patients", clinic.clinicId, currentPage],
-        queryFn: () => getAllPatients(clinic.clinicId || "", currentPage, PAGE_SIZE),
+        queryKey: ["patients", clinic.clinicId],
+        queryFn: () => getAllPatients(clinic.clinicId || "", 1, 5000),
         enabled: !!clinic.clinicId,
     });
 

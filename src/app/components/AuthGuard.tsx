@@ -43,7 +43,7 @@ function LoadingScreen({ step }: { step: LoadingStep }) {
 
         {/* Başlık */}
         <div className="text-center">
-          <h2 className="text-sm font-semibold text-slate-900">Klinik Yönetim Paneli</h2>
+          <h2 className="text-sm font-semibold text-slate-900">NextGency OS</h2>
           <p className="mt-0.5 text-xs text-slate-500">Panele erişim kontrol ediliyor</p>
         </div>
 

@@ -3,10 +3,10 @@
 
 export enum UserRole {
   SUPER_ADMIN = "SUPER_ADMIN",
-  ADMIN       = "ADMIN",
-  DOKTOR      = "DOKTOR",
-  SEKRETER    = "SEKRETER",
-  FINANS      = "FINANS",
+  ADMIN = "ADMIN",
+  DOKTOR = "DOKTOR",
+  SEKRETER = "SEKRETER",
+  FINANS = "FINANS",
 }
 
 export const USER_ROLES = Object.values(UserRole);
@@ -331,13 +331,13 @@ export interface PlatformSupportRequest {
 
 // Sabitler — type dosyasında tutulur, import kolaylığı için
 export const DEFAULT_WORKING_HOURS: WorkingHours = {
-  monday:    { open: "09:00", close: "19:00", enabled: true },
-  tuesday:   { open: "09:00", close: "19:00", enabled: true },
+  monday: { open: "09:00", close: "19:00", enabled: true },
+  tuesday: { open: "09:00", close: "19:00", enabled: true },
   wednesday: { open: "09:00", close: "19:00", enabled: true },
-  thursday:  { open: "09:00", close: "19:00", enabled: true },
-  friday:    { open: "09:00", close: "19:00", enabled: true },
-  saturday:  { open: "09:00", close: "14:00", enabled: false },
-  sunday:    { open: "09:00", close: "14:00", enabled: false },
+  thursday: { open: "09:00", close: "19:00", enabled: true },
+  friday: { open: "09:00", close: "19:00", enabled: true },
+  saturday: { open: "09:00", close: "14:00", enabled: false },
+  sunday: { open: "09:00", close: "14:00", enabled: false },
 };
 
 export const ORDERED_DAYS: DayOfWeek[] = [
@@ -345,13 +345,13 @@ export const ORDERED_DAYS: DayOfWeek[] = [
 ];
 
 export const DAY_LABELS: Record<DayOfWeek, string> = {
-  monday:    "Pazartesi",
-  tuesday:   "Salı",
+  monday: "Pazartesi",
+  tuesday: "Salı",
   wednesday: "Çarşamba",
-  thursday:  "Perşembe",
-  friday:    "Cuma",
-  saturday:  "Cumartesi",
-  sunday:    "Pazar",
+  thursday: "Perşembe",
+  friday: "Cuma",
+  saturday: "Cumartesi",
+  sunday: "Pazar",
 };
 
 export interface SubscriptionPlanFeatures {
@@ -362,27 +362,27 @@ export interface SubscriptionPlanFeatures {
 // ─── Anamnez (Tıbbi Geçmiş) ───────────────────────────────────────────────────
 
 export const SYSTEMIC_CONDITIONS = [
-  { key: "diabetes",          label: "Diyabet (Şeker Hastalığı)" },
-  { key: "hypertension",      label: "Hipertansiyon (Yüksek Tansiyon)" },
-  { key: "heart_disease",     label: "Kalp Hastalığı" },
-  { key: "heart_valve",       label: "Kalp Kapak Sorunu" },
-  { key: "asthma_copd",       label: "Astım / KOAH" },
-  { key: "kidney_disease",    label: "Böbrek Hastalığı" },
-  { key: "liver_disease",     label: "Karaciğer Hastalığı" },
-  { key: "thyroid",           label: "Tiroid Hastalığı" },
-  { key: "epilepsy",          label: "Epilepsi" },
-  { key: "cancer",            label: "Kanser / Kemoterapi" },
-  { key: "osteoporosis",      label: "Osteoporoz" },
-  { key: "hepatitis",         label: "Hepatit B / C" },
+  { key: "diabetes", label: "Diyabet (Şeker Hastalığı)" },
+  { key: "hypertension", label: "Hipertansiyon (Yüksek Tansiyon)" },
+  { key: "heart_disease", label: "Kalp Hastalığı" },
+  { key: "heart_valve", label: "Kalp Kapak Sorunu" },
+  { key: "asthma_copd", label: "Astım / KOAH" },
+  { key: "kidney_disease", label: "Böbrek Hastalığı" },
+  { key: "liver_disease", label: "Karaciğer Hastalığı" },
+  { key: "thyroid", label: "Tiroid Hastalığı" },
+  { key: "epilepsy", label: "Epilepsi" },
+  { key: "cancer", label: "Kanser / Kemoterapi" },
+  { key: "osteoporosis", label: "Osteoporoz" },
+  { key: "hepatitis", label: "Hepatit B / C" },
 ] as const;
 
 export const ALLERGY_OPTIONS = [
-  { key: "penicillin",    label: "Penisilin / Antibiyotik" },
-  { key: "latex",         label: "Latex" },
-  { key: "anesthesia",    label: "Anestezi İlaçları" },
+  { key: "penicillin", label: "Penisilin / Antibiyotik" },
+  { key: "latex", label: "Latex" },
+  { key: "anesthesia", label: "Anestezi İlaçları" },
   { key: "aspirin_nsaid", label: "Aspirin / NSAİD" },
-  { key: "iodine",        label: "İyot" },
-  { key: "sulfa",         label: "Sülfa İlaçları" },
+  { key: "iodine", label: "İyot" },
+  { key: "sulfa", label: "Sülfa İlaçları" },
 ] as const;
 
 export type SmokingStatus = "never" | "occasional" | "regular" | "quit";

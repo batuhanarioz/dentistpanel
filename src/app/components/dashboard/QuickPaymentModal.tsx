@@ -186,7 +186,7 @@ export function QuickPaymentModal({
             } else {
                 // YENİ KAYITLAR OLUŞTUR
                 const paymentsToCreate = installmentList.map((item, i) => ({
-                    appointment_id: appointmentId,
+                    appointment_id: appointmentId || null,
                     patient_id: patientId,
                     amount: item.amount,
                     agreed_total: agreedTotal > 0 ? agreedTotal : amount,
