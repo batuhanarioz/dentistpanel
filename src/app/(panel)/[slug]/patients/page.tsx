@@ -6,7 +6,8 @@ import { PatientDetailModal } from "@/app/components/patients/PatientDetailModal
 import { CSVUploadModal } from "@/app/components/patients/CSVUploadModal";
 import { AddPatientModal } from "@/app/components/patients/AddPatientModal";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 
 export default function PatientsPage() {
@@ -38,6 +39,12 @@ export default function PatientsPage() {
   const queryClient = useQueryClient();
   const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setSearch(decodeURIComponent(q));
+  }, [searchParams, setSearch]);
 
   const thisMonthCount = patients.filter(p => {
     const d = new Date(p.created_at);

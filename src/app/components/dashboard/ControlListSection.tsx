@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { DashboardAppointment } from "@/hooks/useDashboard";
 import { ControlItem } from "@/hooks/useChecklist";
 import { CONTROL_TONE_STYLES } from "@/constants/dashboard";
+import { SectionEmptyState } from "./SectionEmptyState";
 
 interface ControlListProps {
-    isToday: boolean;
     controlItems: ControlItem[];
     onStatusChange: (appointmentId: string, status: DashboardAppointment["status"]) => void;
     onPaymentClick?: (item: ControlItem) => void;
@@ -16,7 +16,6 @@ interface ControlListProps {
 }
 
 export function ControlListSection({
-    isToday,
     controlItems,
     onStatusChange,
     onPaymentClick,
@@ -44,55 +43,63 @@ export function ControlListSection({
     }, [controlItems, filter]);
 
     useEffect(() => {
+        const pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
+
         const handleHashChange = () => {
             const hash = window.location.hash;
             if (hash.startsWith('#task-')) {
                 const id = hash.replace('#task-', '');
                 setHighlightedId(id);
 
-                // Hafif gecikme ile DOM'un hazır olduğundan emin ol ve scroll yap
-                setTimeout(() => {
-                    const element = document.getElementById(`task-${id}`);
-                    if (element) {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }, 100);
+                pendingTimeouts.push(setTimeout(() => {
+                    document.getElementById(`task-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100));
 
-                // 5 saniye sonra vurguyu kaldır
-                setTimeout(() => setHighlightedId(null), 5000);
+                pendingTimeouts.push(setTimeout(() => setHighlightedId(null), 5000));
             }
         };
 
         handleHashChange();
         window.addEventListener('hashchange', handleHashChange);
-        return () => window.removeEventListener('hashchange', handleHashChange);
+        return () => {
+            window.removeEventListener('hashchange', handleHashChange);
+            pendingTimeouts.forEach(clearTimeout);
+        };
     }, []);
 
     if (!loading && controlItems.length === 0) {
         return (
-            <div className="bg-white rounded-3xl p-8 text-center border shadow-sm">
-                <div className="bg-emerald-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                    </svg>
+            <div className="group/card bg-white rounded-[28px] p-8 border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
+                <div className="absolute -top-20 -right-20 w-40 h-40 bg-emerald-50 rounded-full blur-3xl opacity-50 group-hover/card:bg-emerald-100 transition-colors pointer-events-none" />
+                <div className="relative z-10">
+                    <SectionEmptyState
+                        gradient="from-emerald-400 to-teal-500"
+                        shadow="shadow-emerald-200/60"
+                        title="Her Şey Yolunda!"
+                        description="Şu an kontrol edilmesi gereken kritik bir madde bulunmuyor."
+                        icon={
+                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                            </svg>
+                        }
+                    />
                 </div>
-                <h3 className="text-slate-900 font-bold mb-1 font-outfit">Her Şey Yolunda!</h3>
-                <p className="text-slate-500 text-xs">Şu an kontrol edilmesi gereken kritik bir madde bulunmuyor.</p>
             </div>
         );
     }
 
     return (
-        <section className="rounded-2xl border bg-white shadow-sm overflow-hidden flex flex-col" style={{ height: '416px' }}>
-            <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
+        <section className="group/card rounded-[28px] border border-slate-100 bg-white shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col relative" style={{ height: '416px' }}>
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-amber-50 rounded-full blur-3xl opacity-50 group-hover/card:bg-amber-100 transition-colors pointer-events-none" />
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 relative z-10">
                 <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
-                        <svg className="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-md shadow-amber-200/60 shrink-0">
+                        <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
                     <div>
-                        <h2 className="text-sm font-semibold text-slate-900">Kontrol Listesi</h2>
+                        <h2 className="text-sm font-bold text-slate-900">Kontrol Listesi</h2>
                         <p className="text-[11px] text-slate-400">
                             {loading ? "Yükleniyor..." : `${filteredItems.length} bildirim bekliyor`}
                         </p>
@@ -121,7 +128,20 @@ export function ControlListSection({
 
             <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-3 scrollbar-thin scrollbar-thumb-slate-200">
                 {loading && (
-                    <div className="py-10 text-center text-slate-400 text-xs animate-pulse">Kontroller taranıyor...</div>
+                    <div className="space-y-3 pt-1">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="animate-pulse rounded-2xl border border-slate-100 p-4">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-3 w-28 rounded-full bg-slate-100" />
+                                        <div className="h-2.5 w-44 rounded-full bg-slate-100" />
+                                        <div className="h-7 w-24 rounded-xl bg-slate-100 mt-3" />
+                                    </div>
+                                    <div className="h-8 w-14 rounded-xl bg-slate-100 shrink-0" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 )}
                 {!loading && filteredItems.length === 0 && filter !== 'ALL' && (
                     <div className="py-10 text-center">
@@ -155,16 +175,16 @@ export function ControlListSection({
 
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-bold text-slate-900 truncate">{item.patientName}</span>
-                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${item.tone === 'critical' ? 'bg-rose-50 text-rose-600' :
-                                        item.tone === 'high' ? 'bg-orange-50 text-orange-600' :
-                                            'bg-slate-100 text-slate-600'
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <span className="text-sm font-black text-slate-900 truncate">{item.patientName}</span>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-lg font-black uppercase tracking-wide ${item.tone === 'critical' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                                        item.tone === 'high' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
+                                            'bg-slate-100 text-slate-500 border border-slate-200'
                                         }`}>
                                         {item.status === 'pending' ? 'Bekliyor' : 'Tamamlandı'}
                                     </span>
                                 </div>
-                                <h3 className="text-xs text-slate-600 font-medium mb-3">{item.title}</h3>
+                                <p className="text-[11px] text-slate-500 font-semibold mb-3 leading-snug">{item.title}</p>
 
                                 {/* HIZLI AKSIYON BUTONLARI */}
                                 <div className="flex flex-wrap gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
@@ -172,21 +192,21 @@ export function ControlListSection({
                                         <>
                                             <button
                                                 onClick={() => onStatusChange(item.appointmentId, 'completed')}
-                                                className="px-2.5 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 border border-emerald-100"
+                                                className="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-gradient-to-br hover:from-emerald-500 hover:to-teal-600 hover:text-white rounded-xl text-[10px] font-black transition-all flex items-center gap-1 border border-emerald-100 active:scale-95 shadow-sm"
                                             >
-                                                ✅ Tamamlandı
+                                                Tamamlandı
                                             </button>
                                             <button
                                                 onClick={() => onStatusChange(item.appointmentId, 'cancelled')}
-                                                className="px-2.5 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 border border-rose-100"
+                                                className="px-2.5 py-1.5 bg-rose-50 text-rose-700 hover:bg-gradient-to-br hover:from-rose-500 hover:to-pink-600 hover:text-white rounded-xl text-[10px] font-black transition-all flex items-center gap-1 border border-rose-100 active:scale-95 shadow-sm"
                                             >
-                                                ❌ İptal Edildi
+                                                İptal Edildi
                                             </button>
                                             <button
                                                 onClick={() => onStatusChange(item.appointmentId, 'no_show')}
-                                                className="px-2.5 py-1.5 bg-slate-50 text-slate-600 hover:bg-slate-600 hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 border border-slate-100"
+                                                className="px-2.5 py-1.5 bg-slate-50 text-slate-600 hover:bg-gradient-to-br hover:from-slate-500 hover:to-slate-700 hover:text-white rounded-xl text-[10px] font-black transition-all flex items-center gap-1 border border-slate-200 active:scale-95 shadow-sm"
                                             >
-                                                ⏳ Gelmedi
+                                                Gelmedi
                                             </button>
                                         </>
                                     )}
@@ -194,36 +214,36 @@ export function ControlListSection({
                                     {item.code === 'MISSING_NOTE' && (
                                         <button
                                             onClick={() => onTreatmentNoteClick?.(item)}
-                                            className="px-4 py-2 bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 border border-amber-100"
+                                            className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-gradient-to-br hover:from-amber-400 hover:to-orange-500 hover:text-white rounded-xl text-[10px] font-black transition-all flex items-center gap-1.5 border border-amber-100 active:scale-95 shadow-sm"
                                         >
-                                            📝 Tedavi Notu Yaz
+                                            Tedavi Notu Yaz
                                         </button>
                                     )}
 
                                     {item.code === 'MISSING_PAYMENT' && (
                                         <button
                                             onClick={() => onPaymentClick?.(item)}
-                                            className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 border border-blue-100"
+                                            className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-gradient-to-br hover:from-blue-500 hover:to-indigo-600 hover:text-white rounded-xl text-[10px] font-black transition-all flex items-center gap-1.5 border border-blue-100 active:scale-95 shadow-sm"
                                         >
-                                            💰 Ödeme Bilgisi Gir
+                                            Ödeme Bilgisi Gir
                                         </button>
                                     )}
 
                                     {item.code === 'DUE_PAYMENT_FOLLOWUP' && (
                                         <button
                                             onClick={() => onPaymentClick?.(item)}
-                                            className="px-4 py-2 bg-cyan-50 text-cyan-600 hover:bg-cyan-600 hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 border border-cyan-100"
+                                            className="px-3 py-1.5 bg-cyan-50 text-cyan-700 hover:bg-gradient-to-br hover:from-cyan-500 hover:to-teal-600 hover:text-white rounded-xl text-[10px] font-black transition-all flex items-center gap-1.5 border border-cyan-100 active:scale-95 shadow-sm"
                                         >
-                                            💵 Tahsilat Yap
+                                            Tahsilat Yap
                                         </button>
                                     )}
 
                                     {item.code === 'MISSING_DOCTOR' && (
                                         <div className="flex flex-col gap-1.5 w-full max-w-[200px]" onClick={(e) => e.stopPropagation()}>
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hekim Seç</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Hekim Seç</label>
                                             <select
                                                 onChange={(e) => onAssignDoctor?.(item.appointmentId, e.target.value)}
-                                                className="w-full h-9 bg-indigo-50 border-indigo-100 text-indigo-700 text-[11px] font-bold rounded-xl px-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
+                                                className="w-full h-9 bg-indigo-50 border-indigo-100 text-indigo-700 text-[11px] font-black rounded-xl px-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
                                                 defaultValue=""
                                             >
                                                 <option value="" disabled>Hekim Seçiniz...</option>
@@ -233,16 +253,14 @@ export function ControlListSection({
                                             </select>
                                         </div>
                                     )}
-
-                                    {/* Diğer aksiyonlar buraya gelebilir */}
                                 </div>
                             </div>
 
                             <div className="text-right flex flex-col items-end shrink-0">
-                                <span className="text-xs font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded-lg">
+                                <span className="text-sm font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-xl">
                                     {new Date(item.startsAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
-                                <span className="text-[10px] text-slate-400 font-medium mt-1">{item.treatmentType}</span>
+                                <span className="text-[10px] text-slate-400 font-black uppercase tracking-tight mt-1.5">{item.treatmentType}</span>
                             </div>
                         </div>
                     </div>

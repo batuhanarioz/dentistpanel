@@ -10,6 +10,7 @@ import { useDentalChart } from "@/hooks/useDentalChart";
 import { AnamnesisSection } from "@/app/components/patients/AnamnesisSection";
 import { useAnamnesis, useAnamnesisMutation } from "@/hooks/useAnamnesis";
 import type { PatientAnamnesis } from "@/types/database";
+import toast from "react-hot-toast";
 
 interface TreatmentActionModalProps {
     open: boolean;
@@ -145,7 +146,7 @@ export function TreatmentActionModal({
             .eq("id", appointmentId)
             .eq("clinic_id", clinicId);
 
-        if (noteErr) { setError("Kaydedilirken hata oluştu: " + noteErr.message); setSaving(false); return; }
+        if (noteErr) { setError("Kaydedilirken hata oluştu: " + noteErr.message); toast.error("Tedavi notu kaydedilemedi"); setSaving(false); return; }
 
         // 2) Tedavi planı varsa kaydet
         if (planOpen && validItems.length > 0) {
@@ -184,6 +185,7 @@ export function TreatmentActionModal({
 
             if (result.error) {
                 setError("Tedavi planı kaydedilirken hata oluştu.");
+                toast.error("Tedavi planı kaydedilemedi");
                 setSaving(false);
                 return;
             }
@@ -192,6 +194,7 @@ export function TreatmentActionModal({
         // 3) Checklist item'ı tamamla
         await completeChecklistItem();
 
+        toast.success("Tedavi notu kaydedildi");
         setSaving(false);
         onSuccess();
         onClose();

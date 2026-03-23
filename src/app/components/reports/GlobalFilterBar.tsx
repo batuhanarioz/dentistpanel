@@ -3,7 +3,8 @@
 import React from "react";
 import { DatePreset } from "@/hooks/useReports";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
-import { Search, Filter, Calendar, Users, Activity, CreditCard } from "lucide-react";
+import { Filter, Calendar, Users, Activity, RefreshCw, Download } from "lucide-react";
+import type { ReportData } from "./ReportSections";
 
 interface GlobalFilterBarProps {
     preset: DatePreset;
@@ -21,6 +22,65 @@ interface GlobalFilterBarProps {
     doctors: { id: string; full_name: string }[];
     treatmentTypes: { id: string; name: string }[];
     rangeLabel: string;
+    loading?: boolean;
+    onRefresh?: () => void;
+    analytics?: ReportData | null;
+}
+
+function exportToCSV(analytics: ReportData, rangeLabel: string) {
+    const rows: string[] = [];
+
+    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+
+    // KPI Özeti
+    rows.push(esc("KPI ÖZETİ — " + rangeLabel));
+    rows.push([esc("Metrik"), esc("Değer")].join(","));
+    rows.push([esc("Toplam Gelir (₺)"), analytics.kpis.totalRevenue].join(","));
+    rows.push([esc("Bekleyen (₺)"), analytics.kpis.pendingPayments].join(","));
+    rows.push([esc("Gecikmiş Ödeme (₺)"), analytics.overdueStats.totalAmount].join(","));
+    rows.push([esc("Gecikmiş Ödeme Adedi"), analytics.overdueStats.count].join(","));
+    rows.push([esc("Toplam Randevu"), analytics.kpis.totalAppointments].join(","));
+    rows.push([esc("Yeni Hasta"), analytics.kpis.newPatients].join(","));
+    rows.push([esc("Gelmeme Oranı (%)"), analytics.kpis.noShowRate.toFixed(1)].join(","));
+    rows.push([esc("İptal Oranı (%)"), analytics.kpis.cancelledRate.toFixed(1)].join(","));
+    rows.push([esc("Geri Dönüş Oranı (%)"), analytics.retention.totalDistinctWithAppts > 0
+        ? Math.round((analytics.retention.returningCount / analytics.retention.totalDistinctWithAppts) * 100)
+        : 0].join(","));
+    rows.push([esc("Randevu Başı Ort. Gelir (₺)"), analytics.kpis.avgRevenuePerAppt.toFixed(0)].join(","));
+    rows.push("");
+
+    // Hekim Performansı
+    rows.push(esc("HEKİM PERFORMANSI"));
+    rows.push([esc("Hekim"), esc("Randevu"), esc("Net Gelir (₺)"), esc("Ort. Gelir/Randevu (₺)"), esc("Gelmeme (%)"), esc("İptal (%)")].join(","));
+    for (const d of [...analytics.doctorPerformance].sort((a, b) => b.revenue - a.revenue)) {
+        rows.push([esc(d.name), d.appointments, d.revenue, d.avgRevenuePerAppt, d.noShowRate.toFixed(1), d.cancelledRate.toFixed(1)].join(","));
+    }
+    rows.push("");
+
+    // Tedavi Dağılımı
+    rows.push(esc("TEDAVİ DAĞILIMI"));
+    rows.push([esc("Tedavi"), esc("Adet"), esc("Gelir (₺)"), esc("Ort. Gelir (₺)")].join(","));
+    for (const t of analytics.treatmentStats.filter(t => t.count > 0)) {
+        const avg = t.count > 0 && t.revenue > 0 ? Math.round(t.revenue / t.count) : 0;
+        rows.push([esc(t.name), t.count, t.revenue, avg].join(","));
+    }
+    rows.push("");
+
+    // Ödeme Yöntemi
+    rows.push(esc("ÖDEME YÖNTEMİ DAĞILIMI"));
+    rows.push([esc("Yöntem"), esc("Tahsilat (₺)"), esc("İşlem Adedi")].join(","));
+    for (const m of analytics.paymentMethodStats) {
+        rows.push([esc(m.method), m.amount, m.count].join(","));
+    }
+
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `klinik-rapor-${rangeLabel.replace(/\s/g, "-")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 export function GlobalFilterBar({
@@ -32,12 +92,15 @@ export function GlobalFilterBar({
     statusFilter, setStatusFilter,
     doctors,
     treatmentTypes,
-    rangeLabel
+    rangeLabel,
+    loading,
+    onRefresh,
+    analytics,
 }: GlobalFilterBarProps) {
     return (
-        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b shadow-sm -mx-4 px-4 py-3 mb-6">
+        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b shadow-sm -mx-4 px-4 py-3 mb-0">
             <div className="max-w-7xl mx-auto flex flex-col gap-4">
-                {/* Header & Main Presets */}
+                {/* Header, presets, action buttons */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <div className="bg-indigo-600 p-2 rounded-xl shadow-indigo-200 shadow-lg">
@@ -49,33 +112,61 @@ export function GlobalFilterBar({
                         </div>
                     </div>
 
-                    <div className="flex overflow-x-auto p-1 bg-slate-100 rounded-xl no-scrollbar">
-                        {[
-                            { id: 'today', label: 'Bugün' },
-                            { id: '7d', label: '7 Gün' },
-                            { id: '30d', label: '30 Gün' },
-                            { id: 'thisMonth', label: 'Bu Ay' },
-                            { id: 'lastMonth', label: 'Geçen Ay' },
-                            { id: 'thisYear', label: 'Bu Yıl' },
-                            { id: 'custom', label: 'Özel' },
-                        ].map((p) => (
-                            <button
-                                key={p.id}
-                                onClick={() => setPreset(p.id as DatePreset)}
-                                className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${preset === p.id
-                                        ? 'bg-white text-indigo-600 shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700'
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {/* Date preset pills */}
+                        <div className="flex overflow-x-auto p-1 bg-slate-100 rounded-xl no-scrollbar">
+                            {[
+                                { id: "today", label: "Bugün" },
+                                { id: "7d", label: "7 Gün" },
+                                { id: "30d", label: "30 Gün" },
+                                { id: "thisMonth", label: "Bu Ay" },
+                                { id: "lastMonth", label: "Geçen Ay" },
+                                { id: "thisYear", label: "Bu Yıl" },
+                                { id: "custom", label: "Özel" },
+                            ].map((p) => (
+                                <button
+                                    key={p.id}
+                                    onClick={() => setPreset(p.id as DatePreset)}
+                                    className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
+                                        preset === p.id
+                                            ? "bg-white text-indigo-600 shadow-sm"
+                                            : "text-slate-500 hover:text-slate-700"
                                     }`}
+                                >
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Refresh */}
+                        {onRefresh && (
+                            <button
+                                onClick={onRefresh}
+                                disabled={loading}
+                                title="Verileri yenile"
+                                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
                             >
-                                {p.label}
+                                <RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? "animate-spin" : ""}`} />
                             </button>
-                        ))}
+                        )}
+
+                        {/* Export CSV */}
+                        {analytics && (
+                            <button
+                                onClick={() => exportToCSV(analytics, rangeLabel)}
+                                title="CSV olarak dışa aktar"
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 transition-colors text-xs font-bold text-indigo-700"
+                            >
+                                <Download className="w-3.5 h-3.5" />
+                                Dışa Aktar
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {/* Detailed Filters row */}
+                {/* Filters row */}
                 <div className="flex flex-wrap items-center gap-2">
-                    {preset === 'custom' && (
+                    {preset === "custom" && (
                         <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
                             <Calendar className="w-3.5 h-3.5 text-slate-400 ml-1" />
                             <PremiumDatePicker value={customStart} onChange={setCustomStart} compact />
@@ -84,7 +175,7 @@ export function GlobalFilterBar({
                         </div>
                     )}
 
-                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
                         <Users className="w-3.5 h-3.5 text-slate-400 ml-1" />
                         <select
                             value={doctorFilter}
@@ -96,7 +187,7 @@ export function GlobalFilterBar({
                         </select>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
                         <Filter className="w-3.5 h-3.5 text-slate-400 ml-1" />
                         <select
                             value={treatmentFilter}
@@ -108,7 +199,7 @@ export function GlobalFilterBar({
                         </select>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
                         <Activity className="w-3.5 h-3.5 text-slate-400 ml-1" />
                         <select
                             value={statusFilter}

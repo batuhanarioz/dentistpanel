@@ -16,6 +16,7 @@ interface AnamnesisSectionProps {
     onSave: (draft: Omit<PatientAnamnesis, "id" | "clinic_id" | "patient_id" | "updated_at" | "updated_by">) => Promise<void>;
     editMode?: boolean;
     onEditModeChange?: (v: boolean) => void;
+    hideEditButton?: boolean;
 }
 
 type Draft = Omit<PatientAnamnesis, "id" | "clinic_id" | "patient_id" | "updated_at" | "updated_by">;
@@ -119,7 +120,7 @@ function RiskBadge({ label, color }: { label: string; color: "red" | "amber" | "
 
 // ─── Ana bileşen ───────────────────────────────────────────────────────────────
 
-export function AnamnesisSection({ patientId, data, isLoading, onSave, editMode: controlledEditMode, onEditModeChange }: AnamnesisSectionProps) {
+export function AnamnesisSection({ patientId, data, isLoading, onSave, editMode: controlledEditMode, onEditModeChange, hideEditButton }: AnamnesisSectionProps) {
     const isControlled = controlledEditMode !== undefined;
     const [internalEditMode, setInternalEditMode] = useState(false);
     const editMode = isControlled ? controlledEditMode : internalEditMode;
@@ -214,15 +215,17 @@ export function AnamnesisSection({ patientId, data, isLoading, onSave, editMode:
         return (
             <div className="space-y-3">
                 {/* Düzenle butonu */}
-                <div className="flex justify-end">
-                    <button
-                        type="button"
-                        onClick={() => setEditMode(true)}
-                        className="h-8 px-4 rounded-xl bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-widest border border-amber-100 hover:bg-amber-100 transition-colors"
-                    >
-                        Düzenle
-                    </button>
-                </div>
+                {!hideEditButton && (
+                    <div className="flex justify-end">
+                        <button
+                            type="button"
+                            onClick={() => setEditMode(true)}
+                            className="h-8 px-4 rounded-xl bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-widest border border-amber-100 hover:bg-amber-100 transition-colors"
+                        >
+                            Düzenle
+                        </button>
+                    </div>
+                )}
                 {/* Kritik uyarılar */}
                 {(criticalFlags.length > 0 || warningFlags.length > 0 || (data?.allergies_list?.length ?? 0) > 0) && (
                     <div className="bg-rose-50 rounded-xl p-3 border border-rose-100 space-y-1.5">

@@ -1,7 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useMemo, useId } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
+import { useClinic } from "@/app/context/ClinicContext";
+import { localDateStr } from "@/lib/dateUtils";
 import {
     BarChart,
     Bar,
@@ -15,31 +18,41 @@ import {
     CartesianGrid,
 } from "recharts";
 
+interface TooltipPayloadEntry {
+    name?: string;
+    value: number;
+    payload: { day?: string };
+}
 
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayloadEntry[];
+}
 
 export function DashboardAnalytics() {
-    const [appointments, setAppointments] = useState<{ starts_at: string; status: string; treatment_type?: string }[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { clinicId } = useClinic();
+    const gradientPrefix = useId().replace(/:/g, "");
 
-    useEffect(() => {
-        const fetchData = async () => {
-            const start = new Date();
-            start.setDate(start.getDate() - 7);
-
-            const end = new Date();
-            end.setDate(end.getDate() + 7);
+    const { data: appointments = [], isLoading: loading } = useQuery({
+        queryKey: ["dashboardAnalytics", clinicId],
+        queryFn: async () => {
+            const today = localDateStr();
+            const d = new Date(today + "T00:00:00");
+            const startDay = localDateStr(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 7));
+            const endDay = localDateStr(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7));
 
             const { data } = await supabase
                 .from("appointments")
                 .select("starts_at, status, treatment_type")
-                .gte("starts_at", start.toISOString())
-                .lte("starts_at", end.toISOString());
+                .eq("clinic_id", clinicId!)
+                .gte("starts_at", `${startDay}T00:00:00+03:00`)
+                .lte("starts_at", `${endDay}T23:59:59+03:00`);
 
-            setAppointments(data || []);
-            setLoading(false);
-        };
-        fetchData();
-    }, []);
+            return (data || []) as { starts_at: string; status: string; treatment_type?: string }[];
+        },
+        enabled: !!clinicId,
+        staleTime: 2 * 60 * 1000,
+    });
 
     const statusData = useMemo(() => {
         const counts: Record<string, number> = {};
@@ -71,7 +84,7 @@ export function DashboardAnalytics() {
                     value,
                     color: p.color,
                     grad: p.grad,
-                    gradientId: `grad-treatment-${index}`
+                    gradientId: `${gradientPrefix}-grad-${index}`
                 };
             });
     }, [appointments]);
@@ -79,25 +92,24 @@ export function DashboardAnalytics() {
     const totalAppointmentsCount = statusData.reduce((acc, curr) => acc + curr.value, 0);
 
     const weeklyVolume = useMemo(() => {
+        const today = localDateStr();
+        const base = new Date(today + "T00:00:00");
         const next7Days = [...Array(7)].map((_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() + i);
-            return d.toISOString().split("T")[0];
+            const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+            return localDateStr(d);
         });
 
-        const volume = next7Days.map(day => {
-            const count = appointments.filter(a => a.starts_at.startsWith(day)).length;
+        return next7Days.map(day => {
+            const count = appointments.filter(a => localDateStr(new Date(a.starts_at)) === day).length;
             return {
-                day: new Date(day).toLocaleDateString("tr-TR", { weekday: "short" }),
-                fullDate: new Date(day).toLocaleDateString("tr-TR"),
-                total: count
+                day: new Date(day + "T12:00:00").toLocaleDateString("tr-TR", { weekday: "short" }),
+                fullDate: new Date(day + "T12:00:00").toLocaleDateString("tr-TR"),
+                total: count,
             };
         });
-        return volume;
     }, [appointments]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const CustomTooltip = ({ active, payload }: any) => {
+    const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
         if (active && payload && payload.length) {
             return (
                 <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800 p-3 rounded-2xl shadow-2xl">
@@ -125,6 +137,7 @@ export function DashboardAnalytics() {
                     <div>
                         <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Randevu Durumu</h3>
                         <p className="text-xs font-bold text-slate-900">Tamamlanan Tedaviler</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Son 7 günde tamamlanan randevuların tedavi türü dağılımı</p>
                     </div>
                     <div className="h-8 w-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

@@ -1,4 +1,15 @@
 /**
+ * HH:MM formatında saat döndürür (local timezone).
+ * Randevu listelerinde ve kontrol saatleri gösteriminde kullanılır.
+ */
+export function formatTime(dateString: string): string {
+  const d = new Date(dateString);
+  const hh = d.getHours().toString().padStart(2, "0");
+  const mm = d.getMinutes().toString().padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+/**
  * Yerel saat dilimine göre YYYY-MM-DD formatında tarih döndürür.
  * `new Date().toISOString().slice(0,10)` UTC kullanır ve
  * Türkiye gibi UTC+ bölgelerinde gece yarısı sonrası yanlış gün gösterir.
@@ -13,6 +24,20 @@ export function localDateStr(date?: Date): string {
   });
   // en-CA format is YYYY-MM-DD
   return formatter.format(d);
+}
+
+/**
+ * Telefon numarasını WhatsApp wa.me linki için temizler ve TR ülke kodunu ekler.
+ * "05xxxxxxxxx" → "905xxxxxxxxx", "5xxxxxxxxx" → "905xxxxxxxxx", "+90..." → "90..."
+ */
+export function formatPhoneForWhatsApp(phone: string): string {
+  let cleaned = phone.replace(/\D/g, "");
+  if (cleaned.startsWith("0")) {
+    cleaned = "90" + cleaned.slice(1);
+  } else if (!cleaned.startsWith("90") && cleaned.length === 10) {
+    cleaned = "90" + cleaned;
+  }
+  return cleaned;
 }
 
 export type PaymentViewMode = "day" | "week" | "month" | "range";

@@ -84,6 +84,8 @@ export function normalizePaymentStatus(status: string | null | undefined): Payme
         case "partial":
         case "Kısmi":
             return "partial";
+        case "deferred":
+            return "pending"; // ertelenmiş → beklemede sayılır
         default:
             return "pending"; // "pending" | "planned" | "Beklemede" | null → pending
     }

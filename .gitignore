@@ -42,3 +42,7 @@ next-env.d.ts
 
 # MCP config (contains tokens)
 .mcp.json
+
+# testing
+playwright-report/
+test-results/

@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/batuhanarioz/Desktop/**)",
+      "Bash(npm run:*)",
+      "Bash(while read:*)",
+      "Bash(do echo:*)",
+      "Bash(done)",
+      "Read(//^\\\\.\\\\/{ file=$0 } /Error:/**)",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration",
+      "Bash(npm install:*)",
+      "Bash(npx eslint:*)",
+      "Bash(grep -r \"toast\\\\|Toast\\\\|notify\\\\|Notify\\\\|notification\\\\|Notification\\\\|alert\\\\|Alert\\\\|Snack\\\\|snack\" '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src' --include=*.tsx --include=*.ts -l)",
+      "Bash(grep -r \"useToast\\\\|ToastProvider\\\\|showToast\\\\|addToast\\\\|toast\\(\" '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src' --include=*.tsx --include=*.ts -l)",
+      "Bash(ls \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/admin/\")",
+      "Bash(npx next:*)",
+      "Read(//Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/**)",
+      "Bash(kill 13272 13437 13251 13416)",
+      "Bash(find '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src' -name *.ts -path */lib/api*)",
+      "Bash(find '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)' -name page.tsx)",
+      "Bash(find '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src' -name *AppointmentCreate* -o -name *NewAppointment* -o -name *AppointmentForm*)",
+      "Bash(find '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)' -name appointment* -o -name *appointment*)",
+      "Bash(grep -rn \"Klinik Genel Bakış\\\\|setTitle\\\\|pageTitle\\\\|HeaderContext\" '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src' --include=*.tsx --include=*.ts -l)",
+      "Bash(find \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]\" -maxdepth 1 -name \"page.tsx\")",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(pkill -f \"next-server\")",
+      "Bash(pkill -f \"npm run dev\")",
+      "Bash(find \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/admin\" -type f)",
+      "Bash(grep -n \"canCreateAppointment\\\\|dashboard_permissions\\\\|role.*button\\\\|button.*role\\\\|quickSearch\\\\|hasta.*ara\\\\|patient.*search\" '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src' -r --include=*.tsx --include=*.ts)",
+      "Bash(find \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)\" -path \"*/patients*\" -name \"*.tsx\")",
+      "Bash(find '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/appointment-management' -name *.tsx)",
+      "Bash(find '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/components' -name *Appointment* -o -name *appointment*)"
+    ]
+  }
+}

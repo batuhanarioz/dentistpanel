@@ -7,11 +7,11 @@ import { localDateStr } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabaseClient";
 import type { PaymentStatus } from "@/types/database";
 import { isPaid, isCancelled } from "@/constants/payments";
+import toast from "react-hot-toast";
 
 interface QuickPaymentModalProps {
     open: boolean;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setValues?: (val: any) => void;
+    setValues?: (val: unknown) => void;
     onClose: () => void;
     appointmentId: string;
     patientId?: string;
@@ -28,6 +28,26 @@ interface InstallmentRow {
     dueDate: string;
 }
 
+interface ExistingPaymentRow {
+    id: string;
+    amount: number | string;
+    status: string;
+    due_date: string;
+    agreed_total: number;
+    method: string;
+    installment_number: number | null;
+    clinic_id: string;
+}
+
+interface AppointmentInfo {
+    id: string;
+    clinic_id: string;
+    starts_at: string;
+    ends_at: string;
+    treatment_type: string | null;
+    doctor: { full_name: string } | { full_name: string }[] | null;
+}
+
 export function QuickPaymentModal({
     open, setValues, onClose, appointmentId, patientId, patientName, initialAmount, onSuccess, checklistItemId, code
 }: QuickPaymentModalProps) {
@@ -40,12 +60,10 @@ export function QuickPaymentModal({
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [existingPayments, setExistingPayments] = useState<any[]>([]);
+    const [existingPayments, setExistingPayments] = useState<ExistingPaymentRow[]>([]);
     const [loadingExisting, setLoadingExisting] = useState(true);
     const [agreedTotal, setAgreedTotal] = useState<number>(initialAmount);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [appointmentDetails, setAppointmentDetails] = useState<any>(null);
+    const [appointmentDetails, setAppointmentDetails] = useState<AppointmentInfo | null>(null);
     const [matchedPaymentId, setMatchedPaymentId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -67,14 +85,12 @@ export function QuickPaymentModal({
             }
 
             if (!payRes.error && payRes.data) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const rows = (payRes.data || []) as any[];
+                const rows = payRes.data as ExistingPaymentRow[];
                 setExistingPayments(rows);
 
                 // Eğer DUE_PAYMENT_FOLLOWUP ise BUGÜNÜN taksitini bulmaya çalış
                 const todayStr = localDateStr();
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const todayPayment = rows.find((p: any) =>
+                const todayPayment = rows.find((p) =>
                     p.due_date === todayStr &&
                     p.status !== 'paid' &&
                     p.status !== 'cancelled'
@@ -85,13 +101,11 @@ export function QuickPaymentModal({
                     setGlobalMethod(todayPayment.method || 'Nakit');
                     setMatchedPaymentId(todayPayment.id);
                 } else {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const maxAgreed = rows.reduce((max: number, p: any) => Math.max(max, p.agreed_total || 0), 0);
+                    const maxAgreed = rows.reduce((max, p) => Math.max(max, p.agreed_total || 0), 0);
                     const fetchedAgreed = maxAgreed > 0 ? maxAgreed : initialAmount;
                     setAgreedTotal(fetchedAgreed);
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const totalPaid = rows.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-                    const remaining = Math.max(0, fetchedAgreed - totalPaid);
+                    const totalPaidCents = rows.reduce((sum, p) => sum + Math.round(Number(p.amount || 0) * 100), 0);
+                    const remaining = Math.max(0, fetchedAgreed - totalPaidCents / 100);
                     setAmount(remaining);
                 }
             }
@@ -129,8 +143,8 @@ export function QuickPaymentModal({
     }, [installmentList]);
 
     const totalPaid = useMemo(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return existingPayments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+        const cents = existingPayments.reduce((sum, p) => sum + Math.round(Number(p.amount || 0) * 100), 0);
+        return cents / 100;
     }, [existingPayments]);
 
     if (!open) return null;
@@ -194,18 +208,21 @@ export function QuickPaymentModal({
                 if (saveError) throw saveError;
             }
 
-            if (checklistItemId) {
-                await supabase.from("checklist_items").update({
-                    status: "completed",
-                    completed_at: new Date().toISOString()
-                }).eq("id", checklistItemId).eq("clinic_id", clinic.clinicId);
-            }
+            // Randevuya ait tüm ödeme checklist item'larını tamamlandı olarak işaretle
+            await supabase.from("checklist_items")
+                .update({ status: "completed", completed_at: new Date().toISOString() })
+                .eq("appointment_id", appointmentId)
+                .eq("clinic_id", clinic.clinicId)
+                .in("code", ["MISSING_PAYMENT", "DUE_PAYMENT_FOLLOWUP"]);
 
+            toast.success("Ödeme başarıyla kaydedildi");
             onSuccess();
             onClose();
         } catch (err: unknown) {
             console.error("Payment save error:", err);
-            setError("Ödeme kaydedilemedi: " + (err as Error).message);
+            const msg = (err as Error).message;
+            setError("Ödeme kaydedilemedi: " + msg);
+            toast.error("Ödeme kaydedilemedi");
         } finally {
             setSaving(false);
         }
@@ -227,11 +244,13 @@ export function QuickPaymentModal({
 
             if (updateError) throw updateError;
 
+            toast.success("Ödeme bir gün ertelendi");
             onSuccess();
             onClose();
         } catch (err: unknown) {
             console.error("Postpone error:", err);
             setError("Ertelenemedi: " + (err as Error).message);
+            toast.error("Erteleme başarısız");
         } finally {
             setSaving(false);
         }
@@ -252,11 +271,13 @@ export function QuickPaymentModal({
 
             if (updateError) throw updateError;
 
+            toast.success("Ödeme iptal edildi");
             onSuccess();
             onClose();
         } catch (err: unknown) {
             console.error("Cancel payment error:", err);
             setError("İptal edilemedi: " + (err as Error).message);
+            toast.error("İptal işlemi başarısız");
         } finally {
             setSaving(false);
         }
@@ -410,7 +431,7 @@ export function QuickPaymentModal({
                                         <div className="flex-1">
                                             <div className="text-[9px] text-slate-400 uppercase font-black tracking-wider">İşlem Türü & Hekim</div>
                                             <div className="text-sm font-bold text-slate-700">{appointmentDetails.treatment_type || 'Belirtilmemiş'}</div>
-                                            <div className="text-xs font-semibold text-slate-500">{appointmentDetails.doctor?.full_name || 'Hekim Atanmamış'}</div>
+                                            <div className="text-xs font-semibold text-slate-500">{(Array.isArray(appointmentDetails.doctor) ? appointmentDetails.doctor[0]?.full_name : appointmentDetails.doctor?.full_name) || 'Hekim Atanmamış'}</div>
                                         </div>
                                     </div>
                                 </div>

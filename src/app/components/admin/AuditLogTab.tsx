@@ -81,8 +81,8 @@ function getEntityName(log: LogEntry, patientMap: Record<string, string>): strin
     if (!d) return "";
     // Hasta kaydı — doğrudan isim var
     if (d.full_name) return d.full_name;
-    // Randevu kaydı — patient_id'den isim bul
-    if (log.entity_type === "appointments" && d.patient_id) {
+    // Randevu veya ödeme kaydı — patient_id'den isim bul
+    if ((log.entity_type === "appointments" || log.entity_type === "payments") && d.patient_id) {
         return patientMap[d.patient_id] || "";
     }
     return d.patient_name || d.name || "";
@@ -97,6 +97,13 @@ function getAppointmentSummary(log: LogEntry): string {
     } catch { return ""; }
 }
 
+// ── Ödeme özet satırı (tutar) ─────────────────────────────────────────────────
+function getPaymentSummary(log: LogEntry): string {
+    const d = log.new_data || log.old_data;
+    if (!d?.amount) return "";
+    return `${Number(d.amount).toLocaleString("tr-TR")} ₺`;
+}
+
 // ── İnsan-okunur açıklama ────────────────────────────────────────────────────
 function getDescription(log: LogEntry, patientMap: Record<string, string>): { primary: string; secondary: string; fields: string[]; noChange: boolean } {
     const entityName = getEntityName(log, patientMap);
@@ -107,7 +114,11 @@ function getDescription(log: LogEntry, patientMap: Record<string, string>): { pr
         patients: "hasta", appointments: "randevu", payments: "ödeme",
     };
     const entity = entityLabel[log.entity_type] || log.entity_type;
-    const apptSummary = log.entity_type === "appointments" ? getAppointmentSummary(log) : "";
+    const apptSummary = log.entity_type === "appointments"
+        ? getAppointmentSummary(log)
+        : log.entity_type === "payments"
+            ? getPaymentSummary(log)
+            : "";
 
     let primary = "";
     if (log.action === "INSERT") {

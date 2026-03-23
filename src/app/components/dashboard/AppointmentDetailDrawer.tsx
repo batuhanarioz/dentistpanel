@@ -8,6 +8,7 @@ import { ToothChart } from "@/app/components/dental/ToothChart";
 import { useDentalChart } from "@/hooks/useDentalChart";
 import { AnamnesisSection } from "@/app/components/patients/AnamnesisSection";
 import { useAnamnesis, useAnamnesisMutation } from "@/hooks/useAnamnesis";
+import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
 import type { PatientAnamnesis } from "@/types/database";
 
 interface AppointmentDetailDrawerProps {
@@ -237,25 +238,26 @@ export function AppointmentDetailDrawer({
                                 <div>
                                     <button
                                         onClick={async () => {
+                                            if (saving) return;
                                             setSaving(true);
-                                            const { error } = await supabase
-                                                .from("appointments")
-                                                .update({
-                                                    treatment_note: localTreatmentNote,
-                                                    estimated_amount: parseFloat(localEstimatedAmount) || 0
-                                                })
-                                                .eq("id", appointment.id)
-                                                .eq("clinic_id", appointment.clinic_id);
+                                            try {
+                                                const { error } = await supabase
+                                                    .from("appointments")
+                                                    .update({
+                                                        treatment_note: localTreatmentNote,
+                                                        estimated_amount: parseFloat(localEstimatedAmount) || 0
+                                                    })
+                                                    .eq("id", appointment.id)
+                                                    .eq("clinic_id", appointment.clinic_id);
 
-                                            if (!error) {
-                                                // We might want to trigger a refresh in the parent as well
-                                                setAppointment(prev => prev ? { ...prev, treatment_note: localTreatmentNote, estimated_amount: parseFloat(localEstimatedAmount) || 0 } : null);
-                                                // Ideally call a refresh function passed from props
-                                                onStatusChange(appointment.id, appointment.status as DashboardAppointment["status"]); // Dummy call to trigger refresh if parent handles it
+                                                if (!error) {
+                                                    setAppointment(prev => prev ? { ...prev, treatment_note: localTreatmentNote, estimated_amount: parseFloat(localEstimatedAmount) || 0 } : null);
+                                                    onStatusChange(appointment.id, appointment.status as DashboardAppointment["status"]);
+                                                }
+                                            } finally {
+                                                setSaving(false);
                                             }
-                                            setSaving(false);
-                                        }
-                                        }
+                                        }}
                                         disabled={saving}
                                         className="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50"
                                     >
@@ -369,7 +371,7 @@ export function AppointmentDetailDrawer({
                                 Tedavi Planı Ekle
                             </button>
                             <button
-                                onClick={() => window.open(`https://wa.me/${appointment.patients?.phone?.replace(/\D/g, "")}`, "_blank")}
+                                onClick={() => window.open(`https://wa.me/${formatPhoneForWhatsApp(appointment.patients?.phone ?? "")}`, "_blank")}
                                 className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-4 text-sm font-bold text-white shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all active:scale-[0.98]"
                             >
                                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.04 2C6.59 2 2.18 6.41 2.18 11.86c0 2.09.61 4.02 1.78 5.71L2 22l4.57-1.91a9.8 9.8 0 0 0 5.47 1.61h.01c5.45 0 9.86-4.41 9.86-9.86C21.91 6.41 17.5 2 12.04 2Zm5.8 13.77c-.24.68-1.18 1.29-1.93 1.46-.52.11-1.2.2-3.48-.75-2.92-1.21-4.8-4.18-4.95-4.38-.14-.19-1.18-1.57-1.18-3 0-1.43.75-2.13 1.02-2.42.27-.29.59-.36.79-.36h.57c.18 0 .43-.07.67.51.24.58.82 2.01.89 2.15.07.14.11.3.02.48-.09.19-.14.3-.29.46-.15.17-.31.37-.44.5-.15.15-.3.31-.13.6.17.29.76 1.25 1.63 2.03 1.12.99 2.07 1.3 2.38 1.45.31.15.49.13.67-.08.18-.21.77-.9.98-1.21.21-.31.41-.26.69-.16.29.1 1.8.85 2.11 1.01.31.16.52.24.6.38.08.14.08.8-.16 1.48Z" /></svg>

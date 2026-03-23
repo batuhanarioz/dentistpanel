@@ -246,7 +246,7 @@ export function AppointmentModal(props: AppointmentModalProps) {
                                 <ModalFooter
                                     editing={!!props.editing}
                                     handleDelete={() => setShowDeleteConfirm(true)}
-                                    onAddTreatmentPlan={props.editing ? () => setShowCreatePlan(true) : undefined}
+                                    onAddTreatmentPlan={activePatientId ? () => setShowCreatePlan(true) : undefined}
                                     onOpenAnamnesis={activePatientId ? () => setShowAnamnesisModal(true) : undefined}
                                 />
                             )}
@@ -255,15 +255,15 @@ export function AppointmentModal(props: AppointmentModalProps) {
                 </div>
             </div>
 
-            {props.editing && (
+            {activePatientId && (
                 <CreateTreatmentPlanModal
                     open={showCreatePlan}
                     onClose={() => setShowCreatePlan(false)}
                     onSuccess={() => setShowCreatePlan(false)}
-                    patientId={props.editing.patientId}
-                    patientName={props.editing.patientName}
-                    appointmentId={props.editing.id}
-                    doctorId={props.editing.doctorId ?? undefined}
+                    patientId={props.editing?.patientId ?? activePatientId}
+                    patientName={props.editing?.patientName ?? props.form.patientName}
+                    appointmentId={props.editing?.id}
+                    doctorId={props.editing?.doctorId ?? undefined}
                 />
             )}
 

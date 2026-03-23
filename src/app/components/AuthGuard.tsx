@@ -18,7 +18,7 @@ const STEP_LABELS: Record<LoadingStep, string> = {
   auth: "Oturum doğrulanıyor...",
   profile: "Kullanıcı bilgileri yükleniyor...",
   clinic: "Klinik verileri hazırlanıyor...",
-  ready: "Panel hazırlanıyor...",
+  ready: "NextGency OS hazırlanıyor...",
 };
 
 function LoadingScreen({ step }: { step: LoadingStep }) {

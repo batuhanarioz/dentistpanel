@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useSmartAssistant, AssistantItem, AssistantItemType } from "@/hooks/useSmartAssistant";
+import toast from "react-hot-toast";
+import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
 
 type FilterType = 'ALL' | AssistantItemType;
 
@@ -9,20 +11,15 @@ export function SmartAssistantSection() {
     const { assistantItems, isLoading } = useSmartAssistant();
     const [highlightedId, setHighlightedId] = useState<string | null>(null);
     const [filter, setFilter] = useState<FilterType>('ALL');
-    const [dismissedIds, setDismissedIds] = useState<string[]>([]);
-    const [showDismissed, setShowDismissed] = useState(false);
-
-    useEffect(() => {
-        // Load dismissed IDs from session storage to keep it persistent for the session
-        const saved = sessionStorage.getItem('dismissedAssistantItems');
-        if (saved) {
-            try {
-                setDismissedIds(JSON.parse(saved));
-            } catch (e) {
-                console.error("Failed to parse dismissed items", e);
-            }
+    const [dismissedIds, setDismissedIds] = useState<string[]>(() => {
+        try {
+            const saved = sessionStorage.getItem('dismissedAssistantItems');
+            return saved ? (JSON.parse(saved) as string[]) : [];
+        } catch {
+            return [];
         }
-    }, []);
+    });
+    const [showDismissed, setShowDismissed] = useState(false);
 
     const handleDismiss = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -47,26 +44,28 @@ export function SmartAssistantSection() {
     }, [assistantItems, dismissedIds, showDismissed]);
 
     useEffect(() => {
+        const pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
+
         const handleHashChange = () => {
             const hash = window.location.hash;
             if (hash.startsWith('#assist-')) {
                 const id = hash.replace('#assist-', '');
                 setHighlightedId(id);
 
-                setTimeout(() => {
-                    const element = document.getElementById(`assist-${id}`);
-                    if (element) {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }, 100);
+                pendingTimeouts.push(setTimeout(() => {
+                    document.getElementById(`assist-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100));
 
-                setTimeout(() => setHighlightedId(null), 5000);
+                pendingTimeouts.push(setTimeout(() => setHighlightedId(null), 5000));
             }
         };
 
         handleHashChange();
         window.addEventListener('hashchange', handleHashChange);
-        return () => window.removeEventListener('hashchange', handleHashChange);
+        return () => {
+            window.removeEventListener('hashchange', handleHashChange);
+            pendingTimeouts.forEach(clearTimeout);
+        };
     }, []);
 
     const filteredItems = useMemo(() => {
@@ -76,18 +75,11 @@ export function SmartAssistantSection() {
 
     const handleSendMessage = (item: AssistantItem, isDismissed: boolean = false) => {
         if (!item.patientPhone) {
-            alert("Hasta telefonu kayıtlı değil!");
+            toast.error("Hasta telefonu kayıtlı değil");
             return;
         }
-        let cleanPhone = item.patientPhone.replace(/\D/g, '');
-        if (cleanPhone.startsWith('0')) {
-            cleanPhone = '90' + cleanPhone.slice(1);
-        } else if (!cleanPhone.startsWith('90') && cleanPhone.length === 10) {
-            cleanPhone = '90' + cleanPhone;
-        }
-
         const message = isDismissed ? "" : item.message;
-        const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        const url = `https://wa.me/${formatPhoneForWhatsApp(item.patientPhone)}?text=${encodeURIComponent(message)}`;
         window.open(url, '_blank');
     };
 
@@ -155,38 +147,37 @@ export function SmartAssistantSection() {
 
     if (!isLoading && activeItems.length === 0) {
         return (
-            <section id="smart-assistant" className="rounded-2xl border bg-white shadow-sm overflow-hidden flex flex-col" style={{ height: '416px' }}>
-                <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 border-b border-slate-50">
-                    <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100/80">
-                            <svg className="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <section id="smart-assistant" className="group/card rounded-[28px] border border-slate-100 bg-white shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col relative" style={{ height: '416px' }}>
+                <div className="absolute -top-20 -right-20 w-40 h-40 bg-teal-50 rounded-full blur-3xl opacity-50 group-hover/card:bg-teal-100 transition-colors pointer-events-none" />
+                <div className="flex flex-wrap items-center gap-2 px-4 pt-4 pb-3 shrink-0 border-b border-slate-50 relative z-10">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-cyan-600 shadow-md shadow-teal-200/60">
+                            <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                             </svg>
                         </div>
-                        <div>
-                            <h2 className="text-sm font-semibold text-slate-900">Akıllı Mesaj Asistanı</h2>
-                            <p className="text-[11px] text-slate-400">
+                        <div className="min-w-0">
+                            <h2 className="text-sm font-bold text-slate-900 truncate">Akıllı Mesaj Asistanı</h2>
+                            <p className="text-[11px] text-slate-400 truncate">
                                 {showDismissed ? "Gönderilen mesajlarınız" : "Bekleyen mesajınız yok"}
                             </p>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 shrink-0">
                         <button
                             onClick={() => setShowDismissed(!showDismissed)}
-                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 text-white ${showDismissed
+                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all shadow-sm active:scale-95 text-white whitespace-nowrap ${showDismissed
                                 ? "bg-rose-600 hover:bg-rose-700"
                                 : "bg-emerald-600 hover:bg-emerald-700"
                                 }`}
                         >
-                            {showDismissed ? `Bekleyenleri Gör (${counts.pending})` : `Gönderilenleri Gör (${counts.sent})`}
+                            {showDismissed ? `Bekleyenler (${counts.pending})` : `Gönderilenler (${counts.sent})`}
                         </button>
-
-                        <div className="relative group">
+                        <div className="relative">
                             <select
                                 value={filter}
                                 onChange={(e) => setFilter(e.target.value as FilterType)}
-                                className="appearance-none bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5 pr-8 text-[11px] font-bold text-slate-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all hover:bg-white"
+                                className="appearance-none bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 pr-7 text-[11px] font-bold text-slate-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all hover:bg-white"
                             >
                                 <option value="ALL">Tümü ({activeItems.length})</option>
                                 <option value="REMINDER">Randevu ({activeItems.filter(i => i.type === 'REMINDER').length})</option>
@@ -223,16 +214,16 @@ export function SmartAssistantSection() {
 
     return (
         <section id="smart-assistant" className="rounded-2xl border bg-white shadow-sm overflow-hidden flex flex-col" style={{ height: '416px' }}>
-            <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0 border-b border-slate-50">
-                <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100/80">
-                        <svg className="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <div className="flex flex-wrap items-center gap-2 px-4 pt-4 pb-3 shrink-0 border-b border-slate-50 relative z-10">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-cyan-600 shadow-md shadow-teal-200/60">
+                        <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                         </svg>
                     </div>
-                    <div>
-                        <h2 className="text-sm font-semibold text-slate-900">Akıllı Mesaj Asistanı</h2>
-                        <p className="text-[11px] text-slate-400">
+                    <div className="min-w-0">
+                        <h2 className="text-sm font-bold text-slate-900 truncate">Akıllı Mesaj Asistanı</h2>
+                        <p className="text-[11px] text-slate-400 truncate">
                             {isLoading ? "Hesaplanıyor..." : (
                                 showDismissed
                                     ? `${activeItems.length} gönderilen mesaj`
@@ -241,24 +232,21 @@ export function SmartAssistantSection() {
                         </p>
                     </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                    {/* Dinamik Geçiş Butonu */}
+                <div className="flex items-center gap-2 shrink-0">
                     <button
                         onClick={() => setShowDismissed(!showDismissed)}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 text-white ${showDismissed
+                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all shadow-sm active:scale-95 text-white whitespace-nowrap ${showDismissed
                             ? "bg-rose-600 hover:bg-rose-700"
                             : "bg-emerald-600 hover:bg-emerald-700"
                             }`}
                     >
-                        {showDismissed ? `Bekleyenleri Gör (${counts.pending})` : `Gönderilenleri Gör (${counts.sent})`}
+                        {showDismissed ? `Bekleyenler (${counts.pending})` : `Gönderilenler (${counts.sent})`}
                     </button>
-
-                    <div className="relative group">
+                    <div className="relative">
                         <select
                             value={filter}
                             onChange={(e) => setFilter(e.target.value as FilterType)}
-                            className="appearance-none bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5 pr-8 text-[11px] font-bold text-slate-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all hover:bg-white"
+                            className="appearance-none bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 pr-7 text-[11px] font-bold text-slate-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all hover:bg-white"
                         >
                             <option value="ALL">Tümü ({activeItems.length})</option>
                             <option value="REMINDER">Randevu ({activeItems.filter(i => i.type === 'REMINDER').length})</option>
@@ -299,7 +287,7 @@ export function SmartAssistantSection() {
 
                                 {/* Kategori Rozeti */}
                                 <div className="flex items-center justify-between mb-4 relative z-10">
-                                    <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest uppercase ${styles.bg} ${styles.text}`}>
+                                    <div className={`flex items-center gap-2 px-2.5 py-1 rounded-xl text-[9px] font-black tracking-[0.15em] uppercase border ${styles.bg} ${styles.text} ${styles.border}`}>
                                         {styles.icon}
                                         {item.type === 'REMINDER' ? 'RANDEVU' : item.type === 'SATISFACTION' ? 'MEMNUNİYET' : 'ÖDEME'}
                                     </div>
@@ -328,24 +316,19 @@ export function SmartAssistantSection() {
 
                                 {/* Bilgi Kısımı */}
                                 <div className="mb-3 relative z-10">
-                                    <h3 className="text-[13px] font-black text-slate-900 mb-0.5 leading-none">
+                                    <h3 className="text-[13px] font-black text-slate-900 mb-0.5 leading-tight">
                                         {item.patientName}
                                     </h3>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
+                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.12em]">
                                         {item.title}
                                     </p>
                                 </div>
 
                                 {/* Mesaj Alanı */}
                                 <div className="flex-1 mb-5 relative z-10">
-                                    <div className="relative">
-                                        <svg className={`absolute -left-1 -top-1 w-3 h-3 text-slate-200 opacity-50`} fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C20.1216 16 21.017 16.8954 21.017 18V21M14.017 21H21.017M14.017 21C12.9124 21 12.017 20.1046 12.017 19V12C12.017 10.8954 12.9124 10 14.017 10H17.017C18.1216 10 19.017 10.8954 19.017 12V15" />
-                                        </svg>
-                                        <p className="text-[11px] text-slate-600 font-medium leading-relaxed pl-3 border-l-2 border-slate-100 italic">
-                                            {item.message}
-                                        </p>
-                                    </div>
+                                    <p className="text-[11px] text-slate-600 font-semibold leading-relaxed pl-3 border-l-2 border-slate-200">
+                                        {item.message}
+                                    </p>
                                 </div>
 
                                 {/* Alt Etkinlik Alanı */}
@@ -353,7 +336,7 @@ export function SmartAssistantSection() {
                                     <div className="flex items-center justify-between px-1">
                                         <div className="flex items-center gap-1.5">
                                             <div className={`w-1.5 h-1.5 rounded-full ${styles.badge} ${item.type === 'REMINDER' ? 'animate-bounce' : 'animate-pulse'}`} />
-                                            <span className="text-[10px] font-black text-slate-700">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
                                                 {item.timeLabel}
                                             </span>
                                         </div>
