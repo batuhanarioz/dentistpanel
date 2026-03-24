@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { ClinicContext, type ClinicContextValue } from "../context/ClinicContext";
-import { UserRole, type WorkingHours, type Clinic } from "@/types/database";
+import { UserRole, type WorkingHours, type Clinic, type ClinicAddon } from "@/types/database";
 import { DEFAULT_WORKING_HOURS } from "@/constants/days";
 import { SYSTEM_AUTOMATIONS, type ClinicAutomation } from "@/constants/automations";
 
@@ -118,6 +118,7 @@ export function AuthGuard({ children }: Props) {
     lastPaymentDate: null,
     n8nWorkflows: [],
     clinicSettings: null,
+    clinicAddons: [],
     planId: "starter",
   });
 
@@ -171,12 +172,14 @@ export function AuthGuard({ children }: Props) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let clinicSettingsData: any = null; // To hold clinic settings
         let automationsData: ClinicAutomation[] = []; // To hold automations
+        let clinicAddonsData: ClinicAddon[] = [];
 
         if (!isSuperAdmin && appUser.clinic_id) {
           const [
             { data: clinicResData, error: clinicResError },
             { data: autoResData, error: autoResError },
-            { data: settingsResData, error: settingsResError }
+            { data: settingsResData, error: settingsResError },
+            { data: addonsResData, error: addonsResError }
           ] = await Promise.all([
             supabase
               .from("clinics")
@@ -191,7 +194,13 @@ export function AuthGuard({ children }: Props) {
               .from("clinic_settings")
               .select("id, clinic_id, message_templates, notification_settings, assistant_timings, appointment_channels, created_at, updated_at")
               .eq("clinic_id", appUser.clinic_id)
-              .maybeSingle()
+              .maybeSingle(),
+            supabase
+              .from("clinic_addons")
+              .select("*, addon_products(*)")
+              .eq("clinic_id", appUser.clinic_id)
+              .eq("is_visible", true)
+              .order("created_at", { ascending: true })
           ]);
 
           if (clinicResError || !clinicResData || !clinicResData.is_active) {
@@ -218,6 +227,10 @@ export function AuthGuard({ children }: Props) {
           if (!settingsResError && settingsResData) {
             clinicSettingsData = settingsResData;
           }
+
+          if (!addonsResError && addonsResData) {
+            clinicAddonsData = addonsResData as ClinicAddon[];
+          }
         }
 
         setClinicCtx({
@@ -238,6 +251,7 @@ export function AuthGuard({ children }: Props) {
           lastPaymentDate: (clinicData as unknown as Clinic)?.last_payment_date || null,
           n8nWorkflows: automationsRef.current,
           clinicSettings: clinicSettingsData,
+          clinicAddons: clinicAddonsData,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           planId: (clinicData as any)?.planId || "starter",
         });

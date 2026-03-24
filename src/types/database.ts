@@ -266,6 +266,31 @@ export interface PaymentHistory {
   created_at: string;
 }
 
+export interface AddonProduct {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  features: string[];
+  price_monthly: number | null;
+  is_active: boolean;
+  sort_order: number;
+  gradient: string;
+  icon: string;
+  created_at: string;
+}
+
+export interface ClinicAddon {
+  id: string;
+  clinic_id: string;
+  addon_id: string;
+  is_visible: boolean;
+  is_enabled: boolean;
+  activated_at: string | null;
+  created_at: string;
+  addon_products: AddonProduct;
+}
+
 export interface TreatmentDefinition {
   id: string;
   clinic_id: string;

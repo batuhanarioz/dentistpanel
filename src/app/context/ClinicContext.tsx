@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { UserRole, WorkingHours, ClinicSettings } from "@/types/database";
+import type { UserRole, WorkingHours, ClinicSettings, ClinicAddon } from "@/types/database";
 import { DEFAULT_WORKING_HOURS } from "@/constants/days";
 
 export interface ClinicContextValue {
@@ -22,6 +22,7 @@ export interface ClinicContextValue {
   lastPaymentDate: string | null;
   n8nWorkflows: Array<{ id: string; name: string; visible?: boolean; enabled: boolean; time?: string; day?: string }>;
   clinicSettings: ClinicSettings | null;
+  clinicAddons: ClinicAddon[];
   planId?: string;
 }
 
@@ -43,6 +44,7 @@ const defaultValue: ClinicContextValue = {
   lastPaymentDate: null,
   n8nWorkflows: [],
   clinicSettings: null,
+  clinicAddons: [],
 };
 
 export const ClinicContext = createContext<ClinicContextValue>(defaultValue);
