@@ -156,7 +156,7 @@ export const POST = withAuth(
             payment_amount: amountKurus,
             paytr_token: paytrToken,
             user_basket: userBasketEncoded,
-            debug_on: "1",
+            debug_on: PAYTR_CONFIG.TEST_MODE, // 1 in test, 0 in live
             no_installment: noInstallment,
             max_installment: maxInstallment,
             user_name: user.full_name ?? clinic.name,
@@ -171,18 +171,17 @@ export const POST = withAuth(
         };
 
         // ── 7. PayTR API'sini çağır ───────────────────────────────────────────
-        const postBody = new URLSearchParams(paytrParams).toString();
-        console.log("[PayTR] POST body (ilk 500 char):", postBody.slice(0, 500));
-
         const paytrRes = await fetch(PAYTR_CONFIG.IFRAME_TOKEN_URL, {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: postBody,
+            body: new URLSearchParams(paytrParams).toString(),
         });
 
         // Yanıtı önce text olarak al — boş/HTML dönerse json() patlar
         const rawText = await paytrRes.text();
-        console.log("[PayTR] HTTP status:", paytrRes.status, "| body:", rawText.slice(0, 300));
+        if (!paytrRes.ok) {
+            console.error("[PayTR] HTTP error:", paytrRes.status, rawText.slice(0, 200));
+        }
 
         let paytrData: { status: "success" | "failed"; token?: string; reason?: string };
         try {
