@@ -176,11 +176,19 @@ export const POST = withAuth(
             body: new URLSearchParams(paytrParams).toString(),
         });
 
-        const paytrData = (await paytrRes.json()) as {
-            status: "success" | "failed";
-            token?: string;
-            reason?: string;
-        };
+        // Yanıtı önce text olarak al — boş/HTML dönerse json() patlar
+        const rawText = await paytrRes.text();
+        console.log("[PayTR] HTTP status:", paytrRes.status, "| body:", rawText.slice(0, 300));
+
+        let paytrData: { status: "success" | "failed"; token?: string; reason?: string };
+        try {
+            paytrData = JSON.parse(rawText);
+        } catch {
+            return NextResponse.json(
+                { error: "Ödeme başlatılamadı", detail: `PayTR geçersiz yanıt döndürdü (HTTP ${paytrRes.status}): ${rawText.slice(0, 200)}` },
+                { status: 502 }
+            );
+        }
 
         if (paytrData.status !== "success" || !paytrData.token) {
             console.error("[PayTR] Token isteği başarısız:", JSON.stringify(paytrData));
