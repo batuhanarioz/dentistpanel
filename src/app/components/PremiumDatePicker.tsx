@@ -36,14 +36,18 @@ export function PremiumDatePicker({ value, onChange, today: todayProp, className
   };
   const [view, setView] = useState(() => {
     const [y, m] = value.split("-").map(Number);
-    return { year: y, month: m - 1 };
+    const safeYear = y > 0 ? y : new Date().getFullYear();
+    const safeMonth = m >= 1 && m <= 12 ? m - 1 : new Date().getMonth();
+    return { year: safeYear, month: safeMonth };
   });
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const [y, m] = value.split("-").map(Number);
-    setView({ year: y, month: m - 1 });
+    if (y > 0 && m >= 1 && m <= 12) {
+      setView({ year: y, month: m - 1 });
+    }
   }, [open, value]);
 
   useEffect(() => {

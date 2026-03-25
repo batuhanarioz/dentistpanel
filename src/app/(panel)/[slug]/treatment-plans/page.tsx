@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { usePageHeader } from "@/app/components/AppShell";
 import { useTreatmentPlans, useTreatmentPlanMutations, PLAN_STATUS_CONFIG, ITEM_STATUS_CONFIG } from "@/hooks/useTreatmentPlanning";
 import { TreatmentPlanWithItems } from "@/hooks/useTreatmentPlanning";
+import { TreatmentPlanItemWithDoctor } from "@/lib/api";
 import { CreateTreatmentPlanModal } from "@/app/components/treatments/CreateTreatmentPlanModal";
 
 type StatusFilter = "ALL" | TreatmentPlanWithItems["status"];
@@ -12,7 +13,7 @@ export default function TreatmentPlansPage() {
     usePageHeader("Tedavi Planları");
 
     const { data: plans = [], isLoading } = useTreatmentPlans();
-    const { updateStatus, removePlan } = useTreatmentPlanMutations();
+    const { updateStatus, removePlan, upsertItem, removeItem } = useTreatmentPlanMutations();
 
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
     const [search, setSearch] = useState("");
@@ -40,6 +41,14 @@ export default function TreatmentPlansPage() {
         totalEstimated: plans.reduce((s, p) => s + (p.total_estimated_amount ?? 0), 0),
     }), [plans]);
 
+    const filterTabs: { key: StatusFilter; label: string }[] = [
+        { key: "ALL", label: `Tümü (${plans.length})` },
+        { key: "planned", label: PLAN_STATUS_CONFIG.planned.label },
+        { key: "in_progress", label: PLAN_STATUS_CONFIG.in_progress.label },
+        { key: "completed", label: PLAN_STATUS_CONFIG.completed.label },
+        { key: "cancelled", label: PLAN_STATUS_CONFIG.cancelled.label },
+    ];
+
     return (
         <div className="space-y-6">
             {/* Stat kartları */}
@@ -51,20 +60,20 @@ export default function TreatmentPlansPage() {
             </div>
 
             {/* Filtre + arama */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                <div className="relative flex-1">
-                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input
-                        type="text"
-                        placeholder="Hasta adı veya plan başlığı..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-100 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-teal-500 focus:bg-white transition-all"
-                    />
-                </div>
-                <div className="flex gap-2 flex-wrap items-center">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                    <div className="relative flex-1">
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input
+                            type="text"
+                            placeholder="Hasta adı veya plan başlığı..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-100 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-teal-500 focus:bg-white transition-all"
+                        />
+                    </div>
                     <button
                         onClick={() => setShowCreate(true)}
                         className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-md shadow-teal-600/20 transition-all active:scale-95 shrink-0"
@@ -74,17 +83,20 @@ export default function TreatmentPlansPage() {
                         </svg>
                         Yeni Plan
                     </button>
-                    <div className="w-px h-6 bg-slate-200 hidden sm:block" />
-                    {(["ALL", "planned", "in_progress", "completed", "cancelled"] as const).map(s => (
+                </div>
+                {/* Filter tabs — tüm 7 durum */}
+                <div className="flex gap-1.5 flex-wrap">
+                    {filterTabs.map(tab => (
                         <button
-                            key={s}
-                            onClick={() => setStatusFilter(s)}
-                            className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${statusFilter === s
-                                ? "bg-teal-600 text-white shadow-md shadow-teal-600/20"
-                                : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100"
-                                }`}
+                            key={tab.key}
+                            onClick={() => setStatusFilter(tab.key)}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                                statusFilter === tab.key
+                                    ? "bg-teal-600 text-white shadow-md shadow-teal-600/20"
+                                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100"
+                            }`}
                         >
-                            {s === "ALL" ? `Tümü (${plans.length})` : PLAN_STATUS_CONFIG[s].label}
+                            {tab.label}
                         </button>
                     ))}
                 </div>
@@ -125,6 +137,8 @@ export default function TreatmentPlansPage() {
                         onToggle={() => setExpandedId(expandedId === plan.id ? null : plan.id)}
                         onStatusChange={(status) => updateStatus.mutate({ id: plan.id, status })}
                         onDelete={() => { if (confirm("Bu tedavi planı silinsin mi?")) removePlan.mutate(plan.id); }}
+                        onUpsertItem={(item) => upsertItem.mutate(item)}
+                        onRemoveItem={(itemId) => { if (confirm("Bu kalem silinsin mi?")) removeItem.mutate(itemId); }}
                     />
                 ))}
             </div>
@@ -155,18 +169,60 @@ function StatCard({ label, value, color }: { label: string; value: string | numb
     );
 }
 
+interface EditingItem {
+    id: string;
+    procedure_name: string;
+    tooth_no: string;
+    quantity: number;
+    unit_price: number;
+    status: TreatmentPlanItemWithDoctor["status"];
+}
+
 interface PlanCardProps {
     plan: TreatmentPlanWithItems;
     isExpanded: boolean;
     onToggle: () => void;
     onStatusChange: (status: TreatmentPlanWithItems["status"]) => void;
     onDelete: () => void;
+    onUpsertItem: (item: Parameters<ReturnType<typeof useTreatmentPlanMutations>["upsertItem"]["mutate"]>[0]) => void;
+    onRemoveItem: (itemId: string) => void;
 }
 
-function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete }: PlanCardProps) {
+function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete, onUpsertItem, onRemoveItem }: PlanCardProps) {
     const statusCfg = PLAN_STATUS_CONFIG[plan.status];
     const completedItems = plan.items.filter(i => i.status === "completed").length;
     const progressPct = plan.items.length > 0 ? Math.round((completedItems / plan.items.length) * 100) : 0;
+
+    const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
+    const [savingItem, setSavingItem] = useState(false);
+
+    const startEdit = (item: TreatmentPlanItemWithDoctor) => {
+        setEditingItem({
+            id: item.id,
+            procedure_name: item.procedure_name,
+            tooth_no: item.tooth_no ?? "",
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            status: item.status,
+        });
+    };
+
+    const saveEdit = async () => {
+        if (!editingItem) return;
+        setSavingItem(true);
+        onUpsertItem({
+            id: editingItem.id,
+            treatment_plan_id: plan.id,
+            patient_id: plan.patient_id,
+            procedure_name: editingItem.procedure_name,
+            tooth_no: editingItem.tooth_no || null,
+            quantity: editingItem.quantity,
+            unit_price: editingItem.unit_price,
+            status: editingItem.status,
+        });
+        setSavingItem(false);
+        setEditingItem(null);
+    };
 
     return (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -175,10 +231,7 @@ function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete }: Plan
                 onClick={onToggle}
                 className="w-full flex items-center gap-4 p-4 sm:p-5 text-left hover:bg-slate-50/70 transition-colors"
             >
-                {/* Durum dot */}
                 <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusCfg.dot}`} />
-
-                {/* Hasta + plan bilgisi */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-bold text-slate-800 truncate">
@@ -202,13 +255,11 @@ function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete }: Plan
                         )}
                         {plan.next_appointment_id && (
                             <span className="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
-                                📅 Randevu planlandı
+                                Randevu planlandı
                             </span>
                         )}
                     </div>
                 </div>
-
-                {/* Tutar + chevron */}
                 <div className="flex items-center gap-4 shrink-0">
                     {plan.total_estimated_amount != null && (
                         <span className="text-sm font-black text-teal-700">
@@ -218,10 +269,7 @@ function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete }: Plan
                     {plan.items.length > 0 && (
                         <div className="hidden sm:flex items-center gap-2">
                             <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-teal-500 rounded-full transition-all"
-                                    style={{ width: `${progressPct}%` }}
-                                />
+                                <div className="h-full bg-teal-500 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
                             </div>
                             <span className="text-[10px] font-black text-slate-400">{progressPct}%</span>
                         </div>
@@ -235,7 +283,6 @@ function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete }: Plan
             {/* Genişletilmiş detay */}
             {isExpanded && (
                 <div className="border-t border-slate-100 p-4 sm:p-5 space-y-4">
-                    {/* Notlar */}
                     {plan.note && (
                         <div className="bg-slate-50 rounded-xl p-3">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Plan Notu</p>
@@ -243,7 +290,6 @@ function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete }: Plan
                         </div>
                     )}
 
-                    {/* Hekim */}
                     {plan.doctor && (
                         <div className="flex items-center gap-2 text-slate-500">
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -253,13 +299,104 @@ function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete }: Plan
                         </div>
                     )}
 
-                    {/* İşlem listesi */}
+                    {/* İşlem listesi + düzenleme */}
                     {plan.items.length > 0 && (
                         <div className="space-y-2">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">İşlemler</p>
                             <div className="space-y-1.5">
                                 {plan.items.map(item => {
                                     const itemCfg = ITEM_STATUS_CONFIG[item.status];
+                                    const isEditingThis = editingItem?.id === item.id;
+
+                                    if (isEditingThis && editingItem) {
+                                        // ── Inline düzenleme formu ──
+                                        return (
+                                            <div key={item.id} className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 space-y-2.5">
+                                                <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Kalemi Düzenle</p>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="col-span-2 space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase">İşlem Adı</label>
+                                                        <input
+                                                            type="text"
+                                                            value={editingItem.procedure_name}
+                                                            onChange={e => setEditingItem(v => v ? { ...v, procedure_name: e.target.value } : v)}
+                                                            className="w-full h-8 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-indigo-400"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase">Diş No</label>
+                                                        <input
+                                                            type="text"
+                                                            value={editingItem.tooth_no}
+                                                            onChange={e => setEditingItem(v => v ? { ...v, tooth_no: e.target.value } : v)}
+                                                            placeholder="ör. 11"
+                                                            className="w-full h-8 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-indigo-400"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase">Durum</label>
+                                                        <select
+                                                            value={editingItem.status}
+                                                            onChange={e => setEditingItem(v => v ? { ...v, status: e.target.value as EditingItem["status"] } : v)}
+                                                            className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-indigo-400"
+                                                        >
+                                                            {Object.entries(ITEM_STATUS_CONFIG).map(([val, cfg]) => (
+                                                                <option key={val} value={val}>{cfg.label}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase">Adet</label>
+                                                        <input
+                                                            type="number"
+                                                            min={1}
+                                                            value={editingItem.quantity}
+                                                            onChange={e => setEditingItem(v => v ? { ...v, quantity: Math.max(1, parseInt(e.target.value) || 1) } : v)}
+                                                            className="w-full h-8 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-indigo-400"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase">Birim Fiyat (₺)</label>
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            value={editingItem.unit_price || ""}
+                                                            onChange={e => setEditingItem(v => v ? { ...v, unit_price: parseFloat(e.target.value) || 0 } : v)}
+                                                            className="w-full h-8 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-indigo-400"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                {editingItem.quantity > 0 && editingItem.unit_price > 0 && (
+                                                    <p className="text-right text-[10px] font-black text-indigo-600">
+                                                        {editingItem.quantity} × {editingItem.unit_price.toLocaleString("tr-TR")} ₺ = {(editingItem.quantity * editingItem.unit_price).toLocaleString("tr-TR")} ₺
+                                                    </p>
+                                                )}
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={saveEdit}
+                                                        disabled={savingItem || !editingItem.procedure_name.trim()}
+                                                        className="flex-1 h-8 bg-indigo-600 text-white text-[10px] font-black rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all active:scale-95"
+                                                    >
+                                                        {savingItem ? "Kaydediliyor..." : "Kaydet"}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setEditingItem(null)}
+                                                        className="px-4 h-8 border border-slate-200 text-slate-500 text-[10px] font-black rounded-lg hover:bg-slate-50 transition-all"
+                                                    >
+                                                        İptal
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setEditingItem(null); onRemoveItem(item.id); }}
+                                                        className="px-4 h-8 border border-rose-200 text-rose-500 text-[10px] font-black rounded-lg hover:bg-rose-50 transition-all"
+                                                    >
+                                                        Sil
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    // ── Normal kalem satırı ──
                                     return (
                                         <div key={item.id} className="flex items-center justify-between gap-3 bg-slate-50 rounded-xl px-3 py-2.5">
                                             <div className="flex items-center gap-2 min-w-0">
@@ -270,14 +407,26 @@ function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete }: Plan
                                                 {item.quantity > 1 && (
                                                     <span className="text-[10px] text-slate-400 shrink-0">×{item.quantity}</span>
                                                 )}
+                                                {item.assigned_doctor && (
+                                                    <span className="text-[9px] text-slate-400 shrink-0 hidden sm:inline">— {item.assigned_doctor.full_name}</span>
+                                                )}
                                             </div>
                                             <div className="flex items-center gap-2 shrink-0">
                                                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${itemCfg.bg} ${itemCfg.text}`}>
                                                     {itemCfg.label}
                                                 </span>
-                                                {item.total_price != null && (
+                                                {item.total_price != null && item.total_price > 0 && (
                                                     <span className="text-xs font-black text-slate-600">{item.total_price.toLocaleString("tr-TR")} ₺</span>
                                                 )}
+                                                <button
+                                                    onClick={() => startEdit(item)}
+                                                    className="w-6 h-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                                                    title="Kalemi Düzenle"
+                                                >
+                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                    </svg>
+                                                </button>
                                             </div>
                                         </div>
                                     );

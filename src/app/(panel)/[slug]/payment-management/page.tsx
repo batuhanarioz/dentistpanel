@@ -290,10 +290,10 @@ function PaymentsInner() {
           <div className="flex items-center justify-between px-6 py-4 border-t bg-slate-50/20">
             <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-tight">Sayfa {currentPage} / {totalPages} · {filteredPayments.length} Kayıt</p>
             <div className="flex gap-1.5">
-              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="h-8 w-8 rounded-lg border-2 border-slate-100 bg-white flex items-center justify-center text-slate-600 disabled:opacity-30 hover:bg-slate-50 transition-all">
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className="h-8 w-8 rounded-lg border-2 border-slate-100 bg-white flex items-center justify-center text-slate-600 disabled:opacity-30 hover:bg-slate-50 transition-all">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
               </button>
-              <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="h-8 w-8 rounded-lg border-2 border-slate-100 bg-white flex items-center justify-center text-slate-600 disabled:opacity-30 hover:bg-slate-50 transition-all">
+              <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)} className="h-8 w-8 rounded-lg border-2 border-slate-100 bg-white flex items-center justify-center text-slate-600 disabled:opacity-30 hover:bg-slate-50 transition-all">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
               </button>
             </div>

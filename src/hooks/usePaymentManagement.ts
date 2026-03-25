@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useReducer } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr, paymentDateRange } from "@/lib/dateUtils";
@@ -44,38 +44,182 @@ export type UpdatePaymentExtras = {
     treatmentPlanItemId?: string | null;
 };
 
+// ─── Reducer Types & Reducers ─────────────────────────────────────────────────
+
+type FilterState = {
+    listSearch: string;
+    statusFilter: string;
+    methodFilter: string;
+    viewMode: "day" | "week" | "month" | "range";
+    selectedDate: string;
+    startDate: string;
+    endDate: string;
+    currentPage: number;
+};
+
+type FilterAction =
+    | { type: "SET_SEARCH"; value: string }
+    | { type: "SET_STATUS_FILTER"; value: string }
+    | { type: "SET_METHOD_FILTER"; value: string }
+    | { type: "SET_VIEW_MODE"; value: FilterState["viewMode"] }
+    | { type: "SET_SELECTED_DATE"; value: string }
+    | { type: "SET_START_DATE"; value: string }
+    | { type: "SET_END_DATE"; value: string }
+    | { type: "SET_PAGE"; value: number };
+
+function filterReducer(state: FilterState, action: FilterAction): FilterState {
+    switch (action.type) {
+        case "SET_SEARCH":        return { ...state, listSearch: action.value, currentPage: 1 };
+        case "SET_STATUS_FILTER": return { ...state, statusFilter: action.value, currentPage: 1 };
+        case "SET_METHOD_FILTER": return { ...state, methodFilter: action.value, currentPage: 1 };
+        case "SET_VIEW_MODE":     return { ...state, viewMode: action.value };
+        case "SET_SELECTED_DATE": return { ...state, selectedDate: action.value };
+        case "SET_START_DATE":    return { ...state, startDate: action.value };
+        case "SET_END_DATE":      return { ...state, endDate: action.value };
+        case "SET_PAGE":          return { ...state, currentPage: action.value };
+        default:                  return state;
+    }
+}
+
+type ModalState = {
+    isModalOpen: boolean;
+    modalPatientSearch: string;
+    selectedAppointmentId: string;
+    amount: string;
+    method: string;
+    status: string;
+    note: string;
+};
+
+type ModalAction =
+    | { type: "OPEN_MODAL"; appointmentId?: string }
+    | { type: "CLOSE_MODAL" }
+    | { type: "SET_PATIENT_SEARCH"; value: string }
+    | { type: "SET_APPOINTMENT_ID"; value: string }
+    | { type: "SET_AMOUNT"; value: string }
+    | { type: "SET_METHOD"; value: string }
+    | { type: "SET_STATUS"; value: string }
+    | { type: "SET_NOTE"; value: string };
+
+const MODAL_INITIAL: ModalState = {
+    isModalOpen: false,
+    modalPatientSearch: "",
+    selectedAppointmentId: "",
+    amount: "",
+    method: "Nakit",
+    status: "pending",
+    note: "",
+};
+
+function modalReducer(state: ModalState, action: ModalAction): ModalState {
+    switch (action.type) {
+        case "OPEN_MODAL":         return { ...state, isModalOpen: true, selectedAppointmentId: action.appointmentId ?? "" };
+        case "CLOSE_MODAL":        return { ...MODAL_INITIAL };
+        case "SET_PATIENT_SEARCH": return { ...state, modalPatientSearch: action.value };
+        case "SET_APPOINTMENT_ID": return { ...state, selectedAppointmentId: action.value };
+        case "SET_AMOUNT":         return { ...state, amount: action.value };
+        case "SET_METHOD":         return { ...state, method: action.value };
+        case "SET_STATUS":         return { ...state, status: action.value };
+        case "SET_NOTE":           return { ...state, note: action.value };
+        default:                   return state;
+    }
+}
+
+type DetailState = {
+    isDetailModalOpen: boolean;
+    selectedPayment: PaymentRow | null;
+    detailStatus: PaymentStatus;
+    detailAmount: string;
+    detailMethod: string;
+};
+
+type DetailAction =
+    | { type: "OPEN_DETAIL"; payment: PaymentRow }
+    | { type: "CLOSE_DETAIL" }
+    | { type: "SET_STATUS"; value: PaymentStatus }
+    | { type: "SET_AMOUNT"; value: string }
+    | { type: "SET_METHOD"; value: string };
+
+function detailReducer(state: DetailState, action: DetailAction): DetailState {
+    switch (action.type) {
+        case "OPEN_DETAIL":  return { isDetailModalOpen: true, selectedPayment: action.payment, detailStatus: normalizePaymentStatus(action.payment.status), detailAmount: String(action.payment.amount), detailMethod: action.payment.method || "Nakit" };
+        case "CLOSE_DETAIL": return { ...state, isDetailModalOpen: false };
+        case "SET_STATUS":   return { ...state, detailStatus: action.value };
+        case "SET_AMOUNT":   return { ...state, detailAmount: action.value };
+        case "SET_METHOD":   return { ...state, detailMethod: action.value };
+        default:             return state;
+    }
+}
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
 export function usePaymentManagement(appointmentIdParam: string | null) {
     const queryClient = useQueryClient();
     const { clinicId } = useClinic();
     const today = useMemo(() => localDateStr(), []);
+
+    const [filterState, dispatchFilter] = useReducer(filterReducer, {
+        listSearch: "",
+        statusFilter: "all",
+        methodFilter: "all",
+        viewMode: "month",
+        selectedDate: today,
+        startDate: today,
+        endDate: today,
+        currentPage: 1,
+    });
+
+    const [modalState, dispatchModal] = useReducer(modalReducer, MODAL_INITIAL);
+
+    const [detailState, dispatchDetail] = useReducer(detailReducer, {
+        isDetailModalOpen: false,
+        selectedPayment: null,
+        detailStatus: "pending" as PaymentStatus,
+        detailAmount: "",
+        detailMethod: "Nakit",
+    });
+
+    const { listSearch, statusFilter, methodFilter, viewMode, selectedDate, startDate, endDate, currentPage } = filterState;
+    const { isModalOpen, modalPatientSearch, selectedAppointmentId, amount, method, status, note } = modalState;
+    const { isDetailModalOpen, selectedPayment, detailStatus, detailAmount, detailMethod } = detailState;
+
+    // Shim setters — keep public API backwards-compatible
+    const setListSearch = (v: string) => dispatchFilter({ type: "SET_SEARCH", value: v });
+    const setStatusFilter = (v: string) => dispatchFilter({ type: "SET_STATUS_FILTER", value: v });
+    const setMethodFilter = (v: string) => dispatchFilter({ type: "SET_METHOD_FILTER", value: v });
+    const setViewMode = (v: FilterState["viewMode"]) => dispatchFilter({ type: "SET_VIEW_MODE", value: v });
+    const setSelectedDate = (v: string) => dispatchFilter({ type: "SET_SELECTED_DATE", value: v });
+    const setStartDate = (v: string) => dispatchFilter({ type: "SET_START_DATE", value: v });
+    const setEndDate = (v: string) => dispatchFilter({ type: "SET_END_DATE", value: v });
+    const setCurrentPage = (v: number) => dispatchFilter({ type: "SET_PAGE", value: v });
+
+    const setIsModalOpen = (open: boolean) => open ? dispatchModal({ type: "OPEN_MODAL" }) : dispatchModal({ type: "CLOSE_MODAL" });
+    const setModalPatientSearch = (v: string) => dispatchModal({ type: "SET_PATIENT_SEARCH", value: v });
+    const setSelectedAppointmentId = (v: string) => dispatchModal({ type: "SET_APPOINTMENT_ID", value: v });
+    const setAmount = (v: string) => dispatchModal({ type: "SET_AMOUNT", value: v });
+    const setMethod = (v: string) => dispatchModal({ type: "SET_METHOD", value: v });
+    const setStatus = (v: string) => dispatchModal({ type: "SET_STATUS", value: v });
+    const setNote = (v: string) => dispatchModal({ type: "SET_NOTE", value: v });
+
+    const setIsDetailModalOpen = (open: boolean) => !open && dispatchDetail({ type: "CLOSE_DETAIL" });
+    const setDetailStatus = (v: PaymentStatus) => dispatchDetail({ type: "SET_STATUS", value: v });
+    const setDetailAmount = (v: string) => dispatchDetail({ type: "SET_AMOUNT", value: v });
+    const setDetailMethod = (v: string) => dispatchDetail({ type: "SET_METHOD", value: v });
+
     const [patients, setPatients] = useState<Patient[]>([]);
-    const [listSearch, setListSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState<string>("all");
-    const [methodFilter, setMethodFilter] = useState<string>("all");
-    const [modalPatientSearch, setModalPatientSearch] = useState("");
     const [modalAppointments, setModalAppointments] = useState<AppointmentOption[]>([]);
     const [modalAppointmentsLoading, setModalAppointmentsLoading] = useState(false);
-    const [selectedAppointmentId, setSelectedAppointmentId] = useState<string>("");
-    const [selectedDate, setSelectedDate] = useState(today);
-    const [startDate, setStartDate] = useState(today);
-    const [endDate, setEndDate] = useState(today);
-    const [amount, setAmount] = useState("");
-    const [method, setMethod] = useState<string>("Nakit");
-    const [status, setStatus] = useState<string>("pending");
-    const [note, setNote] = useState("");
     const [payments, setPayments] = useState<PaymentRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [bulkLoading, setBulkLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [viewMode, setViewMode] = useState<"day" | "week" | "month" | "range">("month");
-    const [selectedPayment, setSelectedPayment] = useState<PaymentRow | null>(null);
-    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [detailStatus, setDetailStatus] = useState<PaymentStatus>("pending");
-    const [detailAmount, setDetailAmount] = useState<string>("");
-    const [detailMethod, setDetailMethod] = useState<string>("Nakit");
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    // Shim for opening detail modal (used in return value and some callbacks)
+    const setSelectedPayment = (payment: PaymentRow | null) => {
+        if (payment) dispatchDetail({ type: "OPEN_DETAIL", payment });
+        else dispatchDetail({ type: "CLOSE_DETAIL" });
+    };
 
     useEffect(() => {
         if (appointmentIdParam && !isModalOpen) {
@@ -83,6 +227,7 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
             setIsModalOpen(true);
         }
     }, [appointmentIdParam, isModalOpen]);
+
 
     useEffect(() => {
         if (!clinicId) return;

@@ -400,6 +400,10 @@ export default function PlatformClinicsManagePage() {
         clinic={detailClinic}
         isOpen={showDetailPanel}
         onClose={() => { setShowDetailPanel(false); setDetailClinic(null); }}
+        onClinicUpdated={(updated) => {
+          setClinics(prev => prev.map(c => c.id === updated.id ? updated : c));
+          setDetailClinic(updated);
+        }}
       />
     </div>
   );

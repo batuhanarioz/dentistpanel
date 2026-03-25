@@ -95,6 +95,7 @@ export function useAppointmentManagement(initialData?: {
         queryFn: () => getAppointmentsForDate(selectedDate, effectiveClinicId || ""),
         initialData: (selectedDate === today && initialData?.appointments?.length) ? initialData.appointments : undefined,
         enabled: !!effectiveClinicId,
+        staleTime: 60 * 1000, // 1 dakika
     });
 
     // React Query for Doctors
@@ -102,6 +103,7 @@ export function useAppointmentManagement(initialData?: {
         queryKey: ["doctors", effectiveClinicId],
         queryFn: () => getDoctors(effectiveClinicId || ""),
         enabled: !!effectiveClinicId,
+        staleTime: 10 * 60 * 1000, // 10 dakika — doktorlar nadiren değişir
     });
 
     const doctors = useMemo(() => ["", ...doctorsData.map((d: { full_name: string | null }) => d.full_name || "")], [doctorsData]);
@@ -114,12 +116,13 @@ export function useAppointmentManagement(initialData?: {
             if (!effectiveClinicId) return [];
             const { data } = await supabase
                 .from("treatment_definitions")
-                .select("*")
+                .select("id, name, default_duration, color")
                 .eq("clinic_id", effectiveClinicId)
                 .order("name", { ascending: true });
             return data || [];
         },
         enabled: !!effectiveClinicId,
+        staleTime: 10 * 60 * 1000, // 10 dakika — tedavi tanımları nadiren değişir
     });
 
 

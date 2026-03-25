@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useChecklist } from "@/hooks/useChecklist";
 import { useSmartAssistant } from "@/hooks/useSmartAssistant";
 import { useAnnouncements } from "@/hooks/useAnnouncements";
@@ -8,15 +8,61 @@ import { AnnouncementModal } from "./AnnouncementModal";
 import { format } from "date-fns";
 import { Announcement } from "@/types/database";
 import { tr } from "date-fns/locale";
+import { supabase } from "@/lib/supabaseClient";
+import { useClinic } from "@/app/context/ClinicContext";
+
+type PanelNotification = {
+    id: string;
+    type: string;
+    title: string;
+    body: string | null;
+    link: string | null;
+    created_at: string;
+};
 
 export function NotificationDropdown() {
     const { controlItems, checklistLoading } = useChecklist(0);
     const { assistantItems, isLoading: assistantLoading } = useSmartAssistant();
     const { announcements, markAsRead } = useAnnouncements();
+    const { userId } = useClinic();
     const [isOpen, setIsOpen] = useState(false);
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
     const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+    const [panelNotifications, setPanelNotifications] = useState<PanelNotification[]>([]);
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const fetchPanelNotifications = useCallback(async () => {
+        if (!userId) return;
+        const { data } = await supabase
+            .from("panel_notifications")
+            .select("id, type, title, body, link, created_at")
+            .eq("user_id", userId)
+            .eq("is_read", false)
+            .order("created_at", { ascending: false })
+            .limit(20);
+        setPanelNotifications(data ?? []);
+    }, [userId]);
+
+    useEffect(() => {
+        fetchPanelNotifications();
+    }, [fetchPanelNotifications]);
+
+    // Realtime: yeni panel bildirimi geldiğinde güncelle
+    useEffect(() => {
+        if (!userId) return;
+        const channel = supabase
+            .channel("panel_notifications_realtime")
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "panel_notifications", filter: `user_id=eq.${userId}` },
+                () => fetchPanelNotifications()
+            )
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [userId, fetchPanelNotifications]);
+
+    const markPanelNotificationRead = async (id: string) => {
+        await supabase.from("panel_notifications").update({ is_read: true }).eq("id", id);
+        setPanelNotifications(prev => prev.filter(n => n.id !== id));
+    };
 
     useEffect(() => {
         const checkDismissed = () => {
@@ -45,7 +91,7 @@ export function NotificationDropdown() {
         return assistantItems.filter(item => !dismissedIds.includes(item.id));
     }, [assistantItems, dismissedIds]);
 
-    const pendingCount = (controlItems?.length || 0) + (filteredAssistantItems.length) + (announcements?.length || 0);
+    const pendingCount = (controlItems?.length || 0) + (filteredAssistantItems.length) + (announcements?.length || 0) + panelNotifications.length;
     const isLoading = checklistLoading || assistantLoading;
 
     useEffect(() => {
@@ -176,6 +222,31 @@ export function NotificationDropdown() {
                             </div>
                         ) : (
                             <div className="divide-y divide-slate-50">
+                                {/* PANEL BİLDİRİMLERİ (yeni randevu vb.) */}
+                                {panelNotifications.map((notif) => (
+                                    <div
+                                        key={`panel-${notif.id}`}
+                                        onClick={() => { markPanelNotificationRead(notif.id); if (notif.link) window.location.href = notif.link; setIsOpen(false); }}
+                                        className="p-4 bg-blue-50/40 hover:bg-blue-50 transition-colors group cursor-pointer border-l-4 border-blue-400"
+                                    >
+                                        <div className="flex gap-3">
+                                            <div className="shrink-0 p-2 bg-blue-100 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                    <span className="text-xs font-bold text-slate-900 truncate">{notif.title}</span>
+                                                    <span className="text-[9px] font-black text-blue-500 uppercase tracking-tight shrink-0">Yeni</span>
+                                                </div>
+                                                {notif.body && <p className="text-[11px] text-slate-600 font-medium leading-relaxed">{notif.body}</p>}
+                                                <p className="text-[10px] text-slate-400 mt-0.5">{format(new Date(notif.created_at), 'd MMM HH:mm', { locale: tr })}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
                                 {/* PLATFORM DUYURULARI */}
                                 {announcements.map((ann) => (
                                     <div

@@ -31,7 +31,9 @@ export interface CalendarAppointment {
     patientId: string;
 }
 
-interface RawAppointmentRow {
+// ─── JOIN-based appointment row (single query) ─────────────────────────────────
+
+interface JoinedAppointmentRow {
     id: string;
     starts_at: string;
     ends_at: string;
@@ -47,21 +49,8 @@ interface RawAppointmentRow {
     source_conversation_id: string | null;
     source_message_id: string | null;
     estimated_amount: number | null;
-}
-
-interface RawPatientRow {
-    id: string;
-    full_name: string;
-    phone: string | null;
-    email: string | null;
-    birth_date: string | null;
-    allergies: string | null;
-    medical_alerts: string | null;
-}
-
-interface RawDoctorRow {
-    id: string;
-    full_name: string;
+    patient: { full_name: string; phone: string | null; email: string | null; birth_date: string | null; allergies: string | null; medical_alerts: string | null } | { full_name: string; phone: string | null; email: string | null; birth_date: string | null; allergies: string | null; medical_alerts: string | null }[] | null;
+    doctor: { full_name: string } | { full_name: string }[] | null;
 }
 
 // ─── API functions ──────────────────────────────────────────────────────────────
@@ -74,12 +63,17 @@ export async function getClinicBySlug(slug: string) {
 export async function getAppointmentsForDate(date: string, clinicId: string): Promise<CalendarAppointment[]> {
     if (!clinicId) return [];
 
+    // N+1 fix: tek SELECT sorgusuyla randevu + hasta + hekim verisi çekiliyor
     const { data, error } = await supabase
         .from("appointments")
         .select(`
             id, starts_at, ends_at, patient_id, doctor_id, channel, treatment_type, status,
             patient_note, internal_note, treatment_note, tags, source_conversation_id,
-            source_message_id, estimated_amount
+            source_message_id, estimated_amount,
+            patient:patients!patient_id(
+                full_name, phone, email, birth_date, allergies, medical_alerts
+            ),
+            doctor:users!doctor_id(full_name)
         `)
         .eq("clinic_id", clinicId)
         .gte("starts_at", `${date}T00:00:00+03:00`)
@@ -90,22 +84,6 @@ export async function getAppointmentsForDate(date: string, clinicId: string): Pr
         console.error("getAppointmentsForDate error:", error);
         return [];
     }
-
-    const rows = data as RawAppointmentRow[];
-    const patientIds = Array.from(new Set(rows.map((a) => a.patient_id).filter(Boolean)));
-    const doctorIds  = Array.from(new Set(rows.map((a) => a.doctor_id).filter((id): id is string => id !== null)));
-
-    const [patientsRes, doctorsRes] = await Promise.all([
-        patientIds.length
-            ? supabase.from("patients").select("id, full_name, phone, email, birth_date, allergies, medical_alerts").eq("clinic_id", clinicId).in("id", patientIds)
-            : Promise.resolve({ data: [] as RawPatientRow[], error: null }),
-        doctorIds.length
-            ? supabase.from("users").select("id, full_name").eq("clinic_id", clinicId).in("id", doctorIds)
-            : Promise.resolve({ data: [] as RawDoctorRow[], error: null }),
-    ]);
-
-    const patientsMap = Object.fromEntries((patientsRes.data ?? []).map((p) => [p.id, p]));
-    const doctorsMap  = Object.fromEntries((doctorsRes.data  ?? []).map((d) => [d.id, d.full_name]));
 
     // Formatter'ları döngü dışında bir kez oluştur
     const timeFmt = new Intl.DateTimeFormat("tr-TR", {
@@ -121,11 +99,13 @@ export async function getAppointmentsForDate(date: string, clinicId: string): Pr
         day: "2-digit",
     });
 
-    return rows.map((row): CalendarAppointment => {
+    return (data as unknown as JoinedAppointmentRow[]).map((row): CalendarAppointment => {
         const startDate = new Date(row.starts_at);
         const endDate   = new Date(row.ends_at);
         const durationMinutes = Math.max(10, Math.round((endDate.getTime() - startDate.getTime()) / 60000) || 30);
-        const patient = patientsMap[row.patient_id] as RawPatientRow | undefined;
+
+        const patient = Array.isArray(row.patient) ? row.patient[0] ?? null : row.patient;
+        const doctor  = Array.isArray(row.doctor)  ? row.doctor[0]  ?? null : row.doctor;
 
         const trTime = timeFmt.formatToParts(startDate);
         const hour   = parseInt(trTime.find((p) => p.type === "hour")?.value   ?? "0");
@@ -143,7 +123,7 @@ export async function getAppointmentsForDate(date: string, clinicId: string): Pr
             phone: patient?.phone ?? "",
             email: patient?.email ?? "",
             birthDate: patient?.birth_date ?? "",
-            doctor: row.doctor_id ? (doctorsMap[row.doctor_id] ?? "") : "",
+            doctor: doctor?.full_name ?? "",
             doctorId: row.doctor_id,
             channel: row.channel ?? "",
             treatmentType: row.treatment_type ?? "",
@@ -170,18 +150,25 @@ export async function getDoctors(clinicId: string) {
         .select("id, full_name")
         .eq("clinic_id", clinicId)
         .eq("role", UserRole.DOKTOR);
-    return (data ?? []) as RawDoctorRow[];
+    return (data ?? []) as { id: string; full_name: string }[];
 }
 
-export async function getAllPatients(clinicId: string, page: number = 1, pageSize: number = 50) {
+export async function getAllPatients(clinicId: string, page: number = 1, pageSize: number = 50, search?: string) {
     if (!clinicId) return [];
     const from = (page - 1) * pageSize;
     const to   = from + pageSize - 1;
 
-    const { data, error } = await supabase
+    let query = supabase
         .from("patients")
         .select("id, full_name, phone, email, birth_date, tc_identity_no, gender, blood_group, address, occupation, allergies, medical_alerts, notes, created_at")
-        .eq("clinic_id", clinicId)
+        .eq("clinic_id", clinicId);
+
+    if (search && search.trim().length >= 2) {
+        const term = search.trim();
+        query = query.or(`full_name.ilike.%${term}%,phone.ilike.%${term}%`);
+    }
+
+    const { data, error } = await query
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -539,8 +526,12 @@ export async function deleteTreatmentDefinition(id: string, clinicId: string) {
 
 // ─── Treatment Plans ────────────────────────────────────────────────────────
 
+export interface TreatmentPlanItemWithDoctor extends TreatmentPlanItem {
+    assigned_doctor?: { full_name: string } | null;
+}
+
 export interface TreatmentPlanWithItems extends TreatmentPlan {
-    items: TreatmentPlanItem[];
+    items: TreatmentPlanItemWithDoctor[];
     patient?: { full_name: string; phone: string | null };
     doctor?: { full_name: string } | null;
 }
@@ -558,7 +549,8 @@ export async function getTreatmentPlans(clinicId: string, patientId?: string): P
             items:treatment_plan_items(
                 id, clinic_id, treatment_plan_id, patient_id, tooth_no,
                 procedure_name, description, quantity, unit_price, total_price,
-                assigned_doctor_id, status, sort_order, created_at, updated_at
+                assigned_doctor_id, status, sort_order, created_at, updated_at,
+                assigned_doctor:users!assigned_doctor_id(full_name)
             )
         `)
         .eq("clinic_id", clinicId)
@@ -576,7 +568,10 @@ export async function getTreatmentPlans(clinicId: string, patientId?: string): P
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         doctor: Array.isArray(plan.doctor) ? plan.doctor[0] : (plan.doctor as any),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        items: ((plan.items as any[]) ?? []).sort((a: TreatmentPlanItem, b: TreatmentPlanItem) => a.sort_order - b.sort_order),
+        items: ((plan.items as any[]) ?? []).map((item: any) => ({
+            ...item,
+            assigned_doctor: Array.isArray(item.assigned_doctor) ? item.assigned_doctor[0] ?? null : item.assigned_doctor ?? null,
+        })).sort((a: TreatmentPlanItem, b: TreatmentPlanItem) => a.sort_order - b.sort_order),
     })) as TreatmentPlanWithItems[];
 }
 
@@ -635,6 +630,7 @@ export async function upsertTreatmentPlanItem(
 ): Promise<{ data: TreatmentPlanItem | null; error: unknown }> {
     const { data, error } = await supabase
         .from("treatment_plan_items")
+        // total_price: DB'de GENERATED ALWAYS AS (quantity * unit_price) — elle yazılmaz
         .upsert({ ...item, clinic_id: clinicId })
         .select("id, clinic_id, treatment_plan_id, patient_id, tooth_no, procedure_name, description, quantity, unit_price, total_price, assigned_doctor_id, status, sort_order, created_at, updated_at")
         .single();
@@ -704,6 +700,7 @@ export async function createTreatmentPlanWithAppointment(
             description: item.description ?? null,
             quantity: item.quantity,
             unit_price: item.unit_price,
+            // total_price: DB'de GENERATED ALWAYS AS (quantity * unit_price) — elle yazılmaz
             assigned_doctor_id: item.assigned_doctor_id ?? null,
             sort_order: item.sort_order ?? idx,
             status: "planned",

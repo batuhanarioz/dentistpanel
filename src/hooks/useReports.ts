@@ -1,12 +1,38 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr } from "@/lib/dateUtils";
-import { UserRole, Appointment, Payment, DayOfWeek } from "@/types/database";
+import { UserRole, DayOfWeek } from "@/types/database";
 import { useClinic } from "@/app/context/ClinicContext";
 import { isPaid, isPending, normalizePaymentMethod } from "@/constants/payments";
 import { startOfDay, endOfDay, subDays, format, eachDayOfInterval } from "date-fns";
 
-export type AppointmentRow = Appointment;
+/** Rapor hook'unda kullanılan appointment kolonları */
+interface ReportAppointment {
+    id: string;
+    starts_at: string;
+    ends_at: string;
+    patient_id: string;
+    doctor_id: string | null;
+    status: string;
+    channel: string;
+    treatment_type: string | null;
+    estimated_amount: number | null;
+    patient?: { full_name: string; created_at: string; birth_date: string | null; gender: string | null } | { full_name: string; created_at: string; birth_date: string | null; gender: string | null }[] | null;
+    doctor?: { full_name: string } | { full_name: string }[] | null;
+}
+
+/** Rapor hook'unda kullanılan payment kolonları */
+interface ReportPayment {
+    id: string;
+    amount: number;
+    status: string | null;
+    method: string | null;
+    due_date: string | null;
+    created_at: string;
+    appointment_id: string | null;
+}
+
+export type AppointmentRow = ReportAppointment;
 
 export type DatePreset = "today" | "7d" | "30d" | "thisMonth" | "lastMonth" | "thisYear" | "custom";
 
@@ -30,8 +56,8 @@ export function useReports() {
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
     // Raw Data — current period
-    const [appointments, setAppointments] = useState<Appointment[]>([]);
-    const [payments, setPayments] = useState<Payment[]>([]);
+    const [appointments, setAppointments] = useState<ReportAppointment[]>([]);
+    const [payments, setPayments] = useState<ReportPayment[]>([]);
     const [patients, setPatients] = useState<PatientRow[]>([]);
     const [doctors, setDoctors] = useState<{ id: string; full_name: string }[]>([]);
     const [treatmentTypes, setTreatmentTypes] = useState<{ id: string; name: string }[]>([]);
@@ -39,8 +65,8 @@ export function useReports() {
     const [existingPatients, setExistingPatients] = useState<{ id: string }[]>([]);
 
     // Raw Data — previous period (for trend comparison)
-    const [prevAppointments, setPrevAppointments] = useState<Appointment[]>([]);
-    const [prevPayments, setPrevPayments] = useState<Payment[]>([]);
+    const [prevAppointments, setPrevAppointments] = useState<ReportAppointment[]>([]);
+    const [prevPayments, setPrevPayments] = useState<ReportPayment[]>([]);
     const [prevPatients, setPrevPatients] = useState<PatientRow[]>([]);
 
     const [loading, setLoading] = useState(true);
@@ -120,15 +146,15 @@ export function useReports() {
                 // Current period appointments
                 supabase
                     .from("appointments")
-                    .select("*, patient:patient_id(full_name, created_at, birth_date, gender), doctor:doctor_id(full_name)")
+                    .select("id, starts_at, ends_at, patient_id, doctor_id, status, channel, treatment_type, estimated_amount, patient:patient_id(full_name, created_at, birth_date, gender), doctor:doctor_id(full_name)")
                     .eq("clinic_id", clinicId)
                     .gte("starts_at", rangeStart)
                     .lte("starts_at", rangeEnd),
 
-                // Current period payments (all fields for method, due_date etc.)
+                // Current period payments
                 supabase
                     .from("payments")
-                    .select("*")
+                    .select("id, amount, status, method, due_date, created_at, appointment_id")
                     .eq("clinic_id", clinicId)
                     .gte("created_at", rangeStart)
                     .lte("created_at", rangeEnd),
@@ -192,8 +218,8 @@ export function useReports() {
             setTreatmentTypes(treatments || []);
             setPatients((newPatients || []) as PatientRow[]);
             setExistingPatients(existing || []);
-            setPrevAppointments((prevAppts || []) as Appointment[]);
-            setPrevPayments((prevPmnts || []) as Payment[]);
+            setPrevAppointments((prevAppts || []) as ReportAppointment[]);
+            setPrevPayments((prevPmnts || []) as ReportPayment[]);
             setPrevPatients((prevPats || []) as PatientRow[]);
 
         } catch (error) {

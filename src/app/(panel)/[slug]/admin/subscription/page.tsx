@@ -43,10 +43,10 @@ export default function SubscriptionPage() {
             if (!clinic.clinicId) return;
             const { data } = await supabase
                 .from("payment_history")
-                .select("*")
+                .select("id, package_name, billing_period, amount, currency, status, invoice_url, created_at")
                 .eq("clinic_id", clinic.clinicId)
                 .order("created_at", { ascending: false });
-            if (data) setPayments(data);
+            if (data) setPayments(data as PaymentHistory[]);
             setLoading(false);
         }
         fetchPayments();
@@ -214,8 +214,8 @@ export default function SubscriptionPage() {
                                 <Package size={18} />
                             </div>
                             <div>
-                                <h3 className="text-xl font-black text-slate-900 tracking-tight">Eklentilerim</h3>
-                                <p className="text-xs text-slate-500 font-medium">Kliniğinize tanımlanmış ek ürün ve hizmetler.</p>
+                                <h3 className="text-xl font-black text-slate-900 tracking-tight">Eklentiler</h3>
+                                <p className="text-xs text-slate-500 font-medium">Veriminizi arttırabilecek NextGency Teknolojileri</p>
                             </div>
                         </div>
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -407,12 +407,12 @@ export default function SubscriptionPage() {
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${payment.status === "paid" ? "bg-emerald-100 text-emerald-700"
-                                                            : payment.status === "failed" ? "bg-rose-100 text-rose-700"
-                                                                : "bg-amber-100 text-amber-700"
+                                                        : payment.status === "failed" ? "bg-rose-100 text-rose-700"
+                                                            : "bg-amber-100 text-amber-700"
                                                         }`}>
                                                         <div className={`h-1 w-1 rounded-full ${payment.status === "paid" ? "bg-emerald-500"
-                                                                : payment.status === "failed" ? "bg-rose-500"
-                                                                    : "bg-amber-500"
+                                                            : payment.status === "failed" ? "bg-rose-500"
+                                                                : "bg-amber-500"
                                                             }`} />
                                                         {payment.status === "paid" ? "Başarılı" : payment.status === "failed" ? "Hata" : "Beklemede"}
                                                     </span>

@@ -5,6 +5,7 @@ import { useClinic } from "@/app/context/ClinicContext";
 import { supabase } from "@/lib/supabaseClient";
 import { UserRole, DayOfWeek, DaySchedule, ClinicSettings, WorkingHours } from "@/types/database";
 import { DAY_LABELS, ORDERED_DAYS } from "@/constants/days";
+import { TURKEY_CITIES, getDistricts } from "@/constants/turkeyGeo";
 import { updateClinicSettings, getTreatmentDefinitions, upsertTreatmentDefinition, deleteTreatmentDefinition } from "@/lib/api";
 import { PremiumDatePicker } from "../PremiumDatePicker";
 import { localDateStr } from "@/lib/dateUtils";
@@ -18,7 +19,7 @@ const PLACEHOLDERS = [
 ];
 
 type MessageType = "REMINDER" | "SATISFACTION" | "PAYMENT";
-type SubSection = "general" | "checklist" | "assistant" | "treatments" | "channels";
+type SubSection = "profile" | "general" | "checklist" | "assistant" | "treatments" | "channels" | "notifications" | "doctor-hours";
 
 type TaskDefinition = {
     id: string;
@@ -72,10 +73,37 @@ export function ClinicSettingsTab() {
     const [newTreatmentName, setNewTreatmentName] = useState("");
     const [newTreatmentDuration, setNewTreatmentDuration] = useState(30);
     const [isTreatmentsLoading, setIsTreatmentsLoading] = useState(false);
+    const [editingTreatmentId, setEditingTreatmentId] = useState<string | null>(null);
+    const [editingTreatmentName, setEditingTreatmentName] = useState("");
+    const [editingTreatmentDuration, setEditingTreatmentDuration] = useState(30);
 
     // Channel State
     const [channels, setChannels] = useState<string[]>(clinic.clinicSettings?.appointment_channels ?? []);
     const [newChannelName, setNewChannelName] = useState("");
+
+    // Doctor Hours State
+    type DoctorUser = { id: string; full_name: string; role: string };
+    const [doctorList, setDoctorList] = useState<DoctorUser[]>([]);
+    const [doctorSchedules, setDoctorSchedules] = useState<Record<string, WorkingHours>>({});
+    const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
+    const [doctorHoursLoading, setDoctorHoursLoading] = useState(false);
+
+    // Notification Rules State
+    const [notifRules, setNotifRules] = useState({
+        notify_doctor_on_new_appointment: clinic.clinicSettings?.notification_rules?.notify_doctor_on_new_appointment ?? true,
+        notify_roles_on_new_appointment: clinic.clinicSettings?.notification_rules?.notify_roles_on_new_appointment ?? ["ADMIN", "SEKRETER"] as string[],
+    });
+
+    // Profile State
+    const [profileName, setProfileName] = useState("");
+    const [profilePhone, setProfilePhone] = useState("");
+    const [profileEmail, setProfileEmail] = useState("");
+    const [profileAddress, setProfileAddress] = useState("");
+    const [profileCity, setProfileCity] = useState("");
+    const [profileDistrict, setProfileDistrict] = useState("");
+    const [profileLoading, setProfileLoading] = useState(false);
+    const [originalEmail, setOriginalEmail] = useState("");
+    const [emailConfirm, setEmailConfirm] = useState("");
 
     useEffect(() => {
         if (clinic.clinicSettings) {
@@ -94,8 +122,134 @@ export function ClinicSettingsTab() {
             loadChecklistSettings();
         } else if (activeSub === "treatments" && clinic.clinicId) {
             loadTreatmentSettings();
+        } else if (activeSub === "profile" && clinic.clinicId) {
+            loadProfileSettings();
+        } else if (activeSub === "doctor-hours" && clinic.clinicId) {
+            loadDoctorHours();
         }
     }, [activeSub, clinic.clinicId]);
+
+    const loadProfileSettings = async () => {
+        if (!clinic.clinicId) return;
+        setProfileLoading(true);
+        try {
+            const { data } = await supabase
+                .from("clinics")
+                .select("name, phone, email, address, city, district")
+                .eq("id", clinic.clinicId)
+                .single();
+            if (data) {
+                setProfileName(data.name ?? "");
+                setProfilePhone(data.phone ?? "");
+                setProfileEmail(data.email ?? "");
+                setOriginalEmail(data.email ?? "");
+                setEmailConfirm("");
+                setProfileAddress(data.address ?? "");
+                setProfileCity(data.city ?? "");
+                setProfileDistrict(data.district ?? "");
+            }
+        } finally {
+            setProfileLoading(false);
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        if (!clinic.clinicId) return;
+        const emailChanged = profileEmail.trim() !== originalEmail;
+        if (emailChanged && profileEmail.trim() !== emailConfirm.trim()) {
+            setSaveMessage({ type: "error", text: "E-posta doğrulaması eşleşmiyor. Lütfen yeni e-postayı tekrar girin." });
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const { error } = await supabase
+                .from("clinics")
+                .update({ name: profileName.trim(), phone: profilePhone.trim() || null, email: profileEmail.trim() || null, address: profileAddress.trim() || null, city: profileCity.trim() || null, district: profileDistrict.trim() || null })
+                .eq("id", clinic.clinicId);
+            if (error) throw error;
+            setOriginalEmail(profileEmail.trim());
+            setEmailConfirm("");
+            setSaveMessage({ type: "success", text: "Klinik profili güncellendi." });
+            setTimeout(() => setSaveMessage(null), 3000);
+        } catch {
+            setSaveMessage({ type: "error", text: "Profil kaydedilemedi." });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSaveNotifRules = async () => {
+        if (!clinic.clinicId) return;
+        setIsLoading(true);
+        try {
+            const { error } = await updateClinicSettings(clinic.clinicId, { ...localSettings!, notification_rules: notifRules });
+            if (error) throw error;
+            setSaveMessage({ type: "success", text: "Bildirim ayarları kaydedildi." });
+            setTimeout(() => setSaveMessage(null), 3000);
+        } catch {
+            setSaveMessage({ type: "error", text: "Kaydedilemedi." });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const loadDoctorHours = async () => {
+        if (!clinic.clinicId) return;
+        setDoctorHoursLoading(true);
+        try {
+            const [usersRes, schedulesRes] = await Promise.all([
+                supabase.from("users")
+                    .select("id, full_name, role")
+                    .eq("clinic_id", clinic.clinicId)
+                    .in("role", ["DOKTOR"]),
+                supabase.from("doctor_schedules")
+                    .select("user_id, working_hours")
+                    .eq("clinic_id", clinic.clinicId),
+            ]);
+            setDoctorList(usersRes.data ?? []);
+            const schedMap: Record<string, WorkingHours> = {};
+            for (const s of (schedulesRes.data ?? [])) {
+                schedMap[s.user_id] = s.working_hours;
+            }
+            setDoctorSchedules(schedMap);
+            if (usersRes.data?.length && !selectedDoctorId) {
+                setSelectedDoctorId(usersRes.data[0].id);
+            }
+        } finally {
+            setDoctorHoursLoading(false);
+        }
+    };
+
+    const handleSaveDoctorHours = async (doctorId: string) => {
+        if (!clinic.clinicId) return;
+        setIsLoading(true);
+        try {
+            const hours = doctorSchedules[doctorId] ?? {};
+            const { error } = await supabase
+                .from("doctor_schedules")
+                .upsert({ clinic_id: clinic.clinicId, user_id: doctorId, working_hours: hours }, { onConflict: "clinic_id,user_id" });
+            if (error) throw error;
+            setSaveMessage({ type: "success", text: "Doktor çalışma saatleri kaydedildi." });
+            setTimeout(() => setSaveMessage(null), 3000);
+        } catch {
+            setSaveMessage({ type: "error", text: "Kaydedilemedi." });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const updateDoctorHour = (doctorId: string, day: DayOfWeek, field: "open" | "close" | "enabled", value: string | boolean) => {
+        setDoctorSchedules(prev => {
+            const current: WorkingHours = prev[doctorId] ?? { ...clinic.workingHours };
+            return {
+                ...prev,
+                [doctorId]: {
+                    ...current,
+                    [day]: { ...current[day], [field]: value },
+                },
+            };
+        });
+    };
 
     const loadChecklistSettings = async () => {
         if (!clinic.clinicId) return;
@@ -155,6 +309,39 @@ export function ClinicSettingsTab() {
             await loadTreatmentSettings();
         } catch (err: unknown) {
             setSaveMessage({ type: 'error', text: "Silme sırasında hata oluştu." });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleStartEditTreatment = (td: TreatmentDefinition) => {
+        setEditingTreatmentId(td.id);
+        setEditingTreatmentName(td.name);
+        setEditingTreatmentDuration(td.default_duration);
+    };
+
+    const handleCancelEditTreatment = () => {
+        setEditingTreatmentId(null);
+        setEditingTreatmentName("");
+        setEditingTreatmentDuration(30);
+    };
+
+    const handleUpdateTreatment = async () => {
+        if (!clinic.clinicId || !editingTreatmentId || !editingTreatmentName.trim()) return;
+        setIsLoading(true);
+        try {
+            const { error } = await upsertTreatmentDefinition(clinic.clinicId, {
+                id: editingTreatmentId,
+                name: editingTreatmentName.trim(),
+                default_duration: editingTreatmentDuration,
+            });
+            if (error) throw error;
+            handleCancelEditTreatment();
+            await loadTreatmentSettings();
+            setSaveMessage({ type: 'success', text: "Tedavi başarıyla güncellendi." });
+            setTimeout(() => setSaveMessage(null), 3000);
+        } catch {
+            setSaveMessage({ type: 'error', text: "Güncelleme sırasında hata oluştu." });
         } finally {
             setIsLoading(false);
         }
@@ -345,13 +532,63 @@ export function ClinicSettingsTab() {
             return [...filtered, ...newEntries].sort((a, b) => a.date.localeCompare(b.date));
         });
 
-        setNewOverrideDate("");
-        setNewOverrideEndDate("");
+        setNewOverrideDate(localDateStr());
+        setNewOverrideEndDate(localDateStr());
         setNewOverrideNote("");
     };
 
     const removeOverride = (date: string) => {
         setLocalOverrides(prev => prev.filter(o => o.date !== date));
+    };
+
+    const TURKEY_2026_HOLIDAYS: { date: string; note: string }[] = [
+        { date: "2026-01-01", note: "Yılbaşı" },
+        { date: "2026-04-23", note: "Ulusal Egemenlik ve Çocuk Bayramı" },
+        { date: "2026-05-01", note: "Emek ve Dayanışma Günü" },
+        { date: "2026-05-19", note: "Atatürk'ü Anma, Gençlik ve Spor Bayramı" },
+        { date: "2026-07-15", note: "Demokrasi ve Millî Birlik Günü" },
+        { date: "2026-08-30", note: "Zafer Bayramı" },
+        { date: "2026-10-28", note: "Cumhuriyet Bayramı (yarım gün)" },
+        { date: "2026-10-29", note: "Cumhuriyet Bayramı" },
+        // 2026 Ramazan Bayramı (tahmini: 21-23 Mart)
+        { date: "2026-03-21", note: "Ramazan Bayramı 1. Gün" },
+        { date: "2026-03-22", note: "Ramazan Bayramı 2. Gün" },
+        { date: "2026-03-23", note: "Ramazan Bayramı 3. Gün" },
+        // 2026 Kurban Bayramı (tahmini: 28-31 Mayıs)
+        { date: "2026-05-28", note: "Kurban Bayramı Arifesi (yarım gün)" },
+        { date: "2026-05-29", note: "Kurban Bayramı 1. Gün" },
+        { date: "2026-05-30", note: "Kurban Bayramı 2. Gün" },
+        { date: "2026-05-31", note: "Kurban Bayramı 3. Gün" },
+        { date: "2026-06-01", note: "Kurban Bayramı 4. Gün" },
+    ];
+
+    const handleAddOfficialHolidays = async () => {
+        if (!clinic.clinicId) return;
+        const newEntries = TURKEY_2026_HOLIDAYS
+            .filter(h => !localOverrides.some(o => o.date === h.date))
+            .map(h => ({ date: h.date, open: "00:00", close: "23:59", is_closed: true, note: h.note }));
+        if (newEntries.length === 0) {
+            setSaveMessage({ type: "success", text: "Tüm 2026 resmi tatilleri zaten eklenmiş." });
+            setTimeout(() => setSaveMessage(null), 3000);
+            return;
+        }
+        const updatedOverrides = [...localOverrides, ...newEntries].sort((a, b) => a.date.localeCompare(b.date));
+        setLocalOverrides(updatedOverrides);
+        // Otomatik kaydet — state güncellemesini beklemeden direkt DB'ye yaz
+        setIsLoading(true);
+        try {
+            const { error } = await supabase
+                .from("clinics")
+                .update({ working_hours: localHours, working_hours_overrides: updatedOverrides })
+                .eq("id", clinic.clinicId);
+            if (error) throw error;
+            setSaveMessage({ type: "success", text: `${newEntries.length} resmi tatil eklendi ve kaydedildi.` });
+        } catch {
+            setSaveMessage({ type: "error", text: "Tatiller eklenemedi." });
+        } finally {
+            setIsLoading(false);
+            setTimeout(() => setSaveMessage(null), 4000);
+        }
     };
 
     const handleSaveGeneral = async () => {
@@ -361,16 +598,12 @@ export function ClinicSettingsTab() {
         try {
             const { error } = await supabase
                 .from("clinics")
-                .update({
-                    working_hours: localHours,
-                    working_hours_overrides: localOverrides
-                })
+                .update({ working_hours: localHours, working_hours_overrides: localOverrides })
                 .eq("id", clinic.clinicId);
-
             if (error) throw error;
             setSaveMessage({ type: 'success', text: "Çalışma saatleri başarıyla kaydedildi." });
             setTimeout(() => setSaveMessage(null), 3000);
-        } catch (err: unknown) {
+        } catch {
             setSaveMessage({ type: 'error', text: "Kaydedilirken bir hata oluştu." });
         } finally {
             setIsLoading(false);
@@ -382,6 +615,21 @@ export function ClinicSettingsTab() {
             {/* Sidebar Navigation */}
             <aside className="w-full lg:w-64 shrink-0">
                 <div className="bg-white rounded-3xl border border-slate-200/60 p-2 shadow-sm sticky top-24">
+                    <button
+                        onClick={() => setActiveSub("profile")}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all ${activeSub === "profile"
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                            : "text-slate-500 hover:bg-slate-50"
+                            }`}
+                    >
+                        <div className={`p-1.5 rounded-lg ${activeSub === 'profile' ? 'bg-white/20' : 'bg-rose-50 text-rose-600'}`}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
+                            </svg>
+                        </div>
+                        <span>Klinik Profili</span>
+                    </button>
+
                     <button
                         onClick={() => setActiveSub("assistant")}
                         className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all ${activeSub === "assistant"
@@ -428,6 +676,21 @@ export function ClinicSettingsTab() {
                     </button>
 
                     <button
+                        onClick={() => setActiveSub("doctor-hours")}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "doctor-hours"
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                            : "text-slate-500 hover:bg-slate-50"
+                            }`}
+                    >
+                        <div className={`p-1.5 rounded-lg ${activeSub === 'doctor-hours' ? 'bg-white/20' : 'bg-violet-50 text-violet-600'}`}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                            </svg>
+                        </div>
+                        <span>Doktor Müsaitliği</span>
+                    </button>
+
+                    <button
                         onClick={() => setActiveSub("treatments")}
                         className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "treatments"
                             ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
@@ -441,6 +704,21 @@ export function ClinicSettingsTab() {
                             </svg>
                         </div>
                         <span>Tedavi Ayarları</span>
+                    </button>
+
+                    <button
+                        onClick={() => setActiveSub("notifications")}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "notifications"
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                            : "text-slate-500 hover:bg-slate-50"
+                            }`}
+                    >
+                        <div className={`p-1.5 rounded-lg ${activeSub === 'notifications' ? 'bg-white/20' : 'bg-amber-50 text-amber-600'}`}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                            </svg>
+                        </div>
+                        <span>Bildirim Ayarları</span>
                     </button>
 
                     <button
@@ -462,6 +740,100 @@ export function ClinicSettingsTab() {
 
             {/* Main Content Area */}
             < main className="flex-1" >
+                {activeSub === "profile" && (
+                    <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden">
+                        <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-900">Klinik Profil Bilgileri</h3>
+                                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Kliniğinizin temel bilgilerini yönetin.</p>
+                            </div>
+                            <button
+                                onClick={handleSaveProfile}
+                                disabled={isLoading || profileLoading}
+                                className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+                                Kaydet
+                            </button>
+                        </div>
+
+                        {saveMessage && (
+                            <div className={`mx-8 mt-6 p-4 rounded-2xl border text-sm font-bold flex items-center gap-3 ${saveMessage.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+                                {saveMessage.text}
+                            </div>
+                        )}
+
+                        {profileLoading ? (
+                            <div className="p-12 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /></div>
+                        ) : (
+                            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Klinik Adı */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Klinik Adı <span className="text-rose-500">*</span></label>
+                                    <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} placeholder="İzmir Diş Kliniği"
+                                        className="w-full h-[52px] bg-slate-50 border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 focus:bg-white transition-all" />
+                                </div>
+
+                                {/* Telefon */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Telefon</label>
+                                    <input type="text" value={profilePhone} onChange={e => setProfilePhone(e.target.value)} placeholder="+90 232 000 00 00"
+                                        className="w-full h-[52px] bg-slate-50 border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 focus:bg-white transition-all" />
+                                </div>
+
+                                {/* E-posta */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">E-posta</label>
+                                    <input type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} placeholder="info@klinik.com"
+                                        className="w-full h-[52px] bg-slate-50 border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 focus:bg-white transition-all" />
+                                </div>
+
+                                {/* E-posta onay — sadece değişince göster */}
+                                {profileEmail.trim() !== originalEmail && (
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-amber-500 uppercase tracking-widest ml-1">E-posta Doğrulama <span className="text-rose-500">*</span></label>
+                                        <input type="email" value={emailConfirm} onChange={e => setEmailConfirm(e.target.value)} placeholder="Yeni e-postayı tekrar girin"
+                                            className={`w-full h-[52px] bg-slate-50 border rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 transition-all ${emailConfirm && emailConfirm !== profileEmail ? 'border-rose-300 focus:ring-rose-500/10' : 'border-slate-200 focus:ring-indigo-500/10 focus:border-indigo-300 focus:bg-white'}`} />
+                                    </div>
+                                )}
+
+                                {/* Şehir dropdown */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Şehir</label>
+                                    <select value={profileCity} onChange={e => { setProfileCity(e.target.value); setProfileDistrict(""); }}
+                                        className="w-full h-[52px] bg-slate-50 border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 focus:bg-white transition-all appearance-none">
+                                        <option value="">Şehir seçin...</option>
+                                        {TURKEY_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+
+                                {/* İlçe dropdown */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">İlçe</label>
+                                    {getDistricts(profileCity).length > 0 ? (
+                                        <select value={profileDistrict} onChange={e => setProfileDistrict(e.target.value)}
+                                            className="w-full h-[52px] bg-slate-50 border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 focus:bg-white transition-all appearance-none">
+                                            <option value="">İlçe seçin...</option>
+                                            {getDistricts(profileCity).map(d => <option key={d} value={d}>{d}</option>)}
+                                        </select>
+                                    ) : (
+                                        <input type="text" value={profileDistrict} onChange={e => setProfileDistrict(e.target.value)} placeholder={profileCity ? "İlçe girin..." : "Önce şehir seçin"}
+                                            disabled={!profileCity}
+                                            className="w-full h-[52px] bg-slate-50 border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 focus:bg-white transition-all disabled:opacity-50" />
+                                    )}
+                                </div>
+
+                                {/* Adres */}
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Adres</label>
+                                    <textarea value={profileAddress} onChange={e => setProfileAddress(e.target.value)} placeholder="Klinik adresi..." rows={3}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 focus:bg-white transition-all resize-none" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {activeSub === "assistant" && localSettings && (
                     <div className="space-y-6">
                         <div className="bg-white rounded-[32px] border border-slate-200/60 p-6 sm:p-8 shadow-sm">
@@ -749,6 +1121,22 @@ export function ClinicSettingsTab() {
                                     </div>
                                 ) : (
                                     <div className="space-y-6">
+                                        {saveMessage && (
+                                            <div className={`p-3 rounded-2xl border text-sm font-bold flex items-center gap-2 ${saveMessage.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+                                                {saveMessage.text}
+                                            </div>
+                                        )}
+                                        <div className="flex justify-end">
+                                            <button
+                                                onClick={handleAddOfficialHolidays}
+                                                className="flex items-center gap-2 h-9 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all active:scale-95"
+                                            >
+                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                                                </svg>
+                                                2026 Resmi Tatillerini Ekle
+                                            </button>
+                                        </div>
                                         <div className="p-6 rounded-[32px] bg-slate-50 border border-slate-200/60 shadow-inner space-y-6">
                                             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                                 <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-full sm:w-auto">
@@ -885,29 +1273,85 @@ export function ClinicSettingsTab() {
                                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
                                         </div>
                                     ) : treatmentDefinitions.map((td) => (
-                                        <div key={td.id} className="group relative p-6 rounded-[32px] border border-slate-100 bg-white hover:border-teal-200 transition-all shadow-sm hover:shadow-md">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-base font-black text-slate-900">{td.name}</span>
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">İşlem Türü</span>
+                                        <div key={td.id} className={`group relative p-6 rounded-[32px] border transition-all shadow-sm ${editingTreatmentId === td.id ? "border-teal-300 bg-teal-50/30 shadow-md" : "border-slate-100 bg-white hover:border-teal-200 hover:shadow-md"}`}>
+                                            {editingTreatmentId === td.id ? (
+                                                /* ── Düzenleme modu ── */
+                                                <div className="space-y-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tedavi Adı</label>
+                                                        <input
+                                                            type="text"
+                                                            value={editingTreatmentName}
+                                                            onChange={e => setEditingTreatmentName(e.target.value)}
+                                                            onKeyDown={e => { if (e.key === "Enter") handleUpdateTreatment(); if (e.key === "Escape") handleCancelEditTreatment(); }}
+                                                            autoFocus
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Süre (Dakika)</label>
+                                                        <input
+                                                            type="number"
+                                                            value={editingTreatmentDuration}
+                                                            onChange={e => setEditingTreatmentDuration(parseInt(e.target.value) || 0)}
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2 pt-1">
+                                                        <button
+                                                            onClick={handleUpdateTreatment}
+                                                            disabled={isLoading || !editingTreatmentName.trim()}
+                                                            className="flex-1 h-9 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-black transition-all active:scale-95 disabled:opacity-50"
+                                                        >
+                                                            Kaydet
+                                                        </button>
+                                                        <button
+                                                            onClick={handleCancelEditTreatment}
+                                                            className="h-9 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all active:scale-95"
+                                                        >
+                                                            İptal
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleDeleteTreatment(td.id)}
-                                                    className="p-2 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
-                                                >
-                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-100">
-                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                                    </svg>
-                                                    <span className="text-[11px] font-black uppercase tracking-tighter">{td.default_duration} Dakika</span>
-                                                </div>
-                                            </div>
+                                            ) : (
+                                                /* ── Normal görünüm ── */
+                                                <>
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-base font-black text-slate-900">{td.name}</span>
+                                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">İşlem Türü</span>
+                                                        </div>
+                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                            <button
+                                                                onClick={() => handleStartEditTreatment(td)}
+                                                                className="p-2 rounded-xl text-slate-300 hover:text-teal-600 hover:bg-teal-50 transition-all"
+                                                                title="Düzenle"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                                                                </svg>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteTreatment(td.id)}
+                                                                className="p-2 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all"
+                                                                title="Sil"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-100">
+                                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                                            </svg>
+                                                            <span className="text-[11px] font-black uppercase tracking-tighter">{td.default_duration} Dakika</span>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     ))}
                                     {!isTreatmentsLoading && treatmentDefinitions.length === 0 && (
@@ -921,11 +1365,144 @@ export function ClinicSettingsTab() {
                     )
                 }
 
+                {activeSub === "doctor-hours" && (
+                    <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden">
+                        <div className="p-8 border-b border-slate-50">
+                            <h3 className="text-xl font-black text-slate-900">Doktor Bazlı Müsaitlik</h3>
+                            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Her doktor için ayrı çalışma saati tanımlayın.</p>
+                        </div>
+
+                        {saveMessage && (
+                            <div className={`mx-8 mt-6 p-4 rounded-2xl border text-sm font-bold flex items-center gap-3 ${saveMessage.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>{saveMessage.text}</div>
+                        )}
+
+                        {doctorHoursLoading ? (
+                            <div className="p-12 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /></div>
+                        ) : doctorList.length === 0 ? (
+                            <div className="p-12 text-center text-slate-400 text-sm font-medium italic">Klinikte kayıtlı doktor bulunamadı.</div>
+                        ) : (
+                            <div className="p-8 space-y-6">
+                                {/* Doktor seçici */}
+                                <div className="flex flex-wrap gap-2">
+                                    {doctorList.map(doc => (
+                                        <button key={doc.id}
+                                            onClick={() => setSelectedDoctorId(doc.id)}
+                                            className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${selectedDoctorId === doc.id ? 'bg-violet-600 text-white shadow-lg shadow-violet-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                                            {doc.full_name}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Seçili doktorun çalışma saatleri */}
+                                {selectedDoctorId && (() => {
+                                    const hours: WorkingHours = doctorSchedules[selectedDoctorId] ?? clinic.workingHours;
+                                    const doc = doctorList.find(d => d.id === selectedDoctorId);
+                                    return (
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <h4 className="text-sm font-black text-slate-700">{doc?.full_name} — Haftalık Program</h4>
+                                                <button
+                                                    onClick={() => handleSaveDoctorHours(selectedDoctorId)}
+                                                    disabled={isLoading}
+                                                    className="h-9 px-5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-black shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2">
+                                                    {isLoading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                                    Kaydet
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {ORDERED_DAYS.map(day => (
+                                                    <div key={day} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50/30">
+                                                        <span className="w-20 text-[10px] font-black text-slate-700 uppercase tracking-tighter shrink-0">{DAY_LABELS[day]}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <input type="time" value={hours[day]?.open ?? "09:00"} onChange={e => updateDoctorHour(selectedDoctorId, day, "open", e.target.value)} disabled={!hours[day]?.enabled} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-40" />
+                                                            <span className="text-slate-400">-</span>
+                                                            <input type="time" value={hours[day]?.close ?? "18:00"} onChange={e => updateDoctorHour(selectedDoctorId, day, "close", e.target.value)} disabled={!hours[day]?.enabled} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-40" />
+                                                        </div>
+                                                        <label className="relative inline-flex items-center cursor-pointer ml-auto">
+                                                            <input type="checkbox" className="sr-only peer" checked={hours[day]?.enabled ?? true} onChange={e => updateDoctorHour(selectedDoctorId, day, "enabled", e.target.checked)} />
+                                                            <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-violet-600"></div>
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeSub === "notifications" && (
+                    <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden">
+                        <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-900">Panel Bildirim Ayarları</h3>
+                                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Kimin, hangi durumlarda panel bildirimi alacağını belirleyin.</p>
+                            </div>
+                            <button onClick={handleSaveNotifRules} disabled={isLoading} className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2">
+                                {isLoading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                Kaydet
+                            </button>
+                        </div>
+                        {saveMessage && (
+                            <div className={`mx-8 mt-6 p-4 rounded-2xl border text-sm font-bold flex items-center gap-3 ${saveMessage.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>{saveMessage.text}</div>
+                        )}
+                        <div className="p-8 space-y-6">
+                            <p className="text-sm text-slate-500 font-medium">Bildirimler, bell ikonundan (<span className="font-black text-slate-700">🔔</span>) okunabilir ve otomatik olarak güncellenir.</p>
+
+                            {/* Doktora yeni randevu bildirimi */}
+                            <div className="flex items-center justify-between p-5 rounded-2xl border border-slate-100 bg-slate-50/30">
+                                <div>
+                                    <h4 className="text-sm font-black text-slate-900">Doktora Yeni Randevu Bildirimi</h4>
+                                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Bir randevu oluşturulduğunda atanan doktor bildirim alsın</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                    <input type="checkbox" className="sr-only peer" checked={notifRules.notify_doctor_on_new_appointment}
+                                        onChange={e => setNotifRules(prev => ({ ...prev, notify_doctor_on_new_appointment: e.target.checked }))} />
+                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                                </label>
+                            </div>
+
+                            {/* Hangi roller bildirim alsın */}
+                            <div>
+                                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-3 flex items-center gap-2"><span className="w-1.5 h-4 bg-amber-500 rounded-full" />Yeni Randevuda Bildirim Alacak Roller</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {(["ADMIN", "SEKRETER", "FINANS"] as const).map(role => {
+                                        const selected = notifRules.notify_roles_on_new_appointment.includes(role);
+                                        return (
+                                            <button key={role}
+                                                onClick={() => setNotifRules(prev => ({
+                                                    ...prev,
+                                                    notify_roles_on_new_appointment: selected
+                                                        ? prev.notify_roles_on_new_appointment.filter(r => r !== role)
+                                                        : [...prev.notify_roles_on_new_appointment, role]
+                                                }))}
+                                                className={`px-3 py-2 rounded-xl border text-xs font-black uppercase tracking-wider transition-all ${selected ? 'bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-100' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}>
+                                                {role === "ADMIN" ? "Yönetici" : role === "SEKRETER" ? "Sekreter" : "Finans"}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <p className="text-[10px] text-slate-400 font-medium mt-2 italic">Doktor bildirimi yukarıdaki toggle ile ayrıca yönetilir. Bu seçimler ek bildirim alacak rolleri belirler.</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {activeSub === "channels" && (
                     <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col">
-                        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-                            <h3 className="text-base font-black text-slate-900">Kanal Yönetimi</h3>
-                            {isLoading && <span className="w-3.5 h-3.5 rounded-full border-2 border-sky-400 border-t-transparent animate-spin" />}
+                        <div className="px-8 py-6 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-xl font-black text-slate-900">Kanal Yönetimi</h3>
+                                {isLoading && <span className="w-3.5 h-3.5 rounded-full border-2 border-sky-400 border-t-transparent animate-spin" />}
+                            </div>
+                        </div>
+                        <div className="px-8 py-5 bg-sky-50/40 border-b border-sky-100/60">
+                            <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                                Randevu kanalları, hastanın kliniğe nasıl ulaştığını takip etmek için kullanılır — örneğin <span className="font-black text-slate-800">Instagram</span>, <span className="font-black text-slate-800">Telefon</span>, <span className="font-black text-slate-800">Google</span> veya <span className="font-black text-slate-800">Tavsiye</span>.
+                                Yeni randevu eklerken veya düzenlerken bu listeden seçim yapılabilir. Silinen bir kanalın atandığı randevular otomatik olarak &ldquo;Belirtilmedi&rdquo; olarak güncellenir.
+                            </p>
                         </div>
 
                         <div className="p-5 space-y-4">

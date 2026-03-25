@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { ClinicContext, type ClinicContextValue } from "../context/ClinicContext";
+import { ClinicIdentityContext, ClinicDataContext, type ClinicContextValue } from "../context/ClinicContext";
 import { UserRole, type WorkingHours, type Clinic, type ClinicAddon } from "@/types/database";
 import { DEFAULT_WORKING_HOURS } from "@/constants/days";
 import { SYSTEM_AUTOMATIONS, type ClinicAutomation } from "@/constants/automations";
@@ -151,9 +151,17 @@ export function AuthGuard({ children }: Props) {
 
       try {
         setLoadingStep("profile");
+        // Waterfall fix: users + clinics tek sorguda JOIN ile çekiliyor
+        // Böylece 3 katmanlı waterfall → 2 katmana düşüyor
         const { data: appUser, error: userError } = await supabase
           .from("users")
-          .select("id, full_name, email, role, clinic_id")
+          .select(`
+            id, full_name, email, role, clinic_id,
+            clinic:clinics!clinic_id(
+              id, name, slug, is_active, working_hours, working_hours_overrides,
+              subscription_status, billing_cycle, current_period_end, last_payment_date
+            )
+          `)
           .eq("id", user.id)
           .maybeSingle();
 
@@ -168,24 +176,31 @@ export function AuthGuard({ children }: Props) {
         const isAdmin = role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
 
         setLoadingStep("clinic");
-        let clinicData: Partial<Clinic> | null = null;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let clinicSettingsData: any = null; // To hold clinic settings
-        let automationsData: ClinicAutomation[] = []; // To hold automations
+        const joinedClinic = (appUser as any).clinic as Partial<Clinic> | null;
+        let clinicData: Partial<Clinic> | null = Array.isArray(joinedClinic) ? joinedClinic[0] ?? null : joinedClinic;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let clinicSettingsData: any = null;
+        let automationsData: ClinicAutomation[] = [];
         let clinicAddonsData: ClinicAddon[] = [];
 
         if (!isSuperAdmin && appUser.clinic_id) {
+          if (!clinicData || !(clinicData as unknown as Clinic).is_active) {
+            await supabase.auth.signOut();
+            router.replace(
+              (clinicData as unknown as Clinic)?.is_active === false
+                ? "/login?error=inactive"
+                : "/login?error=unauthorized"
+            );
+            return;
+          }
+
+          // Klinik verisi JOIN'dan geldi — artık sadece automations/settings/addons paralel çekiliyor
           const [
-            { data: clinicResData, error: clinicResError },
             { data: autoResData, error: autoResError },
             { data: settingsResData, error: settingsResError },
             { data: addonsResData, error: addonsResError }
           ] = await Promise.all([
-            supabase
-              .from("clinics")
-              .select("id, name, slug, is_active, working_hours, working_hours_overrides, subscription_status, billing_cycle, current_period_end, last_payment_date")
-              .eq("id", appUser.clinic_id)
-              .maybeSingle(),
             supabase
               .from("clinic_automations")
               .select("automation_id, is_visible, is_enabled, schedule_time, schedule_day")
@@ -203,15 +218,7 @@ export function AuthGuard({ children }: Props) {
               .order("created_at", { ascending: true })
           ]);
 
-          if (clinicResError || !clinicResData || !clinicResData.is_active) {
-            await supabase.auth.signOut();
-            router.replace(clinicResData?.is_active === false ? "/login?error=inactive" : "/login?error=unauthorized");
-            return;
-          }
-          clinicData = clinicResData;
-
           if (!autoResError && autoResData) {
-            // Map table data to context structure
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             automationsData = autoResData.map((a: any) => ({
               id: a.automation_id,
@@ -393,8 +400,31 @@ export function AuthGuard({ children }: Props) {
   }
 
   return (
-    <ClinicContext.Provider value={clinicCtx}>
-      {children}
-    </ClinicContext.Provider>
+    <ClinicIdentityContext.Provider value={{
+      clinicId: clinicCtx.clinicId,
+      clinicName: clinicCtx.clinicName,
+      clinicSlug: clinicCtx.clinicSlug,
+      userRole: clinicCtx.userRole,
+      isSuperAdmin: clinicCtx.isSuperAdmin,
+      isAdmin: clinicCtx.isAdmin,
+      userId: clinicCtx.userId,
+      userName: clinicCtx.userName,
+      userEmail: clinicCtx.userEmail,
+      planId: clinicCtx.planId,
+    }}>
+      <ClinicDataContext.Provider value={{
+        workingHours: clinicCtx.workingHours,
+        workingHoursOverrides: clinicCtx.workingHoursOverrides,
+        subscriptionStatus: clinicCtx.subscriptionStatus,
+        billingCycle: clinicCtx.billingCycle,
+        currentPeriodEnd: clinicCtx.currentPeriodEnd,
+        lastPaymentDate: clinicCtx.lastPaymentDate,
+        n8nWorkflows: clinicCtx.n8nWorkflows,
+        clinicSettings: clinicCtx.clinicSettings,
+        clinicAddons: clinicCtx.clinicAddons,
+      }}>
+        {children}
+      </ClinicDataContext.Provider>
+    </ClinicIdentityContext.Provider>
   );
 }

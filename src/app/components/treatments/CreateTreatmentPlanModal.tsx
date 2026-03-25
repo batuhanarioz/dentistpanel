@@ -149,6 +149,7 @@ export function CreateTreatmentPlanModal({
 
     const handleSave = async () => {
         if (!selectedPatientId) { setError("Lütfen bir hasta seçin."); return; }
+        if (!planTitle.trim()) { setError("Plan başlığı zorunludur."); return; }
         const validItems = items.filter(i => i.procedure_name.trim());
         if (validItems.length === 0) { setError("En az bir işlem ekleyin."); return; }
 
@@ -158,7 +159,9 @@ export function CreateTreatmentPlanModal({
         let nextAppointment = null;
         if (nextDate) {
             const [h, m] = nextTime.split(":").map(Number);
-            const start = new Date(`${nextDate}T${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00`);
+            // +03:00 sabit Istanbul offset — diğer randevu oluşturma akışlarıyla tutarlı
+            const startStr = `${nextDate}T${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00+03:00`;
+            const start = new Date(startStr);
             const end = new Date(start.getTime() + nextDuration * 60000);
             nextAppointment = {
                 starts_at: start.toISOString(),
@@ -294,7 +297,7 @@ export function CreateTreatmentPlanModal({
                     {/* Plan başlık ve not */}
                     <div className="space-y-3">
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plan Başlığı</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plan Başlığı <span className="text-rose-400">*</span></label>
                             <input
                                 type="text"
                                 value={planTitle}

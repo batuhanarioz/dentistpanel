@@ -76,6 +76,23 @@ export interface ClinicSettings {
   };
   /** Kliniğe özel randevu kanalları. Boş dizi = tüm randevular "Belirtilmedi". */
   appointment_channels: string[];
+  notification_rules?: {
+    notify_doctor_on_new_appointment: boolean;
+    notify_roles_on_new_appointment: string[];
+  };
+  booking_rules?: {
+    min_advance_hours: number;
+    max_advance_days: number;
+    slot_duration_minutes: number;
+    max_concurrent: number;
+    require_approval: boolean;
+  };
+  billing_settings?: {
+    default_vat_rate: number;
+    accepted_payment_methods: string[];
+    payment_due_days: number;
+    invoice_footer: string;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -228,7 +245,7 @@ export interface TreatmentPlan {
   next_appointment_id: string | null;
   doctor_id: string | null;
   created_by: string | null;
-  status: "draft" | "planned" | "approved" | "in_progress" | "completed" | "cancelled";
+  status: "planned" | "in_progress" | "completed" | "cancelled";
   title: string | null;
   note: string | null;
   total_estimated_amount: number | null;
@@ -248,7 +265,7 @@ export interface TreatmentPlanItem {
   unit_price: number;
   total_price: number | null; // generated column: quantity * unit_price
   assigned_doctor_id: string | null;
-  status: "planned" | "approved" | "in_progress" | "completed" | "cancelled";
+  status: "planned" | "in_progress" | "completed" | "cancelled";
   sort_order: number;
   created_at: string;
   updated_at: string;

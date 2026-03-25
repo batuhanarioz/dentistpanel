@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr } from "@/lib/dateUtils";
@@ -63,7 +63,7 @@ export function useDashboard() {
 
     // Fetch Appointments for List
     const { data: rawCalendarAppointments = [], isLoading: loading } = useQuery({
-        queryKey: ["dashboardAppointments", viewDateAppointments, clinic.clinicId],
+        queryKey: ["appointments", viewDateAppointments, clinic.clinicId],
         queryFn: async () => {
             if (!clinic.clinicId) return [];
             const data = await getAppointmentsForDate(viewDateAppointments, clinic.clinicId);
@@ -73,7 +73,7 @@ export function useDashboard() {
         staleTime: 60 * 1000, // Randevular sık değişir — 1 dk
     });
 
-    const mapCalendarToDashboard = (ca: CalendarAppointmentRaw): DashboardAppointment => {
+    const mapCalendarToDashboard = useCallback((ca: CalendarAppointmentRaw): DashboardAppointment => {
         const start = new Date(`${ca.date}T${ca.startHour.toString().padStart(2, "0")}:${ca.startMinute.toString().padStart(2, "0")}:00`);
         const end = new Date(start.getTime() + ca.durationMinutes * 60000);
 
@@ -91,11 +91,11 @@ export function useDashboard() {
             estimatedAmount: ca.estimatedAmount ? parseFloat(ca.estimatedAmount) : null,
             treatmentNote: ca.treatmentNote,
         };
-    };
+    }, []);
 
     const rawAppointments = useMemo(() => {
         return rawCalendarAppointments.map(mapCalendarToDashboard);
-    }, [rawCalendarAppointments]);
+    }, [rawCalendarAppointments, mapCalendarToDashboard]);
 
     // Fetch Doctors
     const { data: doctorsData = [] } = useQuery({
@@ -144,7 +144,7 @@ export function useDashboard() {
 
         // Return all appointments including completed ones
         return sorted;
-    }, [rawAppointments, viewOffsetAppointments]);
+    }, [rawAppointments, viewOffsetAppointments, clinic.userRole, clinic.userId]);
 
 
     // Derived counts from appointments
@@ -172,7 +172,7 @@ export function useDashboard() {
             return { paidTotal: paidCents / 100, pendingTotal: pendingCents / 100 };
         },
         enabled: !!clinic.clinicId && appointmentIds.length > 0,
-        staleTime: 30 * 1000,
+        staleTime: 60 * 1000, // 30s → 60s; invalidate on payment changes
     });
 
     const todayRevenue = revenueData ?? { paidTotal: 0, pendingTotal: 0 };
@@ -183,7 +183,7 @@ export function useDashboard() {
     // Debounce: dropdown'da hızlı hekim değiştirme için her randevu başına ayrı timeout
     const assignDoctorTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-    const handleAssignDoctor = (appointmentId: string, doctorId: string) => {
+    const handleAssignDoctor = useCallback((appointmentId: string, doctorId: string) => {
         if (!doctorId || !clinic.clinicId) return;
         if (assignDoctorTimeouts.current[appointmentId]) {
             clearTimeout(assignDoctorTimeouts.current[appointmentId]);
@@ -194,13 +194,13 @@ export function useDashboard() {
                 const { error } = await supabase.from("appointments").update({ doctor_id: doctorId }).eq("id", appointmentId).eq("clinic_id", clinic.clinicId!);
                 if (error) throw error;
                 toast.success("Hekim başarıyla atandı");
-                queryClient.invalidateQueries({ queryKey: ["dashboardAppointments"] });
+                queryClient.invalidateQueries({ queryKey: ["appointments"] });
                 queryClient.invalidateQueries({ queryKey: ["checklistItems"] });
             } catch {
                 toast.error("Hekim ataması başarısız, tekrar deneyin");
             }
-        }, 400);
-    };
+        }, 800);
+    }, [clinic.clinicId, queryClient]);
 
     // In-flight koruma: aynı randevu için eş zamanlı duplicate güncelleme engellenir
     const inFlightStatusIds = useRef<Set<string>>(new Set());
@@ -223,7 +223,7 @@ export function useDashboard() {
             const { error } = await supabase.from("appointments").update({ status: newStatus }).eq("id", appointmentId).eq("clinic_id", clinic.clinicId);
             if (error) throw error;
 
-            queryClient.invalidateQueries({ queryKey: ["dashboardAppointments"] });
+            queryClient.invalidateQueries({ queryKey: ["appointments"] });
             queryClient.invalidateQueries({ queryKey: ["checklistItems"] });
             queryClient.invalidateQueries({ queryKey: ["paymentsForAppointments"] });
 
@@ -238,7 +238,7 @@ export function useDashboard() {
                                 toast.dismiss(t.id);
                                 const { error: revertErr } = await supabase.from("appointments").update({ status: prevStatus }).eq("id", appointmentId).eq("clinic_id", clinicId);
                                 if (!revertErr) {
-                                    queryClient.invalidateQueries({ queryKey: ["dashboardAppointments"] });
+                                    queryClient.invalidateQueries({ queryKey: ["appointments"] });
                                     queryClient.invalidateQueries({ queryKey: ["checklistItems"] });
                                     toast.success("Geri alındı");
                                 } else {

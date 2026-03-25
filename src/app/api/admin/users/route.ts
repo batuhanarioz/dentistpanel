@@ -101,13 +101,13 @@ export const POST = withAuth(
 
     const { error: insertError, data: appUser } = await supabaseAdmin
       .from("users")
-      .insert({
+      .upsert({
         id: userId,
         clinic_id: role === UserRole.SUPER_ADMIN ? null : clinicId,
         full_name: fullName,
         email,
         role,
-      })
+      }, { onConflict: "id" })
       .select("id, full_name, email, role, clinic_id, created_at, is_active, specialty_code")
       .maybeSingle();
 

@@ -10,10 +10,11 @@ import {
     deleteTreatmentPlanItem,
     upsertTreatmentPlanItem,
     TreatmentPlanWithItems,
+    TreatmentPlanItemWithDoctor,
 } from "@/lib/api";
 import { TreatmentPlanItem, AppointmentChannel } from "@/types/database";
 
-export type { TreatmentPlanWithItems };
+export type { TreatmentPlanWithItems, TreatmentPlanItemWithDoctor };
 
 // ─── Hook: klinik geneli veya hasta bazlı planlar ────────────────────────────
 
@@ -117,9 +118,7 @@ export const PLAN_STATUS_CONFIG: Record<
     TreatmentPlanWithItems["status"],
     { label: string; bg: string; text: string; dot: string }
 > = {
-    draft:       { label: "Taslak",       bg: "bg-slate-100",   text: "text-slate-600",  dot: "bg-slate-400" },
     planned:     { label: "Planlandı",    bg: "bg-blue-50",     text: "text-blue-700",   dot: "bg-blue-500" },
-    approved:    { label: "Onaylandı",    bg: "bg-indigo-50",   text: "text-indigo-700", dot: "bg-indigo-500" },
     in_progress: { label: "Devam Ediyor", bg: "bg-amber-50",    text: "text-amber-700",  dot: "bg-amber-500" },
     completed:   { label: "Tamamlandı",   bg: "bg-emerald-50",  text: "text-emerald-700",dot: "bg-emerald-500" },
     cancelled:   { label: "İptal",        bg: "bg-rose-50",     text: "text-rose-700",   dot: "bg-rose-400" },
@@ -130,7 +129,6 @@ export const ITEM_STATUS_CONFIG: Record<
     { label: string; bg: string; text: string }
 > = {
     planned:     { label: "Planlandı",    bg: "bg-blue-50",    text: "text-blue-700" },
-    approved:    { label: "Onaylandı",    bg: "bg-indigo-50",  text: "text-indigo-700" },
     in_progress: { label: "Devam Ediyor", bg: "bg-amber-50",   text: "text-amber-700" },
     completed:   { label: "Tamamlandı",   bg: "bg-emerald-50", text: "text-emerald-700" },
     cancelled:   { label: "İptal",        bg: "bg-rose-50",    text: "text-rose-700" },

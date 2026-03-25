@@ -67,13 +67,15 @@ export function usePatients() {
             return count ?? 0;
         },
         enabled: !!clinic.clinicId,
+        staleTime: 5 * 60 * 1000, // 5 dakika
     });
 
     // Fetch All Patients (Client-side pagination is handled in page.tsx)
     const { data: patientsData, isLoading: loading, error: queryError } = useQuery({
         queryKey: ["patients", clinic.clinicId],
-        queryFn: () => getAllPatients(clinic.clinicId || "", 1, 5000),
+        queryFn: () => getAllPatients(clinic.clinicId || "", 1, 1000),
         enabled: !!clinic.clinicId,
+        staleTime: 5 * 60 * 1000, // 5 dakika
     });
 
     const patients = patientsData || [];

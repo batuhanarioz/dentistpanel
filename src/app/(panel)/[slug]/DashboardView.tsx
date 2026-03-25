@@ -12,7 +12,7 @@ import { ControlListSection } from "@/app/components/dashboard/ControlListSectio
 import { AppointmentDetailDrawer } from "@/app/components/dashboard/AppointmentDetailDrawer";
 import { DashboardAnalytics } from "@/app/components/dashboard/DashboardAnalytics";
 import { useClinic } from "@/app/context/ClinicContext";
-import { QuickPaymentModal} from "@/app/components/dashboard/QuickPaymentModal";
+import { QuickPaymentModal } from "@/app/components/dashboard/QuickPaymentModal";
 import { TreatmentActionModal } from "@/app/components/dashboard/TreatmentActionModal";
 import { SmartAssistantSection } from "@/app/components/dashboard/SmartAssistantSection";
 import { useAppointmentManagement } from "@/hooks/useAppointmentManagement";
@@ -48,8 +48,8 @@ function pickGreeting(name: string | null): string {
     };
     const pool =
         hour >= 5 && hour < 12 ? pools.morning :
-        hour >= 12 && hour < 18 ? pools.afternoon :
-        hour >= 18 && hour < 21 ? pools.evening : pools.night;
+            hour >= 12 && hour < 18 ? pools.afternoon :
+                hour >= 18 && hour < 21 ? pools.evening : pools.night;
     return pool[Math.floor(Math.random() * pool.length)];
 }
 

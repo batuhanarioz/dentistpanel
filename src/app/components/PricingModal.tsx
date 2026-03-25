@@ -21,7 +21,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             const fetchPrices = async () => {
                 const { data, error } = await supabase
                     .from("platform_settings")
-                    .select("*")
+                    .select("monthly_price, annual_price, sms_addon_price, trial_days")
                     .eq("id", "global")
                     .single();
 

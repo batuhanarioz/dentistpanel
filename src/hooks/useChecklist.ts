@@ -58,12 +58,14 @@ export function useChecklist(dateOffset: number = 0) {
         queryKey: ["checklistItems", viewDate, clinic.clinicId],
         queryFn: () => getChecklistItems(clinic.clinicId || "", viewDate),
         enabled: !!clinic.clinicId,
+        staleTime: 60 * 1000, // 1 dakika
     });
 
     const { data: checklistConfigs = {} } = useQuery({
         queryKey: ["checklistConfigs", clinic.clinicId],
         queryFn: () => getChecklistConfigs(clinic.clinicId || ""),
         enabled: !!clinic.clinicId,
+        staleTime: 30 * 60 * 1000, // 30 dakika — config nadiren değişir
     });
 
     const controlItems = useMemo(() => {
