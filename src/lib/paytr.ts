@@ -71,31 +71,31 @@ export interface PaytrWebhookPayload {
  *
  * Algoritma: BASE64( HMAC-SHA256( hash_str + merchant_salt, merchant_key ) )
  * hash_str  = merchant_id + user_ip + merchant_oid + email + payment_amount
- *           + payment_type + installment_count + currency + test_mode + non3d_test_failed
+ *           + user_basket + no_installment + max_installment + currency + test_mode
  *
- * @see PayTR iFrame API Dokümantasyonu
+ * @see PayTR iFrame API Dokümantasyonu (iframe_ornek.php satır 102)
  */
 export function generateIframeHash(params: {
     userIp: string;
     merchantOid: string;
     email: string;
     paymentAmountKurus: string;
-    paymentType?: string;
-    installmentCount?: string;
+    userBasket: string;   // base64 encoded
+    noInstallment: string;
+    maxInstallment: string;
     currency?: string;
     testMode?: string;
-    non3dTestFailed?: string;
 }): string {
     const {
         userIp,
         merchantOid,
         email,
         paymentAmountKurus,
-        paymentType = "card",
-        installmentCount = "0",
+        userBasket,
+        noInstallment,
+        maxInstallment,
         currency = "TL",
         testMode = PAYTR_CONFIG.TEST_MODE,
-        non3dTestFailed = "0",
     } = params;
 
     const { MERCHANT_ID, MERCHANT_KEY, MERCHANT_SALT } = PAYTR_CONFIG;
@@ -106,11 +106,11 @@ export function generateIframeHash(params: {
         merchantOid +
         email +
         paymentAmountKurus +
-        paymentType +
-        installmentCount +
+        userBasket +
+        noInstallment +
+        maxInstallment +
         currency +
-        testMode +
-        non3dTestFailed;
+        testMode;
 
     return crypto
         .createHmac("sha256", MERCHANT_KEY)

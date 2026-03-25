@@ -22,7 +22,6 @@ import {
     PAYTR_CONFIG,
     generateIframeHash,
     generateOrderId,
-    getRecurringParams,
     tlToKurus,
     type BillingCycle,
 } from "@/lib/paytr";
@@ -130,58 +129,46 @@ export const POST = withAuth(
             ...(discountAmountTL > 0 ? [`(${rawCode} kodu ile indirimli)`] : []),
         ].join(" ");
 
-        const userBasket = JSON.stringify([
+        const userBasketEncoded = Buffer.from(JSON.stringify([
             [basketLabel, finalAmountTL.toFixed(2), 1],
-        ]);
+        ])).toString("base64");
 
-        // DEBUG: recurring devre dışı — 401 recurring'den mi geliyor test et
-        // const recurring = getRecurringParams(billingCycle);
+        const noInstallment = "1";
+        const maxInstallment = "0";
+        const email = user.email ?? ctx.user.email ?? "";
+
+        // ── 6. Hash üret (resmi PHP örneğindeki sıraya göre) ─────────────────
+        const paytrToken = generateIframeHash({
+            userIp,
+            merchantOid,
+            email,
+            paymentAmountKurus: amountKurus,
+            userBasket: userBasketEncoded,
+            noInstallment,
+            maxInstallment,
+        });
 
         const paytrParams: Record<string, string> = {
             merchant_id: PAYTR_CONFIG.MERCHANT_ID,
             user_ip: userIp,
             merchant_oid: merchantOid,
-            email: user.email ?? ctx.user.email ?? "",
+            email,
             payment_amount: amountKurus,
-            payment_type: "card",
-            installment_count: "0",
-            currency: "TL",
-            test_mode: PAYTR_CONFIG.TEST_MODE,
-            non3d_test_failed: "0",
-            user_basket: Buffer.from(userBasket).toString("base64"),
+            paytr_token: paytrToken,
+            user_basket: userBasketEncoded,
+            debug_on: "1",
+            no_installment: noInstallment,
+            max_installment: maxInstallment,
             user_name: user.full_name ?? clinic.name,
             user_address: clinic.name,
-            // PayTR requires non-empty phone — use clinic phone, user email prefix as fallback
             user_phone: clinic.phone?.replace(/\D/g, "").replace(/^90/, "0") || "05000000000",
             merchant_ok_url: `${baseUrl}/api/subscription/webhook?status=ok&oid=${merchantOid}`,
             merchant_fail_url: `${baseUrl}/api/subscription/webhook?status=fail&oid=${merchantOid}`,
-            lang: "tr",
-            no_installment: "1",
-            max_installment: "0",
-            // ...recurring,  // DEBUG: temporarily disabled
-            paytr_token: "",
-        };
-
-        // ── 6. Hash üret ─────────────────────────────────────────────────────
-        paytrParams.paytr_token = generateIframeHash({
-            userIp,
-            merchantOid,
-            email: paytrParams.email,
-            paymentAmountKurus: amountKurus,
-        });
-
-        // DEBUG — hash parametrelerini logla (credentials gizli tutulur)
-        console.log("[PayTR] Hash debug:", {
-            merchant_id: PAYTR_CONFIG.MERCHANT_ID,
-            merchant_key_len: PAYTR_CONFIG.MERCHANT_KEY.length,
-            merchant_salt_len: PAYTR_CONFIG.MERCHANT_SALT.length,
-            userIp,
-            merchantOid,
-            email: paytrParams.email,
-            amountKurus,
+            timeout_limit: "30",
+            currency: "TL",
             test_mode: PAYTR_CONFIG.TEST_MODE,
-            paytr_token_len: paytrParams.paytr_token.length,
-        });
+            lang: "tr",
+        };
 
         // ── 7. PayTR API'sini çağır ───────────────────────────────────────────
         const postBody = new URLSearchParams(paytrParams).toString();
