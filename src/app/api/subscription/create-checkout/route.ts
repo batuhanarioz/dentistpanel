@@ -149,7 +149,8 @@ export const POST = withAuth(
             user_basket: Buffer.from(userBasket).toString("base64"),
             user_name: user.full_name ?? clinic.name,
             user_address: clinic.name,
-            user_phone: clinic.phone ?? "",
+            // PayTR requires non-empty phone — use clinic phone, user email prefix as fallback
+            user_phone: clinic.phone?.replace(/\D/g, "").replace(/^90/, "0") || "05000000000",
             merchant_ok_url: `${baseUrl}/api/subscription/webhook?status=ok&oid=${merchantOid}`,
             merchant_fail_url: `${baseUrl}/api/subscription/webhook?status=fail&oid=${merchantOid}`,
             lang: "tr",
@@ -181,9 +182,9 @@ export const POST = withAuth(
         };
 
         if (paytrData.status !== "success" || !paytrData.token) {
-            console.error("[PayTR] Token isteği başarısız:", paytrData);
+            console.error("[PayTR] Token isteği başarısız:", JSON.stringify(paytrData));
             return NextResponse.json(
-                { error: "Ödeme başlatılamadı", detail: paytrData.reason },
+                { error: "Ödeme başlatılamadı", detail: paytrData.reason ?? "PayTR yanıt vermedi" },
                 { status: 502 }
             );
         }

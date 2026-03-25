@@ -92,6 +92,7 @@ export default function SubscriptionPage() {
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}
                 billingCycle={billingCycle === "pilot" ? "monthly" : billingCycle}
+                amountTL={currentPrice}
                 onSuccess={() => { setShowCheckout(false); window.location.reload(); }}
             />
             <div className="max-w-6xl mx-auto space-y-8 pb-12">

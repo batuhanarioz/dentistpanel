@@ -27,6 +27,8 @@ interface PayTRCheckoutModalProps {
     isOpen: boolean;
     onClose: () => void;
     billingCycle: BillingCycle;
+    /** Gösterilecek plan fiyatı (TL). Subscription sayfasından geçirilir. */
+    amountTL: number;
     onSuccess?: () => void;
     onFailure?: (reason?: string) => void;
 }
@@ -53,6 +55,7 @@ export function PayTRCheckoutModal({
     isOpen,
     onClose,
     billingCycle,
+    amountTL,
     onSuccess,
     onFailure,
 }: PayTRCheckoutModalProps) {
@@ -130,7 +133,10 @@ export function PayTRCheckoutModal({
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            setPhase({ name: "error", message: err.error ?? "Ödeme başlatılamadı, lütfen tekrar deneyin." });
+            const msg = err.detail
+                ? `${err.error ?? "Ödeme başlatılamadı"} — ${err.detail}`
+                : (err.error ?? "Ödeme başlatılamadı, lütfen tekrar deneyin.");
+            setPhase({ name: "error", message: msg });
             return;
         }
 
@@ -263,7 +269,7 @@ export function PayTRCheckoutModal({
                                 <span>Ödemeye Geç</span>
                                 <div className="flex items-center gap-2">
                                     <span className="font-black text-emerald-400">
-                                        {(discount?.finalAmount ?? 0).toLocaleString("tr-TR") || "—"} ₺
+                                        {(discount?.finalAmount ?? amountTL).toLocaleString("tr-TR")} ₺
                                     </span>
                                     <ChevronRight size={18} />
                                 </div>
