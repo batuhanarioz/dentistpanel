@@ -55,7 +55,7 @@ describe('Sistem İş Akışı Testleri', () => {
             .select('*, checklist_definitions(code)')
             .eq('appointment_id', testAppointmentId);
 
-        const hasDoctorTask = items?.some(i => (i.checklist_definitions as any).code === 'MISSING_DOCTOR');
+        const hasDoctorTask = items?.some(i => (i.checklist_definitions as { code: string }).code === 'MISSING_DOCTOR');
         console.log('Randevu oluştu, Doktor görevi:', hasDoctorTask ? 'VAR ✅' : 'YOK ❌');
 
         // 3. Doktor ata
@@ -67,7 +67,7 @@ describe('Sistem İş Akışı Testleri', () => {
             .eq('appointment_id', testAppointmentId)
             .eq('status', 'pending');
 
-        const doctorTaskGone = !itemsAfterDoctor?.some(i => (i.checklist_definitions as any).code === 'MISSING_DOCTOR');
+        const doctorTaskGone = !itemsAfterDoctor?.some(i => (i.checklist_definitions as { code: string }).code === 'MISSING_DOCTOR');
         console.log('Doktor atandı, Doktor görevi kapandı mı:', doctorTaskGone ? 'EVET ✅' : 'HAYIR ❌');
         expect(doctorTaskGone).toBe(true);
     });
@@ -83,7 +83,7 @@ describe('Sistem İş Akışı Testleri', () => {
             .eq('appointment_id', testAppointmentId)
             .eq('status', 'pending');
 
-        const hasPaymentTask = items?.some(i => (i.checklist_definitions as any).code === 'MISSING_PAYMENT');
+        const hasPaymentTask = items?.some(i => (i.checklist_definitions as { code: string }).code === 'MISSING_PAYMENT');
         console.log('Randevu tamamlandı, Ödeme görevi:', hasPaymentTask ? 'VAR ✅' : 'YOK ❌');
         expect(hasPaymentTask).toBe(true);
 
@@ -105,7 +105,7 @@ describe('Sistem İş Akışı Testleri', () => {
             .eq('appointment_id', testAppointmentId)
             .eq('status', 'pending');
 
-        const hasFollowupTask = itemsWithFollowup?.some(i => (i.checklist_definitions as any).code === 'DUE_PAYMENT_FOLLOWUP');
+        const hasFollowupTask = itemsWithFollowup?.some(i => (i.checklist_definitions as { code: string }).code === 'DUE_PAYMENT_FOLLOWUP');
         console.log('Taksit eklendi, Takip görevi:', hasFollowupTask ? 'VAR ✅' : 'YOK ❌');
 
         // 4. Test: Erteleme ( due_date +1 day )
@@ -119,7 +119,7 @@ describe('Sistem İş Akışı Testleri', () => {
             .eq('appointment_id', testAppointmentId)
             .eq('status', 'pending');
 
-        const followupGone = !itemsAfterPostpone?.some(i => (i.checklist_definitions as any).code === 'DUE_PAYMENT_FOLLOWUP');
+        const followupGone = !itemsAfterPostpone?.some(i => (i.checklist_definitions as { code: string }).code === 'DUE_PAYMENT_FOLLOWUP');
         console.log('Ödeme ertelendi, Takip görevi kalktı mı:', followupGone ? 'EVET ✅' : 'HAYIR ❌');
         expect(followupGone).toBe(true);
 
@@ -132,7 +132,7 @@ describe('Sistem İş Akışı Testleri', () => {
             .eq('appointment_id', testAppointmentId)
             .eq('status', 'pending');
 
-        const cancelCheck = !itemsAfterCancel?.some(i => (i.checklist_definitions as any).code === 'DUE_PAYMENT_FOLLOWUP');
+        const cancelCheck = !itemsAfterCancel?.some(i => (i.checklist_definitions as { code: string }).code === 'DUE_PAYMENT_FOLLOWUP');
         console.log('Ödeme iptal edildi, Takip görevi kapandı mı:', cancelCheck ? 'EVET ✅' : 'HAYIR ❌');
         expect(cancelCheck).toBe(true);
     });

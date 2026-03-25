@@ -178,7 +178,7 @@ export function AuthGuard({ children }: Props) {
         setLoadingStep("clinic");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const joinedClinic = (appUser as any).clinic as Partial<Clinic> | null;
-        let clinicData: Partial<Clinic> | null = Array.isArray(joinedClinic) ? joinedClinic[0] ?? null : joinedClinic;
+        const clinicData: Partial<Clinic> | null = Array.isArray(joinedClinic) ? joinedClinic[0] ?? null : joinedClinic;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let clinicSettingsData: any = null;
         let automationsData: ClinicAutomation[] = [];
