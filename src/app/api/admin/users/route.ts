@@ -73,6 +73,7 @@ export const POST = withAuth(
       // Davet e-postası gönder
       const { data: invited, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
         data: { full_name: fullName },
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/update-password`,
       });
       if (inviteError || !invited.user) {
         return NextResponse.json(
