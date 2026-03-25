@@ -134,7 +134,8 @@ export const POST = withAuth(
             [basketLabel, finalAmountTL.toFixed(2), 1],
         ]);
 
-        const recurring = getRecurringParams(billingCycle);
+        // DEBUG: recurring devre dışı — 401 recurring'den mi geliyor test et
+        // const recurring = getRecurringParams(billingCycle);
 
         const paytrParams: Record<string, string> = {
             merchant_id: PAYTR_CONFIG.MERCHANT_ID,
@@ -157,7 +158,7 @@ export const POST = withAuth(
             lang: "tr",
             no_installment: "1",
             max_installment: "0",
-            ...recurring,
+            // ...recurring,  // DEBUG: temporarily disabled
             paytr_token: "",
         };
 
