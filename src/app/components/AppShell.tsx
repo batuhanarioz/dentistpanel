@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { NotificationDropdown } from "./dashboard/NotificationDropdown";
 import { GlobalPatientSearch } from "./GlobalPatientSearch";
 import { AnnouncementBanner } from "./dashboard/AnnouncementBanner";
+import { PastDueBanner } from "./subscription/PastDueBanner";
 import { SupportModal } from "./dashboard/SupportModal";
 import { Toaster } from "react-hot-toast";
 
@@ -365,6 +366,7 @@ function ShellInner({ children }: Props) {
           },
         }}
       />
+      <PastDueBanner />
       <AnnouncementBanner />
       <div className="flex-1 flex w-full">
         <aside className="hidden md:flex w-64 flex-col border-r border-r-slate-100 bg-white h-screen sticky top-0">

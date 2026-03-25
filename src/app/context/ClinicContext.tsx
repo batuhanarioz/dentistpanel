@@ -16,7 +16,7 @@ export interface ClinicContextValue {
   userEmail: string | null;
   workingHours: WorkingHours;
   workingHoursOverrides: { date: string; open: string; close: string; is_closed: boolean; note?: string }[];
-  subscriptionStatus: 'trialing' | 'active' | 'past_due' | 'canceled' | null;
+  subscriptionStatus: 'trialing' | 'active' | 'past_due' | 'restricted' | 'canceled' | null;
   billingCycle: 'monthly' | 'annual' | 'pilot' | null;
   currentPeriodEnd: string | null;
   lastPaymentDate: string | null;

@@ -1,0 +1,209 @@
+/**
+ * PayTR Payment Gateway Integration Utilities
+ *
+ * Credentials ve endpoint değerleri PayTR merchant panel'inden alınacak.
+ * Tüm değerler environment variable'dan okunur — .env.local'e eklemeniz yeterli.
+ *
+ * TODO (dokümantasyon gelince):
+ *  - PAYTR_MERCHANT_ID, PAYTR_MERCHANT_KEY, PAYTR_MERCHANT_SALT değerlerini al
+ *  - Recurring cancel endpoint'ini ve parametrelerini doğrula
+ *  - Webhook URL'yi PayTR merchant panelinden kaydet
+ */
+
+import crypto from "crypto";
+
+// ─── Yapılandırma ─────────────────────────────────────────────────────────────
+export const PAYTR_CONFIG = {
+    /** PayTR merchant panel'inden alınacak */
+    MERCHANT_ID: process.env.PAYTR_MERCHANT_ID ?? "TODO_MERCHANT_ID",
+    MERCHANT_KEY: process.env.PAYTR_MERCHANT_KEY ?? "TODO_MERCHANT_KEY",
+    MERCHANT_SALT: process.env.PAYTR_MERCHANT_SALT ?? "TODO_MERCHANT_SALT",
+
+    /** 1 = test modu, 0 = canlı */
+    TEST_MODE: process.env.PAYTR_TEST_MODE === "0" ? "0" : "1",
+
+    /** PayTR sabit endpoint'leri — dokümantasyon ile doğrula */
+    IFRAME_TOKEN_URL: "https://www.paytr.com/odeme/api/get-token",
+    IFRAME_BASE_URL: "https://www.paytr.com/odeme/guvenli",
+    // TODO: PayTR recurring cancel endpoint — dokümantasyon gelince güncelle
+    RECURRING_CANCEL_URL: "https://www.paytr.com/odeme/api/recurring-cancel",
+} as const;
+
+// ─── Tipler ──────────────────────────────────────────────────────────────────
+export type BillingCycle = "monthly" | "annual";
+
+export interface PaytrCheckoutRequest {
+    clinicId: string;
+    clinicSlug: string;
+    userEmail: string;
+    userName: string;
+    /** Kullanıcı telefonu — E.164 veya 05xx formatı */
+    userPhone: string;
+    /** İstek gelen IP adresi */
+    userIp: string;
+    billingCycle: BillingCycle;
+    /** Sitenin kök URL'si, örn: https://app.nextgency.com */
+    baseUrl: string;
+    /** TL cinsinden tutar (platform_settings'ten gelen) */
+    amountTL: number;
+}
+
+/** PayTR'nin webhook'ta gönderdiği form alanları */
+export interface PaytrWebhookPayload {
+    merchant_oid: string;
+    status: "success" | "failed";
+    total_amount: string;         // kuruş cinsinden, örn "149900"
+    hash: string;
+    failed_reason_code?: string;
+    failed_reason_msg?: string;
+    test_mode?: string;           // "1" veya "0"
+    payment_type?: string;        // "card" vb.
+    currency?: string;            // "TL"
+    payment_amount?: string;      // kuruş
+    /** "1" ise otomatik yineleme (kart tokenı ile), "0" ise ilk ödeme */
+    recurring_payment?: string;
+}
+
+// ─── Hash Fonksiyonları ───────────────────────────────────────────────────────
+
+/**
+ * iFrame token isteği için PayTR hash üretir.
+ *
+ * Algoritma: BASE64( HMAC-SHA256( hash_str + merchant_salt, merchant_key ) )
+ * hash_str  = merchant_id + user_ip + merchant_oid + email + payment_amount
+ *           + payment_type + installment_count + currency + test_mode + non3d_test_failed
+ *
+ * @see PayTR iFrame API Dokümantasyonu
+ */
+export function generateIframeHash(params: {
+    userIp: string;
+    merchantOid: string;
+    email: string;
+    paymentAmountKurus: string;
+    paymentType?: string;
+    installmentCount?: string;
+    currency?: string;
+    testMode?: string;
+    non3dTestFailed?: string;
+}): string {
+    const {
+        userIp,
+        merchantOid,
+        email,
+        paymentAmountKurus,
+        paymentType = "card",
+        installmentCount = "0",
+        currency = "TL",
+        testMode = PAYTR_CONFIG.TEST_MODE,
+        non3dTestFailed = "0",
+    } = params;
+
+    const { MERCHANT_ID, MERCHANT_KEY, MERCHANT_SALT } = PAYTR_CONFIG;
+
+    const hashStr =
+        MERCHANT_ID +
+        userIp +
+        merchantOid +
+        email +
+        paymentAmountKurus +
+        paymentType +
+        installmentCount +
+        currency +
+        testMode +
+        non3dTestFailed;
+
+    return crypto
+        .createHmac("sha256", MERCHANT_KEY)
+        .update(hashStr + MERCHANT_SALT)
+        .digest("base64");
+}
+
+/**
+ * PayTR webhook bildiriminin hash'ini doğrular.
+ *
+ * Algoritma: BASE64( HMAC-SHA256( merchant_oid + merchant_salt + status + total_amount, merchant_key ) )
+ *
+ * @returns true ise bildirim PayTR'den gelmiştir (güvenli)
+ */
+export function verifyWebhookHash(payload: PaytrWebhookPayload): boolean {
+    const { merchant_oid, status, total_amount, hash } = payload;
+    const { MERCHANT_KEY, MERCHANT_SALT } = PAYTR_CONFIG;
+
+    const expected = crypto
+        .createHmac("sha256", MERCHANT_KEY)
+        .update(merchant_oid + MERCHANT_SALT + status + total_amount)
+        .digest("base64");
+
+    return expected === hash;
+}
+
+/**
+ * Recurring cancel hash üretir.
+ * TODO: PayTR dokümantasyonundan kesin parametreleri doğrula
+ */
+export function generateCancelHash(merchantOid: string): string {
+    const { MERCHANT_ID, MERCHANT_KEY, MERCHANT_SALT } = PAYTR_CONFIG;
+
+    // TODO: PayTR recurring cancel hash algoritmasını doğrula
+    const hashStr = MERCHANT_ID + merchantOid;
+    return crypto
+        .createHmac("sha256", MERCHANT_KEY)
+        .update(hashStr + MERCHANT_SALT)
+        .digest("base64");
+}
+
+// ─── Yardımcı Fonksiyonlar ────────────────────────────────────────────────────
+
+/** TL'yi kuruşa çevirir */
+export function tlToKurus(amountTL: number): string {
+    return String(Math.round(amountTL * 100));
+}
+
+/** Kuruşu TL'ye çevirir */
+export function kurusToTl(kurus: string): number {
+    return parseInt(kurus, 10) / 100;
+}
+
+/**
+ * Benzersiz PayTR sipariş ID'si üretir.
+ * Format: [CLINIC_PREFIX][TIMESTAMP][RANDOM]
+ * Bu ID webhook'ta merchant_oid olarak geri döner → DB eşleşmesi için saklanır.
+ */
+export function generateOrderId(clinicId: string): string {
+    const prefix = clinicId.replace(/-/g, "").slice(0, 8).toUpperCase();
+    const ts = Date.now().toString(36).toUpperCase();
+    const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
+    return `${prefix}${ts}${rand}`;
+}
+
+/**
+ * Fatura dönemine göre yeni period bitiş tarihini hesaplar.
+ */
+export function calculatePeriodEnd(cycle: BillingCycle, fromDate = new Date()): Date {
+    const end = new Date(fromDate);
+    if (cycle === "annual") {
+        end.setFullYear(end.getFullYear() + 1);
+    } else {
+        end.setMonth(end.getMonth() + 1);
+    }
+    return end;
+}
+
+/**
+ * billing_cycle'a göre PayTR recurring parametrelerini döner.
+ * TODO: PayTR dokümantasyonundan recurring_payment_frequency_type değerlerini doğrula
+ */
+export function getRecurringParams(cycle: BillingCycle): {
+    recurring_payment_num: string;
+    recurring_payment_frequency: string;
+    recurring_payment_frequency_type: string; // "M" = aylık, "Y" = yıllık (doğrula)
+    recurring_payment_max_charge: string;      // 0 = limitsiz (doğrula)
+} {
+    return {
+        recurring_payment_num: "0",       // 0 = sonsuz yineleme
+        recurring_payment_frequency: "1",
+        // TODO: PayTR "Y" (yearly) destekliyor mu, doğrula
+        recurring_payment_frequency_type: cycle === "annual" ? "Y" : "M",
+        recurring_payment_max_charge: "0",
+    };
+}

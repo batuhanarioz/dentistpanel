@@ -21,6 +21,15 @@ export function SubscriptionSection({
     lastPaymentDate,
     setLastPaymentDate,
 }: SubscriptionSectionProps) {
+
+    function extendPeriod(days: number) {
+        const base = currentPeriodEnd ? new Date(currentPeriodEnd) : new Date();
+        base.setDate(base.getDate() + days);
+        setCurrentPeriodEnd(base.toISOString().slice(0, 16));
+        setLastPaymentDate(new Date().toISOString().slice(0, 16));
+        setSubscriptionStatus("active");
+    }
+
     return (
         <div className="space-y-4 pt-4 border-t border-slate-100">
             <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
@@ -54,6 +63,28 @@ export function SubscriptionSection({
                         <option value="pilot">Pilot Klinik</option>
                     </select>
                 </div>
+            </div>
+
+            {/* Quick extend buttons */}
+            <div className="space-y-1.5">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tight">Hızlı Uzatma</label>
+                <div className="flex items-center gap-2">
+                    {[
+                        { label: "+7 Gün", days: 7 },
+                        { label: "+30 Gün", days: 30 },
+                        { label: "+1 Yıl", days: 365 },
+                    ].map(({ label, days }) => (
+                        <button
+                            key={days}
+                            type="button"
+                            onClick={() => extendPeriod(days)}
+                            className="flex-1 rounded-xl border border-teal-200 bg-teal-50 py-2 text-[10px] font-black uppercase tracking-widest text-teal-700 hover:bg-teal-100 hover:border-teal-300 active:scale-95 transition-all"
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+                <p className="text-[9px] text-slate-400 font-medium">Butona tıklayınca mevcut dönem sonundan uzatılır, durum &quot;Aktif&quot; yapılır ve son ödeme tarihi güncellenir.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

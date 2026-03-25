@@ -19,13 +19,16 @@ import {
     MessageSquare,
     ChevronDown,
     ChevronUp,
-    Trash2,
     CheckCircle,
     RotateCcw,
     ExternalLink,
     Banknote,
-    Waves
+    Waves,
+    StickyNote,
+    Send,
 } from "lucide-react";
+import { getDunningAction, buildWhatsAppUrl, daysSince } from "@/lib/dunning";
+import { CreditCard as CardIcon } from "lucide-react";
 
 type ActivityType = 'registration' | 'subscription' | 'support' | 'alert' | 'expired';
 
@@ -49,7 +52,8 @@ export default function PlatformActivityPage() {
     const clinic = useClinic();
     const [loading, setLoading] = useState(true);
     const [activeFilters, setActiveFilters] = useState<string[]>([]);
-    const [showArchived, setShowArchived] = useState(false);
+    const [dateFilter, setDateFilter] = useState<'7d' | '30d' | 'all'>('7d');
+    const [clinicFilter, setClinicFilter] = useState<string>('');
     const [stats, setStats] = useState({
         totalClinics: 0,
         activeSubscriptions: 0,
@@ -58,28 +62,45 @@ export default function PlatformActivityPage() {
         todayAppointments: 0,
         todayPatients: 0,
         mrr: 0,
+        actualPaymentTotal: 0,
         liveActive: 0
     });
 
     const [activities, setActivities] = useState<Activity[]>([]);
+    const [archivedActivities, setArchivedActivities] = useState<Activity[]>([]);
+    const [showArchive, setShowArchive] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [churnClinics, setChurnClinics] = useState<any[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [dunningClinics, setDunningClinics] = useState<any[]>([]);
     const [expandedSupportId, setExpandedSupportId] = useState<string | null>(null);
+
+    // Support note state (local — keyed by activity id)
+    const [supportNotes, setSupportNotes] = useState<Record<string, string>>({});
+    const [savingNote, setSavingNote] = useState<string | null>(null);
 
     const loadData = useCallback(async () => {
         setLoading(true);
         const today = startOfDay(new Date()).toISOString();
-        const startThreshold = showArchived ? subDays(new Date(), 30).toISOString() : subDays(new Date(), 7).toISOString();
+        const startThreshold = dateFilter === 'all' ? undefined
+            : dateFilter === '30d' ? subDays(new Date(), 30).toISOString()
+            : subDays(new Date(), 7).toISOString();
         const oneHourAgo = subMinutes(new Date(), 60).toISOString();
 
-        // --- 1. platform data fetching ---
-        const { data: allClinics } = await supabase.from("clinics")
-            .select("id, name, subscription_status, billing_cycle, current_period_end, last_active_at, created_at");
-
-        const [apptRes, patientRes] = await Promise.all([
+        // --- 1. Platform data + pricing ---
+        const [clinicsRes, apptRes, patientRes, settingsRes, paymentsRes] = await Promise.all([
+            supabase.from("clinics").select("id, name, subscription_status, billing_cycle, current_period_end, last_active_at, created_at"),
             supabase.from("appointments").select("*", { count: 'exact', head: true }).gte("created_at", today),
-            supabase.from("patients").select("*", { count: 'exact', head: true }).gte("created_at", today)
+            supabase.from("patients").select("*", { count: 'exact', head: true }).gte("created_at", today),
+            supabase.from("platform_settings").select("monthly_price, annual_price").eq("id", "global").single(),
+            supabase.from("payments").select("amount").eq("status", "paid"),
         ]);
+
+        const allClinics = clinicsRes.data;
+        const monthlyPrice = settingsRes.data?.monthly_price ?? 1499;
+        const annualPrice = settingsRes.data?.annual_price ?? 14990;
+        const annualMRR = Math.round(annualPrice / 12);
+        const actualPaymentTotal = (paymentsRes.data || []).reduce((s: number, p: { amount: number }) => s + (p.amount || 0), 0);
 
         if (allClinics) {
             let totalMRR = 0;
@@ -92,20 +113,13 @@ export default function PlatformActivityPage() {
             const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
             allClinics.forEach(c => {
-                // MRR Logic: 1199 for monthly, 999 for annual
                 if (c.subscription_status === 'active') {
                     activeSubCount++;
-                    if (c.billing_cycle === 'annual') totalMRR += 999;
-                    else if (c.billing_cycle === 'monthly') totalMRR += 1199;
+                    if (c.billing_cycle === 'annual') totalMRR += annualMRR;
+                    else if (c.billing_cycle === 'monthly') totalMRR += monthlyPrice;
                 }
                 if (c.subscription_status === 'trialing') trialCount++;
-
-                // Live Active (last 60 mins)
-                if (c.last_active_at && new Date(c.last_active_at) > new Date(oneHourAgo)) {
-                    liveActiveCount++;
-                }
-
-                // Expiring soon (next 7 days)
+                if (c.last_active_at && new Date(c.last_active_at) > new Date(oneHourAgo)) liveActiveCount++;
                 if (c.current_period_end) {
                     const end = new Date(c.current_period_end);
                     if (end > now && end < sevenDaysFromNow) expiringSoonCount++;
@@ -120,6 +134,7 @@ export default function PlatformActivityPage() {
                 todayAppointments: apptRes.count || 0,
                 todayPatients: patientRes.count || 0,
                 mrr: totalMRR,
+                actualPaymentTotal,
                 liveActive: liveActiveCount
             });
         }
@@ -132,19 +147,25 @@ export default function PlatformActivityPage() {
 
         // --- 3. Churn Risk ---
         const sevenDaysAgo = subDays(new Date(), 7).toISOString();
-        const { data: riskyClinics } = await supabase.from("clinics")
-            .select("id, name, last_active_at, subscription_status")
-            .lt("last_active_at", sevenDaysAgo)
-            .order("last_active_at", { ascending: true })
-            .limit(3);
-        setChurnClinics(riskyClinics || []);
+        const [riskyClinicsRes, dunningRes] = await Promise.all([
+            supabase.from("clinics")
+                .select("id, name, slug, phone, last_active_at, subscription_status")
+                .lt("last_active_at", sevenDaysAgo)
+                .order("last_active_at", { ascending: true })
+                .limit(5),
+            supabase.from("clinics")
+                .select("id, name, slug, phone, subscription_status, billing_cycle, dunning_started_at, retry_count")
+                .in("subscription_status", ["past_due", "restricted"])
+                .order("dunning_started_at", { ascending: true }),
+        ]);
+        setChurnClinics(riskyClinicsRes.data || []);
+        setDunningClinics(dunningRes.data || []);
 
         // --- 4. Activity Feed ---
-        // Registrations
         let clinicQuery = supabase.from("clinics")
             .select("id, name, slug, created_at, city, district, subscription_status, phone")
             .order("created_at", { ascending: false });
-        if (!showArchived) clinicQuery = clinicQuery.gte("created_at", startThreshold);
+        if (startThreshold) clinicQuery = clinicQuery.gte("created_at", startThreshold);
         const { data: recentClinics } = await clinicQuery.limit(20);
 
         const registrationActivities: Activity[] = (recentClinics || [])
@@ -164,11 +185,10 @@ export default function PlatformActivityPage() {
                 clinicSlug: c.slug
             }));
 
-        // Payments
         let paymentQuery = supabase.from("payment_history")
             .select("id, amount, package_name, created_at, clinics(id, name, slug, city, district)")
             .order("created_at", { ascending: false });
-        if (!showArchived) paymentQuery = paymentQuery.gte("created_at", startThreshold);
+        if (startThreshold) paymentQuery = paymentQuery.gte("created_at", startThreshold);
         const { data: recentPayments } = await paymentQuery.limit(20);
 
         const paymentActivities: Activity[] = (recentPayments || [])
@@ -189,39 +209,46 @@ export default function PlatformActivityPage() {
                 clinicSlug: (p.clinics as any)?.slug
             }));
 
-        // Support
-        let supportQuery = supabase.from("platform_support_requests")
-            .select("*, clinics(id, name, slug, city, district, phone)")
-            .order("created_at", { ascending: false });
-        if (!showArchived) supportQuery = supportQuery.eq("is_archived", false);
-        const { data: recentSupport } = await supportQuery.limit(20);
+        // Active (not archived) support requests — always filtered regardless of dateFilter
+        // Use neq(true) instead of eq(false) so rows with is_archived=null are also included
+        const [supportRes, archivedSupportRes] = await Promise.all([
+            supabase.from("platform_support_requests")
+                .select("*, clinics(id, name, slug, city, district, phone)")
+                .neq("is_archived", true)
+                .order("created_at", { ascending: false })
+                .limit(30),
+            supabase.from("platform_support_requests")
+                .select("*, clinics(id, name, slug, city, district, phone)")
+                .eq("is_archived", true)
+                .order("created_at", { ascending: false })
+                .limit(20),
+        ]);
 
-        const supportActivities: Activity[] = (recentSupport || []).map(s => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mapSupport = (s: any): Activity => ({
             id: `sup-${s.id}`,
             type: 'support',
             title: s.is_archived ? 'Çözülmüş Destek Talebi' : 'Destek Talebi',
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            detail: `${(s.clinics as any)?.name || 'Bilinmeyen Klinik'} - Konu: ${s.subject}`,
+            detail: `${s.clinics?.name || 'Bilinmeyen Klinik'} - Konu: ${s.subject}`,
             time: new Date(s.created_at),
             status: s.is_archived ? 'success' : (s.priority === 'urgent' || s.priority === 'high' ? 'error' : 'warning'),
             message: s.message,
             priority: s.priority,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            location: (s.clinics as any)?.city ? `${(s.clinics as any).city} / ${(s.clinics as any).district || ''}` : undefined,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            phone: (s.clinics as any)?.phone,
+            location: s.clinics?.city ? `${s.clinics.city} / ${s.clinics.district || ''}` : undefined,
+            phone: s.clinics?.phone,
             isSupport: true,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            clinicId: (s.clinics as any)?.id,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            clinicSlug: (s.clinics as any)?.slug
-        }));
+            clinicId: s.clinics?.id,
+            clinicSlug: s.clinics?.slug,
+        });
+
+        const supportActivities: Activity[] = (supportRes.data || []).map(mapSupport);
+        setArchivedActivities((archivedSupportRes.data || []).map(mapSupport));
 
         const merged = [...registrationActivities, ...paymentActivities, ...supportActivities]
             .sort((a, b) => b.time.getTime() - a.time.getTime());
         setActivities(merged);
         setLoading(false);
-    }, [showArchived]);
+    }, [dateFilter]);
 
     useEffect(() => {
         if (clinic.isSuperAdmin) {
@@ -273,6 +300,14 @@ export default function PlatformActivityPage() {
         setLoading(false);
     };
 
+    const handleSaveNote = async (activityId: string, supportDbId: string) => {
+        const note = supportNotes[activityId] || '';
+        if (!note.trim()) return;
+        setSavingNote(activityId);
+        await supabase.from("platform_support_requests").update({ admin_note: note }).eq("id", supportDbId);
+        setSavingNote(null);
+    };
+
     const toggleFilter = (filterId: string) => {
         setActiveFilters(prev =>
             prev.includes(filterId)
@@ -282,9 +317,14 @@ export default function PlatformActivityPage() {
     };
 
     const filteredActivities = useMemo(() => {
-        if (activeFilters.length === 0) return activities;
-        return activities.filter(act => activeFilters.includes(act.type));
-    }, [activeFilters, activities]);
+        let result = activities;
+        if (activeFilters.length > 0) result = result.filter(act => activeFilters.includes(act.type));
+        if (clinicFilter.trim()) {
+            const q = clinicFilter.trim().toLowerCase();
+            result = result.filter(act => act.title.toLowerCase().includes(q) || act.detail.toLowerCase().includes(q));
+        }
+        return result;
+    }, [activeFilters, clinicFilter, activities]);
 
     const toggleExpandSupport = (id: string) => {
         setExpandedSupportId(prev => prev === id ? null : id);
@@ -332,39 +372,55 @@ export default function PlatformActivityPage() {
             {/* Main Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <MetricCard
-                    title="Platform Geliri"
+                    title="Tahmini MRR"
                     value={`${stats.mrr.toLocaleString("tr-TR")} ₺`}
                     icon={<Banknote className="text-emerald-500" />}
                     trend="Aylık"
-                    subtitle="Aboneliklerden"
+                    subtitle={`Gerçek: ${stats.actualPaymentTotal.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}`}
                 />
                 <MetricCard title="TOPLAM" value={stats.totalClinics} icon={<BuildingIcon className="text-blue-500" />} trend="Klinik" />
                 <MetricCard title="DENEME" value={stats.trialClinics} icon={<Clock className="text-amber-500" />} trend="Ücretsiz" />
                 <MetricCard title="KRİTİK" value={stats.expiringSoon} icon={<AlertTriangle className="text-rose-500" />} trend="Bitiş" isAlert={stats.expiringSoon > 0} />
             </div>
 
-            {/* Modern Filters Toolbar */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 pb-2">
-                <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md p-2 rounded-[2rem] border border-slate-100 shadow-lg shadow-slate-200/40 w-full md:w-auto">
-                    <button
-                        onClick={() => setShowArchived(!showArchived)}
-                        className={`flex items-center shrink-0 gap-2 px-4 py-3 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${showArchived ? 'bg-slate-200 text-slate-700' : 'bg-slate-100 text-slate-400'
-                            }`}
-                    >
-                        <RotateCcw size={14} />
-                        {showArchived ? 'Arşiv Kapat' : 'Arşiv'}
+            {/* Filters Toolbar */}
+            <div className="flex flex-col gap-3">
+                {/* Date range + Clinic filter row */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
+                        {([['7d', 'Son 7 Gün'], ['30d', 'Son 30 Gün'], ['all', 'Tümü']] as const).map(([val, label]) => (
+                            <button
+                                key={val}
+                                onClick={() => setDateFilter(val)}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${dateFilter === val ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-slate-700'}`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="relative flex-1 min-w-[160px] max-w-xs">
+                        <input
+                            type="text"
+                            placeholder="Klinik ara..."
+                            value={clinicFilter}
+                            onChange={e => setClinicFilter(e.target.value)}
+                            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-[11px] font-bold text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-slate-200 transition-all"
+                        />
+                    </div>
+                    <button onClick={loadData} className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-4 py-2.5 rounded-2xl hover:bg-indigo-100 transition-colors">
+                        <RotateCcw size={13} /> Yenile
                     </button>
-                    <div className="h-6 w-[1px] bg-slate-200 mx-3 shrink-0" />
+                </div>
+
+                {/* Type filters */}
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
                     {filters.map((f) => {
                         const isActive = activeFilters.includes(f.id);
                         return (
                             <button
                                 key={f.id}
                                 onClick={() => toggleFilter(f.id)}
-                                className={`flex items-center shrink-0 gap-2 px-4 md:px-6 py-3 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${isActive
-                                    ? `bg-slate-900 text-white shadow-lg`
-                                    : `bg-white text-slate-500 border border-slate-100`
-                                    }`}
+                                className={`flex items-center shrink-0 gap-2 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-500 border border-slate-100 hover:border-slate-200'}`}
                             >
                                 <f.icon size={12} className={isActive ? 'text-white' : `text-${f.color}-500`} />
                                 {f.label}
@@ -377,31 +433,30 @@ export default function PlatformActivityPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Activity Feed */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <h3 className="text-[11px] md:text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                <Clock size={16} className="text-slate-400 shrink-0" />
-                                <span className="truncate">{showArchived ? 'Geçmiş (30 G)' : 'Aktivite Akışı'}</span>
-                            </h3>
-                            {!showArchived && activities.length > 0 && (
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <h3 className="text-[11px] md:text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                            <Clock size={16} className="text-slate-400 shrink-0" />
+                            <span className="truncate">
+                                {dateFilter === 'all' ? 'Tüm Aktiviteler' : dateFilter === '30d' ? 'Son 30 Gün' : 'Son 7 Gün'}
+                                {filteredActivities.length > 0 && <span className="text-slate-400 font-bold ml-1">({filteredActivities.length})</span>}
+                            </span>
+                        </h3>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setShowArchive(p => !p)}
+                                className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full transition-colors ${showArchive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                            >
+                                <RotateCcw size={11} />
+                                Arşiv {archivedActivities.length > 0 && `(${archivedActivities.length})`}
+                            </button>
+                            {activities.length > 0 && (
                                 <button
                                     onClick={handleClearAll}
-                                    className="hidden sm:block text-[9px] font-black text-rose-500 bg-rose-50 px-3 py-1.5 rounded-full uppercase tracking-widest hover:bg-rose-100 transition-colors"
+                                    className="text-[9px] font-black text-rose-500 bg-rose-50 px-3 py-1.5 rounded-full uppercase tracking-widest hover:bg-rose-100 transition-colors"
                                 >
                                     Temizle
                                 </button>
                             )}
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {!showArchived && activities.length > 0 && (
-                                <button
-                                    onClick={handleClearAll}
-                                    className="sm:hidden text-[9px] font-black text-rose-500 bg-rose-50 px-3 py-1.5 rounded-full uppercase truncate max-w-[80px]"
-                                >
-                                    Sil
-                                </button>
-                            )}
-                            <button onClick={loadData} className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Yenile</button>
                         </div>
                     </div>
 
@@ -435,7 +490,7 @@ export default function PlatformActivityPage() {
                                             <div className="flex items-center justify-between mb-1 gap-2">
                                                 <h4 className="text-xs md:text-sm font-black text-slate-900 truncate flex items-center gap-2">
                                                     {act.title}
-                                                    {act.isSupport && !showArchived && (
+                                                    {act.isSupport && dateFilter !== 'all' && (
                                                         <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
                                                     )}
                                                 </h4>
@@ -470,18 +525,18 @@ export default function PlatformActivityPage() {
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); window.open(`/${act.clinicSlug}`, '_blank'); }}
                                                     className="p-2 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 rounded-lg transition-all"
+                                                    title="Kliniğe Git"
                                                 >
                                                     <ExternalLink size={16} />
                                                 </button>
                                             )}
-                                            {!showArchived && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteActivity(act); }}
-                                                    className="p-2 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 rounded-lg transition-all"
-                                                >
-                                                    <CheckCircle size={16} />
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteActivity(act); }}
+                                                className="p-2 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 rounded-lg transition-all"
+                                                title="Çözüldü / Kapat"
+                                            >
+                                                <CheckCircle size={16} />
+                                            </button>
                                             {act.isSupport && (
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); toggleExpandSupport(act.id); }}
@@ -496,57 +551,80 @@ export default function PlatformActivityPage() {
                                     {/* Support Details (Expanded) */}
                                     {act.type === 'support' && expandedSupportId === act.id && (
                                         <div className="ml-0 md:ml-14 bg-slate-50 rounded-2xl p-4 md:p-5 border border-slate-100 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                            {/* Message */}
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <MessageSquare size={14} className="text-slate-400" />
-                                                    <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Talep Mesajı</span>
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Talep Mesajı</span>
                                                 </div>
-                                                <p className="text-xs md:text-[13px] text-slate-700 font-bold leading-relaxed bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                                                <p className="text-xs text-slate-700 font-bold leading-relaxed bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
                                                     {act.message}
                                                 </p>
                                             </div>
 
-                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                                                <div className="flex-1 bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between shadow-sm">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                                                            <Phone size={16} />
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">İletişim</p>
-                                                            <p className="text-[11px] md:text-xs font-black text-slate-900 mt-1 truncate">{act.phone || "---"}</p>
-                                                        </div>
-                                                    </div>
-                                                    {act.phone && (
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); window.open(`tel:${act.phone}`); }}
-                                                            className="text-[10px] font-black text-indigo-600 uppercase tracking-widest px-2"
-                                                        >
-                                                            ARA
-                                                        </button>
-                                                    )}
+                                            {/* Admin Note */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                    <StickyNote size={13} className="text-amber-500" />
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">İç Not</span>
                                                 </div>
+                                                <div className="flex gap-2">
+                                                    <textarea
+                                                        rows={2}
+                                                        placeholder="Bu talep hakkında not ekle (sadece adminler görür)..."
+                                                        value={supportNotes[act.id] ?? ''}
+                                                        onChange={e => setSupportNotes(prev => ({ ...prev, [act.id]: e.target.value }))}
+                                                        className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all resize-none"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleSaveNote(act.id, act.id.replace('sup-', ''))}
+                                                        disabled={savingNote === act.id || !supportNotes[act.id]?.trim()}
+                                                        className="px-3 rounded-xl bg-amber-500 text-white hover:bg-amber-600 active:scale-95 transition-all disabled:opacity-40 disabled:scale-100 flex items-center justify-center"
+                                                        title="Notu Kaydet"
+                                                    >
+                                                        <Send size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
 
-                                                <div className="flex flex-row sm:justify-end gap-2">
-                                                    {act.clinicSlug && (
-                                                        <button
-                                                            onClick={() => window.open(`/${act.clinicSlug}`, '_blank')}
-                                                            className="flex-1 sm:flex-none px-4 md:px-6 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
-                                                        >
-                                                            <ExternalLink size={14} />
-                                                            PANEL
-                                                        </button>
-                                                    )}
-                                                    {!showArchived && (
-                                                        <button
-                                                            onClick={() => handleDeleteActivity(act)}
-                                                            className="flex-1 sm:flex-none px-4 md:px-6 py-3 bg-slate-900 text-white rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2"
-                                                        >
-                                                            <CheckCircle size={14} />
-                                                            ÇÖZÜLDÜ
-                                                        </button>
-                                                    )}
-                                                </div>
+                                            {/* Actions */}
+                                            <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                                                {act.phone && (
+                                                    <a
+                                                        href={`https://wa.me/${act.phone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Merhaba, destek talebiniz hakkında görüşmek istiyoruz.`)}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                                        WhatsApp
+                                                    </a>
+                                                )}
+                                                {act.phone && (
+                                                    <a
+                                                        href={`tel:${act.phone}`}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+                                                    >
+                                                        <Phone size={14} />
+                                                        Ara
+                                                    </a>
+                                                )}
+                                                {act.clinicSlug && (
+                                                    <button
+                                                        onClick={() => window.open(`/${act.clinicSlug}`, '_blank')}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+                                                    >
+                                                        <ExternalLink size={14} />
+                                                        Panel
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleDeleteActivity(act)}
+                                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all"
+                                                >
+                                                    <CheckCircle size={14} />
+                                                    Çözüldü
+                                                </button>
                                             </div>
                                         </div>
                                     )}
@@ -554,6 +632,47 @@ export default function PlatformActivityPage() {
                             ))
                         )}
                     </div>
+
+                    {/* Archive Section */}
+                    {showArchive && (
+                        <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
+                            <div className="flex items-center gap-2 px-1">
+                                <RotateCcw size={13} className="text-slate-400" />
+                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                    Arşiv — Çözülmüş Talepler ({archivedActivities.length})
+                                </h4>
+                            </div>
+                            <div className="bg-slate-50 rounded-[2rem] border border-slate-100 divide-y divide-slate-100 overflow-hidden">
+                                {archivedActivities.length === 0 ? (
+                                    <div className="py-10 text-center">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Arşivde kayıt yok.</p>
+                                    </div>
+                                ) : archivedActivities.map(act => (
+                                    <div key={act.id} className="p-4 flex items-center gap-3 opacity-70 hover:opacity-100 transition-opacity">
+                                        <div className="h-8 w-8 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                                            <CheckCircle size={15} className="text-emerald-500" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-black text-slate-700 truncate">{act.detail}</p>
+                                            <p className="text-[9px] font-bold text-slate-400 mt-0.5 uppercase">
+                                                {format(act.time, 'd MMM yyyy, HH:mm', { locale: tr })}
+                                            </p>
+                                        </div>
+                                        {act.clinicSlug && (
+                                            <a
+                                                href={`/${act.clinicSlug}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="shrink-0 p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-all"
+                                            >
+                                                <ExternalLink size={13} />
+                                            </a>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Sidebar Column */}
@@ -567,27 +686,122 @@ export default function PlatformActivityPage() {
                             <span className="text-[9px] font-bold bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full uppercase">Kritik</span>
                         </div>
 
-                        <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 p-5 md:p-6 space-y-4">
+                        <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 p-5 md:p-6 space-y-3">
                             {churnClinics.length === 0 ? (
                                 <p className="text-[10px] font-bold text-slate-400 text-center py-4">Risk bulunmuyor.</p>
                             ) : (
                                 churnClinics.map((c) => (
-                                    <div key={c.id} className="flex items-center justify-between group">
-                                        <div className="flex items-start gap-3 min-w-0">
-                                            <div className="mt-1 h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
-                                            <div className="min-w-0">
-                                                <p className="text-[11px] md:text-xs font-black text-slate-800 truncate">{c.name}</p>
-                                                <p className="text-[9px] font-bold text-slate-400 mt-0.5 uppercase">
-                                                    {format(new Date(c.last_active_at), 'd MMM', { locale: tr })}
+                                    <div key={c.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3 space-y-2">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-black text-slate-800 truncate">{c.name}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase">
+                                                    Son aktif: {format(new Date(c.last_active_at), 'd MMM yyyy', { locale: tr })}
                                                 </p>
                                             </div>
                                         </div>
-                                        <button className="text-[9px] font-black text-indigo-600 uppercase">Ara</button>
+                                        <div className="flex gap-1.5">
+                                            {c.slug && (
+                                                <a
+                                                    href={`/${c.slug}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl border border-slate-200 bg-white text-[9px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all"
+                                                >
+                                                    <ExternalLink size={10} /> Panel
+                                                </a>
+                                            )}
+                                            {c.phone && (
+                                                <a
+                                                    href={`https://wa.me/${c.phone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Merhaba! Sizi bir süredir göremedik, yardımcı olabilir miyiz?')}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all"
+                                                >
+                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                                    WA
+                                                </a>
+                                            )}
+                                        </div>
                                     </div>
                                 ))
                             )}
                         </div>
                     </div>
+
+                    {/* Ödeme Sorunları (Dunning) */}
+                    {dunningClinics.length > 0 && (
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                    <CardIcon size={14} className="text-rose-500" /> Ödeme Sorunları
+                                </h3>
+                                <span className="text-[9px] font-black bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full uppercase animate-pulse">
+                                    {dunningClinics.length} Klinik
+                                </span>
+                            </div>
+                            <div className="bg-white rounded-[2rem] border border-rose-100 shadow-xl shadow-rose-50 p-5 space-y-3">
+                                {dunningClinics.map((c) => {
+                                    const days = c.dunning_started_at ? daysSince(c.dunning_started_at) : 0;
+                                    const action = c.dunning_started_at
+                                        ? getDunningAction(c.dunning_started_at, c.retry_count ?? 0)
+                                        : null;
+                                    const waMessage = action && action.type !== 'skip'
+                                        ? action.message.whatsapp
+                                        : '💳 NextGency OS: Abonelik ödemesinde sorun yaşanıyor. Lütfen kart bilgilerinizi güncelleyin: {link}';
+                                    const isRestricted = c.subscription_status === 'restricted';
+
+                                    return (
+                                        <div key={c.id} className={`rounded-2xl border p-3 space-y-2 ${isRestricted ? 'border-rose-200 bg-rose-50' : 'border-amber-100 bg-amber-50'}`}>
+                                            <div className="flex items-start gap-2 min-w-0">
+                                                <div className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${isRestricted ? 'bg-rose-500' : 'bg-amber-500'}`} />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-black text-slate-800 truncate">{c.name}</p>
+                                                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md ${isRestricted ? 'bg-rose-200 text-rose-700' : 'bg-amber-200 text-amber-700'}`}>
+                                                            {isRestricted ? 'Kısıtlı' : 'Ödeme Bek.'}
+                                                        </span>
+                                                        <span className="text-[9px] font-bold text-slate-500">
+                                                            {days} gün gecikme
+                                                        </span>
+                                                        {(c.retry_count ?? 0) > 0 && (
+                                                            <span className="text-[9px] font-bold text-slate-400">
+                                                                {c.retry_count}× denendi
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-1.5">
+                                                {c.slug && (
+                                                    <a
+                                                        href={`/${c.slug}/admin/subscription`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl border border-slate-200 bg-white text-[9px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all"
+                                                    >
+                                                        <ExternalLink size={10} /> Panel
+                                                    </a>
+                                                )}
+                                                {c.phone && (
+                                                    <a
+                                                        href={buildWhatsAppUrl(c.phone, waMessage, c.slug ?? '')}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-white text-[9px] font-black uppercase tracking-widest transition-all ${isRestricted ? 'bg-rose-500 hover:bg-rose-600' : 'bg-amber-500 hover:bg-amber-600'}`}
+                                                    >
+                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                                        WA
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Support Card */}
                     <div className="bg-slate-900 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 text-white relative overflow-hidden">

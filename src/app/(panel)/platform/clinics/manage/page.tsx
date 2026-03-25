@@ -8,6 +8,7 @@ import { UserRole } from "@/types/database";
 import { SummaryCards } from "@/app/components/platform/clinics/SummaryCards";
 import { ClinicList } from "@/app/components/platform/clinics/ClinicList";
 import { ClinicModal } from "@/app/components/platform/clinics/ClinicModal";
+import { ClinicDetailPanel } from "@/app/components/platform/clinics/ClinicDetailPanel";
 import { usePageHeader } from "@/app/components/AppShell";
 
 export default function PlatformClinicsManagePage() {
@@ -21,6 +22,11 @@ export default function PlatformClinicsManagePage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteSlugInput, setDeleteSlugInput] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [showDetailPanel, setShowDetailPanel] = useState(false);
+  const [detailClinic, setDetailClinic] = useState<Clinic | null>(null);
 
   // Form alanları
   const [formName, setFormName] = useState("");
@@ -154,6 +160,24 @@ export default function PlatformClinicsManagePage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!selectedClinic || deleteSlugInput !== selectedClinic.slug) return;
+    setDeleting(true);
+    setError(null);
+    const { error } = await supabase.from("clinics").delete().eq("id", selectedClinic.id);
+    if (error) {
+      setError(error.message || "Klinik silinemedi.");
+      setDeleting(false);
+      return;
+    }
+    setDeleting(false);
+    setShowDeleteConfirm(false);
+    setShowEditModal(false);
+    setSelectedClinic(null);
+    setDeleteSlugInput("");
+    await loadClinics();
+  };
+
   const handleToggleActive = async (clinicItem: Clinic) => {
     setError(null);
     const { error } = await supabase
@@ -253,6 +277,7 @@ export default function PlatformClinicsManagePage() {
             clinics={clinics}
             loading={loading}
             onEditClinic={openEditModal}
+            onViewClinic={(c) => { setDetailClinic(c); setShowDetailPanel(true); }}
           />
         </div>
       </div>
@@ -288,7 +313,56 @@ export default function PlatformClinicsManagePage() {
         setCurrentPeriodEnd={setPeriodEnd}
         lastPaymentDate={lastPayment}
         setLastPaymentDate={setLastPayment}
+        onDeleteClinic={showEditModal && selectedClinic ? () => {
+          setDeleteSlugInput("");
+          setShowDeleteConfirm(true);
+        } : undefined}
       />
+
+      {showDeleteConfirm && selectedClinic && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-white rounded-[2.5rem] shadow-2xl border w-full max-w-sm mx-4 p-8 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-rose-100 text-rose-600 mx-auto mb-5">
+              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-black text-slate-900 text-center mb-1 uppercase tracking-tight">Kliniği Kalıcı Sil</h3>
+            <p className="text-xs text-slate-500 text-center mb-6 leading-relaxed font-medium">
+              <b className="text-rose-600">{selectedClinic.name}</b> kliniği ve tüm ilişkili veriler <b>kalıcı olarak silinecek</b>. Bu işlem geri alınamaz.
+            </p>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tight">
+                  Onaylamak için klinik slug&apos;ını yazın: <span className="text-rose-600">{selectedClinic.slug}</span>
+                </label>
+                <input
+                  type="text"
+                  value={deleteSlugInput}
+                  onChange={(e) => setDeleteSlugInput(e.target.value)}
+                  placeholder={selectedClinic.slug}
+                  className="w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                />
+              </div>
+              <button
+                type="button"
+                disabled={deleteSlugInput !== selectedClinic.slug || deleting}
+                onClick={handleDelete}
+                className="w-full rounded-2xl bg-rose-600 py-3.5 text-[11px] font-black tracking-widest text-white shadow-xl shadow-rose-100 hover:bg-rose-700 active:scale-95 transition-all uppercase disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed"
+              >
+                {deleting ? "SİLİNİYOR..." : "KALICI OLARAK SİL"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="w-full rounded-2xl border border-slate-200 py-3 text-[11px] font-black tracking-widest text-slate-500 hover:bg-slate-50 active:scale-95 transition-all uppercase"
+              >
+                VAZGEÇ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDeactivateConfirm && selectedClinic && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowDeactivateConfirm(false)}>
@@ -321,6 +395,12 @@ export default function PlatformClinicsManagePage() {
           </div>
         </div>
       )}
+
+      <ClinicDetailPanel
+        clinic={detailClinic}
+        isOpen={showDetailPanel}
+        onClose={() => { setShowDetailPanel(false); setDetailClinic(null); }}
+      />
     </div>
   );
 }

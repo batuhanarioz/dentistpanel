@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/subscription/dunning",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

@@ -32,6 +32,8 @@ interface ClinicModalProps {
     setCurrentPeriodEnd: (val: string) => void;
     lastPaymentDate: string;
     setLastPaymentDate: (val: string) => void;
+
+    onDeleteClinic?: () => void;
 }
 
 export function ClinicModal({
@@ -51,6 +53,7 @@ export function ClinicModal({
     billingCycle, setBillingCycle,
     currentPeriodEnd, setCurrentPeriodEnd,
     lastPaymentDate, setLastPaymentDate,
+    onDeleteClinic,
 }: ClinicModalProps) {
     if (!isOpen) return null;
 
@@ -192,6 +195,18 @@ export function ClinicModal({
                                 {saving ? "KAYDEDİLİYOR..." : isEdit ? "GÜNCELLE" : "KAYDET VE OLUŞTUR"}
                             </button>
                         </div>
+
+                        {isEdit && onDeleteClinic && (
+                            <div className="pt-4 border-t border-slate-100">
+                                <button
+                                    type="button"
+                                    onClick={onDeleteClinic}
+                                    className="w-full rounded-2xl border border-rose-200 py-2.5 text-[10px] font-black tracking-widest text-rose-500 hover:bg-rose-50 hover:border-rose-300 active:scale-95 transition-all uppercase"
+                                >
+                                    Kliniği Kalıcı Olarak Sil
+                                </button>
+                            </div>
+                        )}
                     </form>
                 </div>
             </div>
