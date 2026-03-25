@@ -184,10 +184,13 @@ export const POST = withAuth(
         });
 
         // ── 7. PayTR API'sini çağır ───────────────────────────────────────────
+        const postBody = new URLSearchParams(paytrParams).toString();
+        console.log("[PayTR] POST body (ilk 500 char):", postBody.slice(0, 500));
+
         const paytrRes = await fetch(PAYTR_CONFIG.IFRAME_TOKEN_URL, {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams(paytrParams).toString(),
+            body: postBody,
         });
 
         // Yanıtı önce text olarak al — boş/HTML dönerse json() patlar
