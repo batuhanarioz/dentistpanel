@@ -169,6 +169,19 @@ export const POST = withAuth(
             paymentAmountKurus: amountKurus,
         });
 
+        // DEBUG — hash parametrelerini logla (credentials gizli tutulur)
+        console.log("[PayTR] Hash debug:", {
+            merchant_id: PAYTR_CONFIG.MERCHANT_ID,
+            merchant_key_len: PAYTR_CONFIG.MERCHANT_KEY.length,
+            merchant_salt_len: PAYTR_CONFIG.MERCHANT_SALT.length,
+            userIp,
+            merchantOid,
+            email: paytrParams.email,
+            amountKurus,
+            test_mode: PAYTR_CONFIG.TEST_MODE,
+            paytr_token_len: paytrParams.paytr_token.length,
+        });
+
         // ── 7. PayTR API'sini çağır ───────────────────────────────────────────
         const paytrRes = await fetch(PAYTR_CONFIG.IFRAME_TOKEN_URL, {
             method: "POST",
