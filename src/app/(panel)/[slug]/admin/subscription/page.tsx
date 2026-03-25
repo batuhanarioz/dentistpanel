@@ -53,9 +53,14 @@ export default function SubscriptionPage() {
     }, [clinic.clinicId]);
 
     const monthlyPrice = 1199;
-    const annualPricePerMonth = 999;
-    let currentPrice = billingCycle === "monthly" ? monthlyPrice : annualPricePerMonth;
-    if (billingCycle === "pilot") currentPrice = 0;
+    const annualPrice = 11990;         // actual charge (full year)
+    const annualPricePerMonth = 999;   // marketing display (per month equivalent)
+    // displayPrice: shown in plan card UI ("/ ay")
+    let displayPrice = billingCycle === "monthly" ? monthlyPrice : annualPricePerMonth;
+    if (billingCycle === "pilot") displayPrice = 0;
+    // checkoutPrice: actual amount charged via PayTR
+    let checkoutPrice = billingCycle === "monthly" ? monthlyPrice : annualPrice;
+    if (billingCycle === "pilot") checkoutPrice = 0;
 
     const features = [
         { icon: CalendarIcon, text: "Sınırsız Randevu Yönetimi" },
@@ -92,7 +97,7 @@ export default function SubscriptionPage() {
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}
                 billingCycle={billingCycle === "pilot" ? "monthly" : billingCycle}
-                amountTL={currentPrice}
+                amountTL={checkoutPrice}
                 onSuccess={() => { setShowCheckout(false); window.location.reload(); }}
             />
             <div className="max-w-6xl mx-auto space-y-8 pb-12">
@@ -264,7 +269,7 @@ export default function SubscriptionPage() {
                                 </div>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-6xl font-black text-slate-900 tracking-tighter">
-                                        {currentPrice.toLocaleString("tr-TR")} ₺
+                                        {displayPrice.toLocaleString("tr-TR")} ₺
                                     </span>
                                     {billingCycle !== "pilot" && <span className="text-xl text-slate-400 font-bold">/ ay</span>}
                                     {billingCycle === "pilot" && (

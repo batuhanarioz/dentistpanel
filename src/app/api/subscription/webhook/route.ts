@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
         // ── 4a. Abonelik güncelle ─────────────────────────────────────────────
         const periodEnd = calculatePeriodEnd(billing_cycle as BillingCycle);
 
-        await Promise.all([
+        const [clinicUpdate] = await Promise.all([
             supabaseAdmin
                 .from("clinics")
                 .update({
@@ -94,7 +94,8 @@ export async function POST(req: NextRequest) {
                     current_period_end: periodEnd.toISOString(),
                     last_payment_date: new Date().toISOString(),
                 })
-                .eq("id", clinic_id),
+                .eq("id", clinic_id)
+                .select("id, subscription_status"),
 
             supabaseAdmin.from("payment_history").insert({
                 clinic_id,
@@ -127,10 +128,14 @@ export async function POST(req: NextRequest) {
             ] : []),
         ]);
 
-        console.log(
-            `[PayTR Webhook] Ödeme başarılı — clinic: ${clinic_id}, tutar: ${amountTL} TL, dönem: ${billing_cycle}` +
-            (discount_code_id ? ` (indirim kodu: ${discount_code_id})` : "")
-        );
+        if (clinicUpdate.error) {
+            console.error("[PayTR Webhook] clinics update FAILED:", clinicUpdate.error, "clinic_id:", clinic_id);
+        } else {
+            console.log(
+                `[PayTR Webhook] Ödeme başarılı — clinic: ${clinic_id}, tutar: ${amountTL} TL, dönem: ${billing_cycle}, yeni status: ${clinicUpdate.data?.[0]?.subscription_status}` +
+                (discount_code_id ? ` (indirim kodu: ${discount_code_id})` : "")
+            );
+        }
     } else {
         // ── 4b. Başarısız ödeme ───────────────────────────────────────────────
         await Promise.all([

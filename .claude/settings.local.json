@@ -32,7 +32,11 @@
       "Bash(find \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)\" -path \"*/patients*\" -name \"*.tsx\")",
       "Bash(find '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/appointment-management' -name *.tsx)",
       "Bash(find '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/components' -name *Appointment* -o -name *appointment*)",
-      "Bash(find \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)\" -name \"*.tsx\")"
+      "Bash(find \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)\" -name \"*.tsx\")",
+      "mcp__supabase__list_migrations"
+    ],
+    "additionalDirectories": [
+      "/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/(panel)/[slug]/admin/subscription"
     ]
   }
 }
