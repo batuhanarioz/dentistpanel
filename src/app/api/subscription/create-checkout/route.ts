@@ -29,6 +29,7 @@ import {
 
 export const POST = withAuth(
     async (req: NextRequest, ctx) => {
+        try {
         if (!ctx.isAdmin || !ctx.clinicId) {
             return NextResponse.json({ error: "forbidden" }, { status: 403 });
         }
@@ -199,6 +200,11 @@ export const POST = withAuth(
             discountApplied: discountAmountTL > 0,
             billingCycle,
         });
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("[create-checkout] Unhandled exception:", msg);
+            return NextResponse.json({ error: "Ödeme başlatılamadı", detail: msg }, { status: 500 });
+        }
     },
     { requiredRole: "ADMIN_OR_SUPER" }
 );
