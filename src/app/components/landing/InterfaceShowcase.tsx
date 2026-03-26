@@ -42,7 +42,7 @@ export function InterfaceShowcase() {
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Diş Kliniği İşletim Sistemi</span>
                     </div>
                     <h2 className="text-5xl lg:text-7xl font-black tracking-tighter text-slate-900 mb-8 leading-[0.9]">
-                        <span className="italic font-serif font-light text-slate-400">Karmaşayı Bitiren</span> <br /> Yalın Tasarım
+                        Klinik Verilerinizi<br /><span className="italic font-serif font-light text-slate-400">Tek Ekranda Görün</span>
                     </h2>
                 </div>
 

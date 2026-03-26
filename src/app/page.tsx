@@ -1,483 +1,722 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Calendar,
-  Users,
-  CreditCard,
-  BarChart3,
-  Stethoscope,
-  ShieldCheck,
-  Zap,
   MessageSquare,
   ArrowRight,
   CheckCircle2,
-  Menu,
-  X,
   ChevronRight,
-  Sparkles,
-  Database,
-  Lock,
-  Smartphone,
-  Plus,
-  Minus,
-  TrendingUp,
-  Clock,
-  Layout,
-  Bell,
-  LineChart,
-  Wallet,
-  Globe,
-  ClipboardList,
   Instagram,
-  Linkedin
+  Linkedin,
+  X,
+  Check,
+  AlertCircle,
 } from "lucide-react";
-import { PricingModal } from "@/app/components/PricingModal";
-import { InterfaceShowcase } from "@/app/components/landing/InterfaceShowcase";
+import { LandingNav } from "@/app/components/landing/LandingNav";
+import { LandingFaq } from "@/app/components/landing/LandingFaq";
+import { LandingPricingButton } from "@/app/components/landing/LandingPricingButton";
+import {
+  ProductChapterText,
+  FullWidthScreenshotShowcase,
+  ScreenshotMobileDesktopPair,
+} from "@/app/components/landing/ProductChapter";
 import nextgencyLogo from "./nextgency-logo-yatay.png";
+import heroImg from "./dash2.webp";
+import heroImg2 from "./dash1.webp";
+import hastImg from "./hasta-detay-desk.webp";
+import hastImg2 from "./hasta-detay-mob.webp";
+import tedImg from "./tedavi-planları.webp";
+import tedImg2 from "./tedavi-detay-mob.webp";
+import odmImg from "./odeme.webp";
+import odmImg2 from "./odeme-mob.webp";
+import randevuDesktopImg from "./randevu.webp";
+import randevuMobileImg from "./randevu-olust.webp";
+import raporImg1 from "./rapor1.webp";
+import raporImg2 from "./rapor2.webp";
+import raporImg3 from "./rapor3.webp";
+import mesajlarImg from "./mesaj-asis.webp";
+
+// ── SEO DATA ────────────────────────────────────────────────────────────────
+
+const faqs = [
+  {
+    q: "Diş kliniği programı nedir?",
+    a: "Diş kliniği programı, diş muayenehanelerinin randevu, hasta, tedavi ve ödeme süreçlerini dijital ortamda yönetmesini sağlayan yazılımdır. NextGency OS, tüm bu süreçleri tek bir bulut tabanlı panelde bir araya getirir; kağıt, Excel veya dağınık uygulamalara olan ihtiyacı ortadan kaldırır.",
+  },
+  {
+    q: "Klinik yönetim sistemi ne işe yarar?",
+    a: "Klinik yönetim sistemi; randevu oluşturma ve takibi, hasta kayıt ve tedavi geçmişi, ödeme planı yönetimi, WhatsApp ile otomatik hatırlatma ve klinik performans raporlama gibi işlemleri dijitalleştirerek zaman ve hata kaybını ortadan kaldırır. Ekibiniz daha az çabayla daha fazla hastaya hizmet verebilir.",
+  },
+  {
+    q: "WhatsApp hatırlatma sistemi nasıl çalışır?",
+    a: "NextGency OS, randevu saatlerine ve ödeme vadelerine göre otomatik bildirimler oluşturur. Panelden onay vererek tek tıkla önceden hazırlanmış mesajı WhatsApp üzerinden hastaya iletebilirsiniz. SMS otomasyon paketi ile bu işlem tamamen otomatik hale gelir; tıklamanıza bile gerek kalmaz.",
+  },
+  {
+    q: "Eski diş hekimliği yazılımımdaki hasta verilerini taşıyabilir miyim?",
+    a: "Evet. Profesyonel ekibimiz; mevcut sisteminizdeki hasta kayıtlarını, tedavi geçmişlerini, röntgen arşivlerini ve tüm finansal verileri güvenle NextGency OS altyapısına taşır. Hiçbir veri kaybı yaşamadan dijital dönüşümünüzü tamamlarız.",
+  },
+  {
+    q: "KVKK ve hasta gizliliği standartlarına uygun mu?",
+    a: "Kesinlikle. Tüm verileriniz bankaların kullandığı 256-bit AES şifreleme ile korunur ve KVKK uyumlu sunucularımızda, günlük yedekleme protokolleri ile saklanır.",
+  },
+  {
+    q: "Birden fazla hekim veya şubesi olan poliklinikler için uygun mu?",
+    a: "Evet, NextGency OS ölçeklenebilir mimarisiyle sınırsız hekim tanımı yapmanıza ve farklı şubelerin süreçlerini tek merkezden koordine etmenize olanak tanır. Gelişmiş yetkilendirme sistemi ile her personelin erişim seviyesini özelleştirebilirsiniz.",
+  },
+  {
+    q: "Sunucu veya donanım kurmam gerekiyor mu?",
+    a: "Hayır. NextGency OS %100 bulut tabanlıdır. İnternetin olduğu her yerden, herhangi bir tarayıcı veya tablet üzerinden tüm süreçlerinizi yönetebilirsiniz.",
+  },
+  {
+    q: "Klinik personelimiz sistemi ne kadar sürede öğrenebilir?",
+    a: "NextGency OS, klinik ergonomisi gözetilerek tasarlanmıştır. Son derece yalın ve sezgisel arayüzü sayesinde ekibiniz temel fonksiyonları yalnızca 1 saatlik oryantasyonla uzman düzeyinde kullanmaya başlayabilir.",
+  },
+];
+
+// ── PAGE ────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isPricingOpen, setIsPricingOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [activeFaq, setActiveFaq] = useState<number | null>(null);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const features = [
-    {
-      title: "Akıllı Randevu Hatırlatmaları",
-      description: "Randevu saatlerini otomatik hatırlatarak gelmeme oranlarını minimuma indirin.",
-      icon: Bell,
-      color: "text-teal-600",
-      bg: "bg-teal-50"
-    },
-    {
-      title: "Ödeme ve Tahsilat Yönetimi",
-      description: "Tahsilatları, borçları ve ödeme planlarını dijital asistanınızla tek merkezden yönetin.",
-      icon: Wallet,
-      color: "text-indigo-600",
-      bg: "bg-indigo-50"
-    },
-    {
-      title: "Hasta Kartı & Tedavi Geçmişi",
-      description: "Hastanızın tüm tıbbi ve finansal geçmişine saniyeler içinde, tek tıkla ulaşın.",
-      icon: ClipboardList,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50"
-    },
-    {
-      title: "Performans & Ciro Analizi",
-      description: "Hekim performansını ve klinik verimliliğini anlık, gerçek zamanlı verilerle ölçün.",
-      icon: LineChart,
-      color: "text-rose-600",
-      bg: "bg-rose-50"
-    },
-    {
-      title: "Yetki & Personel Yönetimi",
-      description: "Personel bazlı sayfa ve işlem yetkilendirmesi ile sistemde tam kontrol sağlayın.",
-      icon: ShieldCheck,
-      color: "text-purple-600",
-      bg: "bg-purple-50"
-    },
-    {
-      title: "Akıllı Bildirimler",
-      description: "Kritik işlemler ve önemli hatırlatmalardan her an, her yerden haberdar olun.",
-      icon: Zap,
-      color: "text-orange-600",
-      bg: "bg-orange-50"
-    },
-    {
-      title: "Kasa & Finans Takibi",
-      description: "Kliniğinizin nakit akışını, gelir ve giderlerini profesyonel raporlarla izleyin.",
-      icon: TrendingUp,
-      color: "text-cyan-600",
-      bg: "bg-cyan-50"
-    },
-    {
-      title: "Bulut Erişimi",
-      description: "Verilerinize internetin olduğu her yerden, her cihazla %100 güvenle erişin.",
-      icon: Globe,
-      color: "text-blue-600",
-      bg: "bg-blue-50"
-    }
-  ];
-
-
-  const stats = [
-    { value: "%85", label: "Operasyonel Hız Artışı", sub: "Manuel iş yükünde azalma" },
-    { value: "%30", label: "Randevu Kayıp Önleme", sub: "Akıllı SMS otomasyonu ile" },
-    { value: "Sınırsız", label: "Hasta Kapasitesi", sub: "Bulut üzerinde ölçeklenebilir" },
-    { value: "7/24", label: "Canlı Destek", sub: "Uzman mühendis ekibimizle" }
-  ];
-
-  const testimonials = [
-    {
-      name: "Arif ÇAKIR",
-      title: "Diş Hekimi",
-      text: "NextGency OS kullanmaya başladığımızdan beri ajanda karmaşası bitti. Hastalarımızın borç takibini saniyeler içinde görebiliyoruz. Kesinlikle her modern kliniğin ihtiyacı olan bir sistem.",
-      initials: "AÇ"
-    },
-    {
-      name: "Beyza Yiğit",
-      title: "Ortodonti Uzmanı",
-      text: "Hasta geçmişine ve ödeme detaylarına her cihazdan ulaşabilmek büyük özgürlük. Finansal raporlama kısmı ise klinik yönetimine bakışımı tamamen değiştirdi.",
-      initials: "BY"
-    },
-    {
-      name: "İrem Balcı",
-      title: "Klinik Koordinatörü",
-      text: "Personel yönetimi ve günlük kasa takibi için harika bir asistan. Karmakarışık Excel tablolarından kurtulup tamamen dijitalleşmek performansımızı %40 artırdı.",
-      initials: "İB"
-    }
-  ];
-
-  const faqs = [
-    {
-      q: "Eski diş hekimliği yazılımımdaki hasta verilerini NextGency OS'e taşıyabilir miyim?",
-      a: "Evet. Profesyonel ekibimiz; mevcut sisteminizdeki hasta kayıtlarını, tedavi geçmişlerini, röntgen arşivlerini ve tüm finansal verileri güvenle NextGency OS dental altyapısına taşır. Hiçbir veri kaybı yaşamadan dijital dönüşümünüzü tamamlarız."
-    },
-    {
-      q: "Dental CRM sisteminiz KVKK ve hasta gizliliği standartlarına uygun mu?",
-      a: "Kesinlikle. NextGency OS, hasta verilerinin korunması noktasında en yüksek standartları karşılar. Tüm verileriniz bankaların kullandığı 256-bit AES şifreleme ile korunur ve KVKK uyumlu sunucularımızda, günlük yedekleme protokolleri ile saklanır."
-    },
-    {
-      q: "WhatsApp dental otomasyonu ve randevu hatırlatma nasıl çalışıyor?",
-      a: "Sistemimiz, randevu başlangıç ve bitiş saatlerine göre otomatik olarak tetiklenip anasayfanıza mesaj göndermeniz gerektiği bildirimini düşürüyor. Bu sayede tek tıkla whatsapp'a geçiş yapıp hastanıza özel olarak hazırlanmış mesajı gönderebiliyorsunuz. Tabi SMS otomasyonu ek paketi satın alırsanız tıklamanıza bile gerek kalmadan sistem zamanlamayı otomatik olarak ayarlayıp gönderimi de kendisi gerçekleştiriyor."
-    },
-    {
-      q: "Birden fazla diş hekimi veya şubesi olan poliklinikler için uygun mu?",
-      a: "Evet, NextGency OS ölçeklenebilir bir mimariye sahiptir. Sınırsız hekim tanımı yapabilir, farklı şubelerdeki tedavi ve ödeme süreçlerini tek bir merkezden koordine edebilirsiniz. Gelişmiş yetkilendirme sistemi ile her personelin erişim seviyesini özelleştirebilirsiniz."
-    },
-    {
-      q: "Sistemi kullanmak için diş kliniğime bir sunucu veya donanım kurmam gerekiyor mu?",
-      a: "Hayır. NextGency OS %100 bulut tabanlı bir sistemdir. Kliniğinize pahalı sunucular kurmanıza gerek kalmaz. İnternetin olduğu her yerden, herhangi bir tarayıcı veya tablet üzerinden tüm süreçlerinizi %100 performansla yönetebilirsiniz."
-    },
-    {
-      q: "Klinik personelimiz (asistanlar ve sekreterya) sistemi ne kadar sürede öğrenebilir?",
-      a: "NextGency OS, 'klinik ergonomisi' göz önüne alınarak tasarlanmıştır. Son derece yalın ve sezgisel bir arayüze sahip olduğu için ekibiniz sistemin temel fonksiyonlarını sadece 1 saatlik bir oryantasyonla uzman seviyesinde kullanmaya başlayabilir."
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-slate-50/30 text-slate-900 font-sans selection:bg-teal-100 selection:text-teal-900 overflow-x-hidden">
-      {/* Navigation */}
-      <nav className={`fixed top-0 w-full z-[100] transition-all duration-700 ${scrolled ? "bg-white/80 backdrop-blur-xl border-b border-slate-200/50 py-4 shadow-sm" : "bg-transparent py-6"}`}>
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-teal-100 selection:text-teal-900 overflow-x-hidden">
+
+      {/* ── NAV ── */}
+      <LandingNav />
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 1 — HERO DOCUMENT COVER
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section className="relative pt-28 pb-16 lg:pt-40 lg:pb-24 overflow-hidden bg-gradient-to-br from-slate-50 via-white to-teal-50/20">
+        {/* Background blobs */}
+        <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-teal-50/60 rounded-full blur-[140px] -z-10 pointer-events-none translate-x-1/3 -translate-y-1/3" aria-hidden="true" />
+
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="hover:opacity-80 transition-opacity">
-                <Image src={nextgencyLogo} alt="NextGency Logo" height={36} className="w-auto invert mix-blend-multiply" priority />
-              </Link>
-            </div>
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
 
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center space-x-10">
-              <a href="#showcase" className="text-[13px] font-bold tracking-widest uppercase text-slate-500 hover:text-slate-900 transition-colors">Arayüz</a>
-              <a href="#ozellikler" className="text-[13px] font-bold tracking-widest uppercase text-slate-500 hover:text-slate-900 transition-colors">Özellikler</a>
-              <button
-                onClick={() => setIsPricingOpen(true)}
-                className="text-[13px] font-bold tracking-widest uppercase text-slate-500 hover:text-slate-900 transition-colors"
-              >
-                Fiyatlandırma
-              </button>
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest text-white bg-black hover:bg-slate-800 transition-all active:scale-95 shadow-xl shadow-black/10"
-              >
-                Sistem Girişi
-              </Link>
-            </div>
-
-            {/* Mobile menu button */}
-            <div className="md:hidden">
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-lg text-slate-900 hover:bg-slate-100 transition-colors"
-              >
-                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden bg-white border-b border-slate-200 animate-in slide-in-from-top-4 duration-300">
-            <div className="px-6 pt-2 pb-8 space-y-4">
-              <a href="#showcase" className="block py-4 text-sm font-bold tracking-widest uppercase text-slate-500" onClick={() => setIsMenuOpen(false)}>Arayüz</a>
-              <a href="#ozellikler" className="block py-4 text-sm font-bold tracking-widest uppercase text-slate-500" onClick={() => setIsMenuOpen(false)}>Özellikler</a>
-              <button
-                className="block w-full text-left py-4 text-sm font-bold tracking-widest uppercase text-slate-500"
-                onClick={() => { setIsPricingOpen(true); setIsMenuOpen(false); }}
-              >
-                Fiyatlandırma
-              </button>
-              <Link href="/login" className="block w-full text-center py-4 rounded-2xl bg-black text-white font-black uppercase tracking-widest text-xs" onClick={() => setIsMenuOpen(false)}>Sistem Girişi</Link>
-            </div>
-          </div>
-        )}
-      </nav>
-
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 lg:pt-56 lg:pb-40 overflow-hidden bg-gradient-to-b from-slate-50 to-white">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-teal-50/40 rounded-full blur-[120px] -z-10 pointer-events-none translate-x-1/3 -translate-y-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-50/40 rounded-full blur-[150px] -z-10 pointer-events-none -translate-x-1/3 translate-y-1/3"></div>
-
-        <div className="max-w-7xl mx-auto px-6 text-center relative z-10">
-          <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-slate-50 border border-slate-100 mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <Sparkles size={14} className="text-teal-600" />
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">NextGency OS Diş Kliniği Yönetim Sistemi</span>
-          </div>
-
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-slate-900 mb-10 leading-[0.9] animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
-            Diş Kliniği Yönetiminde <br />
-            <span className="italic font-serif font-light text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-600 italic-glow px-2">&quot;OS&quot;</span> Devri
-          </h1>
-
-          <p className="max-w-3xl mx-auto text-lg md:text-xl text-slate-500 mb-14 leading-relaxed font-medium animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-            NextGency OS, modern diş hekimleri ve klinikler için tasarlanmış yüksek performanslı bir dental işletim sistemidir. Verimliliği sadece konuşmuyoruz, onu muayenehanenizin standartı haline getiriyoruz.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
-            <Link
-              href="/login?demo=true"
-              className="w-full sm:w-auto px-12 py-5 rounded-full bg-black text-white font-black text-xs uppercase tracking-widest transition-all hover:bg-slate-800 hover:-translate-y-1 active:scale-95 shadow-2xl shadow-black/20"
-            >
-              Şimdi Keşfedin
-            </Link>
-            <button
-              onClick={() => setIsPricingOpen(true)}
-              className="w-full sm:w-auto px-12 py-5 rounded-full bg-white border border-slate-200 text-slate-900 font-black text-xs uppercase tracking-widest transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95"
-            >
-              Fiyatlandırma
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Metrics Section (Numerical Proof) */}
-      <section className="py-20 bg-gradient-to-b from-slate-50 to-white border-y border-slate-100">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-20">
-            {stats.map((stat, idx) => (
-              <div key={idx} className="text-center group border-r border-slate-100 last:border-0">
-                <p className="text-5xl lg:text-6xl font-black text-slate-900 tracking-tighter mb-4 group-hover:text-teal-600 transition-colors duration-500">{stat.value}</p>
-                <p className="text-xs font-black uppercase tracking-widest text-slate-800 mb-1">{stat.label}</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.sub}</p>
+            {/* Left — Text */}
+            <div className="relative z-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200/60 mb-8">
+                <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" aria-hidden="true" />
+                <span className="text-[10px] font-black text-teal-700 uppercase tracking-[0.2em]">NextGency OS Diş Kliniği Yönetim Sistemi</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Interface Showcase (Visual Proof) */}
-      <InterfaceShowcase />
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter text-slate-900 mb-6 leading-[1.0]">
+                Kliniğinizin tüm operasyonları<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-600 italic font-serif font-light">tek ekranda.</span>
+              </h1>
 
-      {/* Features Grid */}
-      <section id="ozellikler" className="py-32 lg:py-48 bg-gradient-to-b from-slate-50 to-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-24 max-w-3xl mx-auto">
-            <h2 className="text-4xl lg:text-6xl font-black tracking-tighter text-slate-900 mb-8 leading-[0.95]"> <span className="italic font-serif font-dark text-slate-600">Diş Kliniğinizi Yönetmek</span> Artık Çok Daha Kolay</h2>
-            <p className="text-lg text-slate-500 font-medium">NextGency Diş Kliniği Yönetim Yazılımı, muayenehanenizin ihtiyacı olan tüm operasyonel araçları tek bir merkezde toplar.</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {features.map((feature, idx) => (
-              <div
-                key={idx}
-                className="group relative bg-white rounded-[2rem] border border-slate-200/50 p-8 hover:border-teal-400/30 transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] flex flex-col items-center text-center"
-              >
-                <div className={`w-14 h-14 rounded-2xl ${feature.bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-sm`}>
-                  <feature.icon className={feature.color} size={28} />
-                </div>
-                <h3 className="text-lg font-black text-slate-900 mb-2 tracking-tight leading-tight">{feature.title}</h3>
-                <p className="text-slate-500 text-[11px] font-medium leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              <p className="text-lg text-slate-500 font-medium leading-relaxed mb-3 max-w-lg">
+                Randevu, tedavi planı, ödeme takibi ve hasta iletişimini tek sistemden yönetin.
+              </p>
+              <p className="text-sm text-slate-400 font-medium mb-10">
+                Diş kliniği programı arayanlar için geliştirildi.
+              </p>
 
-      <section className="py-32 lg:py-56 bg-gradient-to-b from-slate-100 to-white text-slate-900">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-24">
-            <h2 className="text-4xl lg:text-7xl font-black tracking-tighter mb-8 leading-none italic font-serif text-teal-600">Profesyonel Görüşler</h2>
-            <p className="text-teal-600 font-black text-sm uppercase tracking-[0.3em]">NextGency Dental CRM İle Dönüşen Diş Klinikleri</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((item, i) => (
-              <div key={i} className="bg-white border border-slate-100 p-12 rounded-[3.5rem] relative group hover:border-teal-400/30 transition-all duration-500 shadow-sm hover:shadow-2xl">
-                <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
-                  <MessageSquare size={60} fill="currentColor" className="text-slate-900" />
-                </div>
-                <p className="text-lg font-medium italic text-slate-500 leading-relaxed mb-12">&quot;{item.text}&quot;</p>
-                <div className="flex items-center gap-5 pt-8 border-t border-slate-50">
-                  <div className="w-14 h-14 rounded-full bg-teal-600 flex items-center justify-center font-black text-white text-lg shadow-xl shadow-teal-500/10">
-                    {item.initials}
-                  </div>
-                  <div>
-                    <p className="font-black text-lg text-slate-900 leading-none mb-2">{item.name}</p>
-                    <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest">{item.title}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section id="sss" className="py-32 lg:py-48 bg-gradient-to-b from-slate-50 to-white border-y border-slate-200/50">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="text-center mb-24">
-            <h2 className="text-4xl lg:text-5xl font-black tracking-tighter mb-6">Aklınızda Soru İşareti <br /> <span className="italic font-serif font-light text-slate-400">Kalmasın</span></h2>
-          </div>
-          <div className="space-y-4">
-            {faqs.map((faq, idx) => (
-              <div key={idx} className="bg-slate-50 rounded-[2rem] overflow-hidden transition-all duration-300">
-                <button
-                  onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
-                  className="w-full p-8 flex items-center justify-between text-left hover:bg-slate-100/50 transition-colors"
+              <div className="flex flex-wrap gap-4">
+                <Link
+                  href="/login?demo=true"
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-slate-900 text-white font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-all active:scale-95 shadow-xl shadow-slate-900/20"
                 >
-                  <span className="font-black text-lg text-slate-900 leading-tight pr-8">{faq.q}</span>
-                  <div className={`p-2 rounded-full transition-all ${activeFaq === idx ? "bg-teal-600 text-white" : "bg-white text-slate-300 shadow-sm"}`}>
-                    {activeFaq === idx ? <Minus size={16} /> : <Plus size={16} />}
+                  Canlı Demo İncele <ChevronRight size={14} aria-hidden="true" />
+                </Link>
+                <LandingPricingButton className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white border border-slate-200 text-slate-700 font-black text-xs uppercase tracking-widest hover:border-slate-300 hover:bg-slate-50 transition-all active:scale-95">
+                  Fiyatlandırmayı Gör
+                </LandingPricingButton>
+              </div>
+
+              {/* Trust badges */}
+              <div className="flex items-center gap-6 mt-12 pt-12 border-t border-slate-100">
+                {[
+                  { v: "99.9%", l: "Uptime" },
+                  { v: "256-bit", l: "Şifreleme" },
+                  { v: "7/24", l: "Destek" },
+                ].map(({ v, l }) => (
+                  <div key={l} className="text-center">
+                    <p className="text-lg font-black text-slate-900 leading-none">{v}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{l}</p>
                   </div>
-                </button>
-                {activeFaq === idx && (
-                  <div className="px-8 pb-8 animate-in slide-in-from-top-2 duration-300">
-                    <p className="text-slate-500 font-medium leading-relaxed">{faq.a}</p>
-                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — Hero screenshot stack */}
+            <div className="flex items-center justify-center lg:justify-end">
+              <div className="w-full rounded-[2rem] overflow-hidden shadow-[0_20px_60px_-16px_rgba(0,0,0,0.16)] border border-slate-200/50 flex flex-col">
+                <Image
+                  src={heroImg}
+                  alt="NextGency OS diş kliniği yönetim sistemi ana dashboard ekranı"
+                  className="w-full h-auto object-cover"
+                  priority
+                />
+                <Image
+                  src={heroImg2}
+                  alt="NextGency OS randevu oluşturma ekranı"
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 2 — SYSTEM OVERVIEW STRIP
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="border-y border-slate-100 bg-white py-4">
+        <div className="max-w-5xl mx-auto px-6">
+          <ul className="flex flex-wrap items-center justify-center gap-x-0 gap-y-2">
+            {[
+              "Randevu Takibi",
+              "Hasta Yönetimi",
+              "Tedavi Planı",
+              "Ödeme Takibi",
+              "WhatsApp Otomasyonu",
+            ].map((label, i, arr) => (
+              <li key={label} className="flex items-center">
+                <span className="px-5 py-2 text-[11px] font-black text-slate-500 uppercase tracking-[0.14em]">
+                  {label}
+                </span>
+                {i < arr.length - 1 && (
+                  <span className="w-1 h-1 rounded-full bg-slate-200 shrink-0" aria-hidden="true" />
                 )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 3 — CHAPTER 01: RANDEVU YÖNETİMİ
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section id="ozellikler" className="py-24 lg:py-40 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+            <ProductChapterText
+              eyebrow="01 / Randevu Yönetimi"
+              heading="Diş kliniği randevu takip sistemi ile günlük akışı netleştirin"
+              text="Randevuları hızlıca oluşturun, düzenleyin ve gün içindeki yoğunluğu tek ekranda yönetin."
+            >
+              <ul className="space-y-3">
+                {[
+                  "Hekim ve koltuk bazlı takvim görünümü",
+                  "Anlık durum güncellemeleri (geldi, muayenede, tamamlandı)",
+                  "Çakışma önleme ve uyarı sistemi",
+                  "Web, telefon ve WhatsApp kanal entegrasyonu",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm font-semibold text-slate-700">
+                    <Check size={15} className="text-teal-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </ProductChapterText>
+
+            <ScreenshotMobileDesktopPair
+              desktopSrc={randevuDesktopImg}
+              desktopAlt="Diş kliniği randevu takip sistemi — günlük randevu listesi ekranı"
+              mobileSrc={randevuMobileImg}
+              mobileAlt="Diş kliniği randevu yönetimi mobil görünümü"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 4 — CHAPTER 02: HASTA YÖNETİMİ
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section className="py-24 lg:py-40 bg-slate-50/50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+            <ScreenshotMobileDesktopPair
+              desktopSrc={hastImg}
+              desktopAlt="Diş kliniği hasta yönetim sistemi — hasta listesi ekranı"
+              mobileSrc={hastImg2}
+              mobileAlt="Diş kliniği hasta yönetimi mobil görünümü"
+            />
+
+            <ProductChapterText
+              eyebrow="02 / Hasta Yönetimi"
+              heading="Hasta geçmişi, iletişim bilgileri ve klinik kayıtlar tek yerde"
+              text="Yeni hasta kaydı oluşturun, geçmiş işlemleri görüntüleyin ve tüm hasta bilgilerine tek panelden erişin."
+            >
+              <ul className="space-y-3">
+                {[
+                  "Kapsamlı hasta profili (tıbbi geçmiş, alerjiler, KVKK)",
+                  "Tedavi geçmişi ve doktor notları",
+                  "Finansal özet ve ödeme durumu",
+                  "Hızlı arama ve filtreleme",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm font-semibold text-slate-700">
+                    <Check size={15} className="text-teal-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </ProductChapterText>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 5 — CHAPTER 03: TEDAVİ PLANI
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section className="py-24 lg:py-40 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+            <ProductChapterText
+              eyebrow="03 / Tedavi Planı"
+              heading="Diş kliniği tedavi planı yazılımı ile süreçleri sistemli yönetin"
+              text="Planlanan işlemleri, fiyatları ve ilerleme durumunu hasta bazında görüntüleyin."
+            >
+              <ul className="space-y-3">
+                {[
+                  "Diş numarasına göre işlem tanımı",
+                  "Çoklu seans takibi ve ilerleme göstergesi",
+                  "Ödeme planıyla bütünleşik yapı",
+                  "Aktif, tamamlanan ve iptal planlara genel bakış",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm font-semibold text-slate-700">
+                    <Check size={15} className="text-indigo-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </ProductChapterText>
+
+            <ScreenshotMobileDesktopPair
+              desktopSrc={tedImg}
+              desktopAlt="Diş kliniği tedavi planı yazılımı — plan detay ve ilerleme ekranı"
+              mobileSrc={tedImg2}
+              mobileAlt="Diş kliniği tedavi planı mobil görünümü"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 6 — CHAPTER 04: ÖDEME YÖNETİMİ
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section className="py-24 lg:py-40 bg-white border-t border-slate-100">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+            <ScreenshotMobileDesktopPair
+              desktopSrc={odmImg}
+              desktopAlt="Diş kliniği ödeme yönetimi — tahsilat ve bekleyen ödeme listesi"
+              mobileSrc={odmImg2}
+              mobileAlt="Diş kliniği ödeme takibi mobil görünümü"
+            />
+
+            <ProductChapterText
+              eyebrow="04 / Ödeme Yönetimi"
+              heading="Hasta ve ödeme takibini tek merkezden yönetin"
+              text="Tahsil edilen, bekleyen ve geciken ödemeleri görün; ödeme geçmişini hasta bazında takip edin."
+            >
+              <ul className="space-y-3">
+                {[
+                  "Nakit, kart, taksit ve havale takibi",
+                  "Ödeme vadesi hatırlatmaları",
+                  "Sigorta ve indirim yönetimi",
+                  "Hasta bazlı borç ve alacak özeti",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm font-semibold text-slate-700">
+                    <Check size={15} className="text-teal-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </ProductChapterText>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 7 — CHAPTER 05: WHATSAPP OTOMASYONU
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section className="py-24 lg:py-40 bg-slate-50/60 border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Header */}
+          <div className="grid lg:grid-cols-2 gap-12 items-end mb-14">
+            <ProductChapterText
+              eyebrow="05 / WhatsApp Otomasyonu"
+              heading="Diş kliniği için WhatsApp hatırlatma ve takip sistemi"
+              text="Randevu hatırlatma, memnuniyet ve ödeme mesajlarını sistematik şekilde yönetin."
+            >
+              <ul className="space-y-3">
+                {[
+                  "Randevu öncesi otomatik hatırlatma",
+                  "Vade günü ödeme bildirimi",
+                  "Tedavi sonrası memnuniyet mesajı",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm font-semibold text-slate-700">
+                    <Check size={15} className="text-emerald-600 shrink-0 mt-0.5" aria-hidden="true" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </ProductChapterText>
+            <div className="lg:text-right">
+              <p className="text-sm text-slate-400 font-medium max-w-xs lg:ml-auto">
+                SMS otomasyon paketi ile mesajlar tıklamanıza bile gerek kalmadan otomatik gönderilir.
+              </p>
+            </div>
+          </div>
+
+          {/* Full-width screenshot */}
+          <FullWidthScreenshotShowcase>
+            <Image
+              src={mesajlarImg}
+              alt="Diş kliniği WhatsApp hatırlatma sistemi — akıllı mesaj asistanı randevu ve ödeme bildirimleri"
+              className="w-full h-auto object-cover"
+            />
+          </FullWidthScreenshotShowcase>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 8 — HOW THE FLOW WORKS
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section id="nasil-calisir" className="py-24 lg:py-40 bg-slate-900 text-white overflow-hidden relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(20,184,166,0.08),transparent_60%)]" aria-hidden="true" />
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-20">
+            <p className="text-[10px] font-black text-teal-400 uppercase tracking-[0.25em] mb-4">Klinik İş Akışı</p>
+            <h2 className="text-3xl lg:text-5xl font-black tracking-tighter text-white leading-tight">
+              Klinikte günlük akış nasıl ilerler?
+            </h2>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-8 relative">
+            {/* Connecting line */}
+            <div className="hidden lg:block absolute top-[4.5rem] left-[calc(16.66%+2rem)] right-[calc(16.66%+2rem)] h-px bg-gradient-to-r from-teal-500/30 via-teal-500/60 to-teal-500/30" aria-hidden="true" />
+
+            {[
+              {
+                step: "01",
+                accent: "from-teal-500 to-emerald-500",
+                title: "Hasta Kaydı Oluştur",
+                desc: "İsim, iletişim ve sağlık bilgilerini girerek hasta profilini saniyeler içinde oluşturun.",
+                mockContent: (
+                  <div className="space-y-2.5">
+                    <div className="h-7 bg-white/10 rounded-lg px-3 flex items-center">
+                      <span className="text-[10px] text-white/40 font-semibold">Ad Soyad</span>
+                    </div>
+                    <div className="h-7 bg-white/10 rounded-lg px-3 flex items-center">
+                      <span className="text-[10px] text-white/40 font-semibold">Telefon</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="h-7 bg-white/10 rounded-lg px-3 flex items-center">
+                        <span className="text-[10px] text-white/40 font-semibold">Doğum Tarihi</span>
+                      </div>
+                      <div className="h-7 bg-white/10 rounded-lg px-3 flex items-center">
+                        <span className="text-[10px] text-white/40 font-semibold">Cinsiyet</span>
+                      </div>
+                    </div>
+                    <div className="h-7 bg-teal-500/80 rounded-lg flex items-center justify-center">
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">Kaydet</span>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                step: "02",
+                accent: "from-indigo-500 to-teal-500",
+                title: "Randevu & Plan Oluştur",
+                desc: "Randevuyu takvime işleyin, tedavi adımlarını ve ödeme planını tanımlayın.",
+                mockContent: (
+                  <div className="space-y-2.5">
+                    <div className="h-7 bg-white/10 rounded-lg px-3 flex items-center justify-between">
+                      <span className="text-[10px] text-white/40 font-semibold">Tarih & Saat</span>
+                      <span className="text-[10px] text-teal-400 font-black">26.03 · 14:00</span>
+                    </div>
+                    <div className="h-7 bg-white/10 rounded-lg px-3 flex items-center justify-between">
+                      <span className="text-[10px] text-white/40 font-semibold">Tedavi Türü</span>
+                      <span className="text-[10px] text-teal-400 font-black">Kanal Tedavisi</span>
+                    </div>
+                    <div className="h-7 bg-white/10 rounded-lg px-3 flex items-center justify-between">
+                      <span className="text-[10px] text-white/40 font-semibold">Tedavi Ücreti</span>
+                      <span className="text-[10px] text-teal-400 font-black">₺2.500</span>
+                    </div>
+                    <div className="h-7 bg-teal-500/80 rounded-lg flex items-center justify-center">
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">Randevu Oluştur</span>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                step: "03",
+                accent: "from-emerald-500 to-teal-400",
+                title: "Takibi Otomatik Başlat",
+                desc: "Sistem randevu hatırlatmasını, ödeme bildirimini ve memnuniyet mesajını otomatik hazırlar.",
+                mockContent: (
+                  <div className="space-y-2.5">
+                    {[
+                      { type: "RANDEVU", msg: "Selin Çelik · Yarın 14:00", color: "bg-indigo-500/30 text-indigo-300" },
+                      { type: "ÖDEME", msg: "Zeynep Arslan · Vade bugün", color: "bg-amber-500/30 text-amber-300" },
+                    ].map((m) => (
+                      <div key={m.type} className="bg-white/10 rounded-xl p-3">
+                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${m.color}`}>{m.type}</span>
+                        <p className="text-[10px] text-white/70 font-semibold mt-1.5">{m.msg}</p>
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <MessageSquare size={9} className="text-emerald-400" aria-hidden="true" />
+                          <span className="text-[9px] text-emerald-400 font-black">WhatsApp&apos;ta Gönder</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ),
+              },
+            ].map(({ step, accent, title, desc, mockContent }) => (
+              <div key={step} className="relative flex flex-col">
+                {/* Step label */}
+                <div className="flex items-end gap-4 mb-6">
+                  <span className="text-6xl font-black text-white/10 leading-none tabular-nums shrink-0">{step}</span>
+                  <div className="pb-1">
+                    <h3 className="text-base font-black text-white leading-tight">{title}</h3>
+                    <p className="text-[11px] text-white/40 font-medium mt-1 leading-relaxed">{desc}</p>
+                  </div>
+                </div>
+                {/* Mini UI mock with accent top bar */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex-1">
+                  <div className={`h-0.5 bg-gradient-to-r ${accent}`} aria-hidden="true" />
+                  <div className="p-4">{mockContent}</div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Final */}
-      <section className="py-24 bg-gradient-to-b from-slate-50 to-white relative">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="bg-black rounded-[4rem] p-12 lg:p-24 overflow-hidden relative shadow-[0_60px_120px_-20px_rgba(0,0,0,0.4)]">
-            <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none translate-x-1/4 -translate-y-1/4 animate-pulse">
-              <Zap size={600} fill="currentColor" className="text-white" />
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 9 — CHAPTER 06: RAPORLAMA VE GENEL BAKIŞ
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section className="py-24 lg:py-40 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Header */}
+          <div className="text-center mb-16 max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 mb-6">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.18em]">06 / Raporlama ve Genel Bakış</span>
+            </div>
+            <h2 className="text-3xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-5 leading-tight">
+              Tüm klinik verileriniz tek ekranda görünür
+            </h2>
+            <p className="text-slate-500 font-medium text-[15px] leading-relaxed">
+              Günlük yoğunluk, tahsilatlar, tamamlanan işlemler ve bekleyen aksiyonları tek bakışta yönetin.
+            </p>
+          </div>
+
+          {/* Main screenshot */}
+          <FullWidthScreenshotShowcase className="mb-6">
+            <Image
+              src={raporImg1}
+              alt="Diş kliniği yönetim sistemi genel bakış dashboard — günlük performans ve klinik özeti"
+              className="w-full h-auto object-cover"
+            />
+          </FullWidthScreenshotShowcase>
+
+          {/* Secondary screenshots */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="rounded-[1.75rem] overflow-hidden shadow-[0_8px_30px_-8px_rgba(0,0,0,0.10)] border border-slate-200/50">
+              <Image
+                src={raporImg2}
+                alt="Diş kliniği gelişmiş finansal analiz ve hekim performans metrikleri"
+                className="w-full h-auto object-cover"
+              />
+            </div>
+            <div className="rounded-[1.75rem] overflow-hidden shadow-[0_8px_30px_-8px_rgba(0,0,0,0.10)] border border-slate-200/50">
+              <Image
+                src={raporImg3}
+                alt="Diş kliniği randevu ve ciro dağılım raporları"
+                className="w-full h-auto object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 10 — COMPARISON
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section className="py-24 lg:py-40 bg-slate-50/60 border-y border-slate-100">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-5 leading-tight">
+              Dağınık klinik takibinden<br />sistemli yönetime geçin
+            </h2>
+            <p className="text-slate-500 font-medium text-[15px]">Klinikler genellikle birden fazla araç kullanmak zorunda kalır. NextGency OS hepsini tek çatı altında toplar.</p>
+          </div>
+
+          <div className="relative grid md:grid-cols-2 gap-6">
+            {/* Center arrow (desktop) */}
+            <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white border border-slate-200 items-center justify-center shadow-md" aria-hidden="true">
+              <ArrowRight size={16} className="text-teal-600" />
             </div>
 
-            <div className="relative z-10 text-center lg:text-left flex flex-col lg:flex-row items-center justify-between gap-16">
-              <div className="max-w-2xl">
-                <h2 className="text-4xl md:text-7xl font-black text-white mb-10 tracking-tighter leading-[0.9]">
-                  Geleceğin Diş Kliniğini <br /> <span className="italic font-serif font-light text-white/50">Sizinle Birlikte</span> Kuralım.
-                </h2>
-                <p className="text-white/40 text-lg font-medium leading-relaxed mb-10 max-w-lg">NextGency Diş Kliniği İşletim Sistemi ile dijitalleşmeye bugün başlayın, farkı muayenehanenizde hissedin.</p>
-                <div className="flex flex-col sm:flex-row gap-6">
-                  <button
-                    onClick={() => setIsPricingOpen(true)}
-                    className="px-14 py-6 rounded-full bg-white text-black font-black text-xs uppercase tracking-widest shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
-                  >
-                    Paketleri İncele <ChevronRight size={16} />
-                  </button>
-                  <Link
-                    href="/login"
-                    className="px-12 py-6 rounded-full bg-transparent border border-white/20 text-white font-black text-xs uppercase tracking-widest hover:bg-white/5 transition-all text-center flex items-center justify-center"
-                  >
-                    Sistem Girişi
-                  </Link>
+            {/* Without */}
+            <div className="bg-white rounded-[2rem] border border-rose-100 p-10">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                  <AlertCircle size={18} className="text-rose-500" aria-hidden="true" />
                 </div>
+                <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">Eskisi Gibi</h3>
+              </div>
+              <ul className="space-y-4">
+                {[
+                  "Kağıt ajanda veya Excel karmaşası",
+                  "Kaçırılan randevular, gelmeyen hastalar",
+                  "Ödeme takibinde kayıplar",
+                  "Ekip içi koordinasyon sorunu",
+                  "Raporlama için saatler harcama",
+                  "Hasta verilerine her yerden erişememe",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm font-semibold text-slate-500">
+                    <X size={14} className="text-rose-400 shrink-0 mt-0.5" aria-hidden="true" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* With NextGency */}
+            <div className="bg-teal-600 rounded-[2rem] p-10">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <CheckCircle2 size={18} className="text-white" aria-hidden="true" />
+                </div>
+                <h3 className="font-black text-white text-sm uppercase tracking-widest">NextGency OS ile</h3>
+              </div>
+              <ul className="space-y-4">
+                {[
+                  "Dijital randevu takvimi, anlık güncelleme",
+                  "Otomatik WhatsApp hatırlatması ile sıfır kayıp",
+                  "Anlık ödeme, borç ve taksit takibi",
+                  "Rol bazlı yetki sistemi, tam kontrol",
+                  "Gerçek zamanlı klinik raporları",
+                  "Bulut erişimi, her cihazdan her yerden",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm font-semibold text-white">
+                    <Check size={14} className="text-white/80 shrink-0 mt-0.5" aria-hidden="true" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 11 — FAQ
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section id="sss" className="py-24 lg:py-40 bg-white">
+        <div className="max-w-3xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-5xl font-black tracking-tighter text-slate-900 mb-5">
+              Sık Sorulan Sorular
+            </h2>
+            <p className="text-slate-400 font-medium text-[15px]">
+              Diş kliniği programı ve klinik yönetim sistemi hakkında merak ettiğiniz her şeyin yanıtı burada.
+            </p>
+          </div>
+          <LandingFaq faqs={faqs} />
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 12 — FINAL CTA
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section className="py-20 bg-slate-50 border-t border-slate-100">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="bg-slate-900 rounded-[3rem] p-12 lg:p-20 overflow-hidden relative">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(20,184,166,0.12),transparent_60%)]" aria-hidden="true" />
+            <div className="relative z-10 text-center">
+              <h2 className="text-3xl md:text-5xl font-black text-white mb-6 tracking-tighter leading-tight">
+                Kliniğinizi daha verimli<br />yönetmeye hazır olun.
+              </h2>
+              <p className="text-white/40 font-medium text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+                NextGency OS ile randevu, tedavi, ödeme ve iletişim süreçlerini tek sistemde toplayın.
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <Link
+                  href="/login?demo=true"
+                  className="inline-flex items-center gap-2 px-10 py-4 rounded-full bg-teal-500 text-white font-black text-xs uppercase tracking-widest hover:bg-teal-400 transition-all active:scale-95 shadow-xl shadow-teal-500/20"
+                >
+                  Canlı Demo Talep Et <ChevronRight size={14} aria-hidden="true" />
+                </Link>
+                <LandingPricingButton className="inline-flex items-center gap-2 px-10 py-4 rounded-full bg-white/10 border border-white/20 text-white font-black text-xs uppercase tracking-widest hover:bg-white/15 transition-all active:scale-95">
+                  Fiyatlandırmayı İncele
+                </LandingPricingButton>
+              </div>
+              {/* Feature chips */}
+              <div className="flex flex-wrap justify-center gap-2 mt-10">
+                {["Randevu Takibi", "Hasta Yönetimi", "Tedavi Planı", "Ödeme Takibi", "WhatsApp Otomasyonu"].map((f) => (
+                  <span key={f} className="px-3 py-1.5 rounded-full bg-white/10 text-[10px] font-black text-white/50 uppercase tracking-wider">{f}</span>
+                ))}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer id="hakkimizda" className="bg-gradient-to-b from-slate-50 to-white py-32 border-t border-slate-100">
+      {/* ── FOOTER ── */}
+      <footer id="hakkimizda" className="bg-white py-24 border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-20 mb-24 lg:text-left text-center">
-            <div className="col-span-1 md:col-span-2">
-              <Image src={nextgencyLogo} alt="NextGency Logo" height={32} className="w-auto mb-10 opacity-90 mx-auto lg:mx-0 invert mix-blend-multiply" />
-              <p className="text-slate-400 max-w-sm leading-relaxed text-sm font-medium mx-auto lg:mx-0">
-                NextGency OS, dental sağlık teknolojilerinde uzman kadrosuyla diş hekimlerine özel gelecek nesil hasta yönetimi ve operasyonel altyapılar sunar.
+          <div className="grid md:grid-cols-4 gap-16 mb-20 lg:text-left text-center">
+            <div className="col-span-1 md:col-span-1">
+              <Image src={nextgencyLogo} alt="NextGency OS Diş Kliniği Programı" height={28} className="w-auto mb-8 opacity-90 mx-auto lg:mx-0 invert mix-blend-multiply" />
+              <p className="text-slate-400 max-w-xs leading-relaxed text-sm font-medium mx-auto lg:mx-0">
+                Diş kliniği programı ve klinik yönetim sistemi alanında uzman ekibiyle diş hekimlerine özel çözümler.
               </p>
             </div>
             <div>
-              <h4 className="text-xs font-black uppercase spacing-[0.2em] text-slate-900 mb-8 tracking-widest">OS Ekosistemi</h4>
-              <ul className="space-y-4 text-sm text-slate-500 font-bold tracking-tight">
-                <li><a href="#ozellikler" className="hover:text-teal-600 transition-colors">Özellikler</a></li>
-                <li><button onClick={() => setIsPricingOpen(true)} className="hover:text-teal-600 transition-colors">Fiyatlandırma</button></li>
-                <li><Link href="/login" className="hover:text-teal-600 transition-colors">Sistem Girişi</Link></li>
+              <h4 className="text-xs font-black uppercase text-slate-900 mb-6 tracking-widest">Sistem</h4>
+              <ul className="space-y-4 text-sm text-slate-400 font-semibold">
+                <li><a href="#ozellikler" className="hover:text-teal-600 transition-colors">Randevu Yönetimi</a></li>
+                <li><a href="#ozellikler" className="hover:text-teal-600 transition-colors">Hasta Takip Programı</a></li>
+                <li><a href="#ozellikler" className="hover:text-teal-600 transition-colors">Tedavi Planı</a></li>
+                <li><a href="#ozellikler" className="hover:text-teal-600 transition-colors">Ödeme Takibi</a></li>
+                <li><a href="#ozellikler" className="hover:text-teal-600 transition-colors">WhatsApp Otomasyonu</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-xs font-black uppercase spacing-[0.2em] text-slate-900 mb-8 tracking-widest">Akademi</h4>
-              <ul className="space-y-4 text-sm text-slate-500 font-bold tracking-tight">
-                <li><a href="#" className="hover:text-teal-600 transition-colors">OS Kullanım Rehberi</a></li>
+              <h4 className="text-xs font-black uppercase text-slate-900 mb-6 tracking-widest">Destek</h4>
+              <ul className="space-y-4 text-sm text-slate-400 font-semibold">
+                <li><LandingPricingButton className="hover:text-teal-600 transition-colors text-left w-full text-sm text-slate-400 font-semibold">Fiyatlandırma</LandingPricingButton></li>
                 <li><a href="#sss" className="hover:text-teal-600 transition-colors">Sıkça Sorulanlar</a></li>
-                <li><a href="#" className="hover:text-teal-600 transition-colors">KVKK & Gizlilik</a></li>
+                <li><Link href="/login" className="hover:text-teal-600 transition-colors">Sistem Girişi</Link></li>
+                <li><Link href="/iletisim" className="hover:text-teal-600 transition-colors">İletişim</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-black uppercase text-slate-900 mb-6 tracking-widest">Yasal</h4>
+              <ul className="space-y-4 text-sm text-slate-400 font-semibold">
+                <li><Link href="/teslimat-ve-kullanim" className="hover:text-teal-600 transition-colors">Teslimat ve Kullanım</Link></li>
+                <li><Link href="/satis-politikasi" className="hover:text-teal-600 transition-colors">Satış Politikası</Link></li>
+                <li><Link href="/iptal-ve-iade" className="hover:text-teal-600 transition-colors">İptal ve İade</Link></li>
+                <li><Link href="/mesafeli-satis-sozlesmesi" className="hover:text-teal-600 transition-colors">Mesafeli Satış Sözleşmesi</Link></li>
               </ul>
             </div>
           </div>
-          <div className="pt-12 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-10">
+          <div className="pt-10 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest text-center">© 2025 NextGency OS Diş Kliniği Yönetim Sistemi</p>
-              <span className="hidden md:block w-1 h-1 bg-slate-200 rounded-full"></span>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">© 2026 NextGency OS Diş Kliniği Programı</p>
+              <span className="hidden md:block w-1 h-1 bg-slate-200 rounded-full" aria-hidden="true" />
               <a href="https://nextgency360.com" target="_blank" rel="noopener noreferrer" className="text-[10px] text-slate-500 hover:text-teal-600 font-black uppercase tracking-widest transition-colors flex items-center gap-1.5 group">
-                nextgency360.com <ArrowRight size={10} className="group-hover:translate-x-1 transition-transform" />
+                NextGency360.com <ArrowRight size={10} className="group-hover:translate-x-1 transition-transform" aria-hidden="true" />
               </a>
             </div>
-            <div className="flex gap-8">
-              <a href="https://www.instagram.com/nextgency360" target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-teal-600 transition-all transform hover:scale-110">
-                <Instagram size={20} />
+            <div className="flex gap-6">
+              <a href="https://www.instagram.com/nextgency360" target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-teal-600 transition-all hover:scale-110" aria-label="Instagram">
+                <Instagram size={18} aria-hidden="true" />
               </a>
-              <a href="https://www.linkedin.com/company/nextgency360" target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-teal-600 transition-all transform hover:scale-110">
-                <Linkedin size={20} />
+              <a href="https://www.linkedin.com/company/nextgency360" target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-teal-600 transition-all hover:scale-110" aria-label="LinkedIn">
+                <Linkedin size={18} aria-hidden="true" />
               </a>
             </div>
           </div>
         </div>
       </footer>
-
-      <PricingModal
-        isOpen={isPricingOpen}
-        onClose={() => setIsPricingOpen(false)}
-      />
-
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,700&display=swap');
-        
-        body {
-            overflow-x: hidden;
-            background-color: #ffffff;
-        }
-
-        .font-serif {
-            font-family: 'Playfair Display', serif;
-        }
-
-        .italic-glow {
-            position: relative;
-            display: inline-block;
-        }
-        
-        .italic-glow::after {
-            content: '';
-            position: absolute;
-            bottom: 2px;
-            left: 0;
-            width: 100%;
-            height: 30%;
-            background: rgba(20, 184, 166, 0.15);
-            z-index: -1;
-            filter: blur(8px);
-        }
-      `}</style>
     </div>
   );
 }
