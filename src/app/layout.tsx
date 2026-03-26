@@ -46,6 +46,10 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: "/favicon.ico",
   },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 const softwareApplicationSchema = {

@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  robots: { index: true, follow: true },
+};
 import Image from "next/image";
 import {
   MessageSquare,

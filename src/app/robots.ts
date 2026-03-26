@@ -6,14 +6,8 @@ export default function robots(): MetadataRoute.Robots {
     return {
         rules: {
             userAgent: '*',
-            allow: '/',
-            disallow: [
-                '/api/',      // API rotalarını gizle
-                '/[slug]/',   // Dashboard rotalarını arama motorlarından gizle
-                '/admin/',    // Admin yönetici panellerini gizle
-                '/platform/', // Platform yönetici panellerini gizle
-                '/_next/',    // Next.js iç rotalarını gizle
-            ],
+            allow: ['/$', '/login$'],
+            disallow: '/',
         },
         sitemap: `${baseUrl}/sitemap.xml`,
     }
