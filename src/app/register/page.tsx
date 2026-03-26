@@ -7,6 +7,7 @@ import Link from "next/link";
 import nextgencyLogo from "../nextgency-logo-yatay.png";
 import { Loader2, Hospital, User, Mail, Lock, Phone, MapPin, CheckCircle2, ArrowRight, ChevronDown } from "lucide-react";
 import { TURKEY_CITIES } from "@/constants/locations";
+import { trackSignup } from "@/lib/analytics";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -199,6 +200,7 @@ export default function RegisterPage() {
                 throw new Error(data.error || "Kayıt işlemi sırasında bir hata oluştu.");
             }
 
+            trackSignup(formData.name);
             setSuccess(true);
 
         } catch (err: unknown) {

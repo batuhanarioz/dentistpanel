@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { PricingModal } from "@/app/components/PricingModal";
 import nextgencyLogo from "../../nextgency-logo-yatay.png";
+import { trackPricingView } from "@/lib/analytics";
 
 export function LandingNav() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -35,7 +36,7 @@ export function LandingNav() {
               <a href="#nasil-calisir" className="text-[13px] font-bold tracking-widest uppercase text-slate-500 hover:text-slate-900 transition-colors">Nasıl Çalışır</a>
               <a href="#showcase" className="text-[13px] font-bold tracking-widest uppercase text-slate-500 hover:text-slate-900 transition-colors">Arayüz</a>
               <button
-                onClick={() => setIsPricingOpen(true)}
+                onClick={() => { trackPricingView(); setIsPricingOpen(true); }}
                 className="text-[13px] font-bold tracking-widest uppercase text-slate-500 hover:text-slate-900 transition-colors"
               >
                 Fiyatlandırma
@@ -69,7 +70,7 @@ export function LandingNav() {
               <a href="#showcase" className="block py-4 text-sm font-bold tracking-widest uppercase text-slate-500" onClick={() => setIsMenuOpen(false)}>Arayüz</a>
               <button
                 className="block w-full text-left py-4 text-sm font-bold tracking-widest uppercase text-slate-500"
-                onClick={() => { setIsPricingOpen(true); setIsMenuOpen(false); }}
+                onClick={() => { trackPricingView(); setIsPricingOpen(true); setIsMenuOpen(false); }}
               >
                 Fiyatlandırma
               </button>

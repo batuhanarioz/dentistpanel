@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { UserRole } from "@/types/database";
 import { createClinicSchema } from "@/lib/validations/clinic";
 import { registerLimiter, getClientIp } from "@/lib/rateLimit";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
     const ip = getClientIp(req);
@@ -176,6 +177,31 @@ export async function POST(req: Request) {
                 is_payment_enabled: true
             }
         });
+
+        // Generate referral code + apply referral if provided
+        const refCode = name.replace(/[^a-zA-Z0-9]/g, "").substring(0, 6).toUpperCase() + "-" + Math.random().toString(36).substring(2, 6).toUpperCase();
+        const referralCodeFromBody = body.referral_code as string | undefined;
+
+        const clinicUpdate: Record<string, unknown> = { referral_code: refCode };
+        if (referralCodeFromBody) {
+            const { data: referrer } = await supabaseAdmin
+                .from("clinics")
+                .select("id")
+                .eq("referral_code", referralCodeFromBody.toUpperCase())
+                .maybeSingle();
+            if (referrer) {
+                clinicUpdate.referred_by = referrer.id;
+                await supabaseAdmin.from("referral_conversions").insert({
+                    referrer_clinic_id: referrer.id,
+                    referred_clinic_id: clinic.id,
+                    status: "pending",
+                });
+            }
+        }
+        await supabaseAdmin.from("clinics").update(clinicUpdate).eq("id", clinic.id);
+
+        // Fire-and-forget welcome email
+        sendWelcomeEmail(email, name, 7).catch(() => {});
 
         return NextResponse.json({
             success: true,

@@ -27,9 +27,19 @@ export const metadata: Metadata = {
     siteName: "NextGency OS",
     locale: "tr_TR",
     type: "website",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "NextGency OS Diş Kliniği Programı" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Diş Kliniği Programı | NextGency OS",
+    description: "Randevu takibi, hasta yönetimi, ödeme takibi ve WhatsApp otomasyonu tek panelde.",
+    images: ["/opengraph-image"],
   },
   alternates: {
     canonical: "https://clinic.nextgency360.com",
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION ?? "",
   },
   icons: {
     icon: "/favicon.ico",
@@ -144,6 +154,11 @@ const faqSchema = {
 
 import * as Sentry from "@sentry/nextjs";
 import Providers from "./providers";
+import { CookieBanner } from "@/app/components/CookieBanner";
+import { AnalyticsConsent } from "@/app/components/AnalyticsConsent";
+
+const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID;
+const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID;
 
 export default function RootLayout({
   children,
@@ -166,9 +181,38 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
         />
+        {/* GA4 — default consent denied until user accepts */}
+        {GA4_ID && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`} strategy="afterInteractive" />
+            <Script id="ga4-init" strategy="afterInteractive" dangerouslySetInnerHTML={{
+              __html: `
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied' });
+                gtag('config', '${GA4_ID}', { anonymize_ip: true });
+              `,
+            }} />
+          </>
+        )}
+        {/* Microsoft Clarity */}
+        {CLARITY_ID && (
+          <Script id="clarity-init" strategy="afterInteractive" dangerouslySetInnerHTML={{
+            __html: `
+              (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+              })(window,document,"clarity","script","${CLARITY_ID}");
+            `,
+          }} />
+        )}
         <Sentry.ErrorBoundary fallback={<p>Bir hata oluştu. Lütfen sayfayı yenileyiniz.</p>}>
           <Providers>{children}</Providers>
         </Sentry.ErrorBoundary>
+        <CookieBanner />
+        <AnalyticsConsent />
       </body>
     </html>
   );

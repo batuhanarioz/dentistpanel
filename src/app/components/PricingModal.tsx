@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Check, Zap, Bell, ShieldCheck, CreditCard, Users, BarChart3, Calendar, Sparkles, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { trackPricingView } from "@/lib/analytics";
 
 interface PricingModalProps {
     isOpen: boolean;
@@ -20,6 +21,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
 
     useEffect(() => {
         if (!isOpen) return;
+        trackPricingView();
         const fetchPrices = async () => {
             const { data, error } = await supabase
                 .from("platform_settings")
