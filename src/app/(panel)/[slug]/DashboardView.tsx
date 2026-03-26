@@ -10,7 +10,11 @@ import { StatCards } from "@/app/components/dashboard/StatCards";
 import { AppointmentsSection } from "@/app/components/dashboard/AppointmentsSection";
 import { ControlListSection } from "@/app/components/dashboard/ControlListSection";
 import { AppointmentDetailDrawer } from "@/app/components/dashboard/AppointmentDetailDrawer";
-import { DashboardAnalytics } from "@/app/components/dashboard/DashboardAnalytics";
+import dynamic from "next/dynamic";
+const DashboardAnalytics = dynamic(
+    () => import("@/app/components/dashboard/DashboardAnalytics").then(m => m.DashboardAnalytics),
+    { ssr: false, loading: () => <div className="h-40 flex items-center justify-center text-xs text-slate-500 animate-pulse">Grafik yükleniyor...</div> }
+);
 import { useClinic } from "@/app/context/ClinicContext";
 import { QuickPaymentModal } from "@/app/components/dashboard/QuickPaymentModal";
 import { TreatmentActionModal } from "@/app/components/dashboard/TreatmentActionModal";

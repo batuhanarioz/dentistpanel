@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr } from "@/lib/dateUtils";
@@ -131,8 +131,8 @@ export function useAppointmentManagement(initialData?: {
     const [phoneNumber, setPhoneNumber] = useState("");
 
     const [patientSearch, setPatientSearch] = useState("");
-    const [patientSearchResults, setPatientSearchResults] = useState<PatientSearchResult[]>([]);
-    const [patientSearchLoading, setPatientSearchLoading] = useState(false);
+    const [debouncedPatientSearch, setDebouncedPatientSearch] = useState("");
+    const patientSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [selectedPatientId, setSelectedPatientId] = useState<string>("");
     const [duplicatePatient, setDuplicatePatient] = useState<PatientSearchResult | null>(null);
 
@@ -189,24 +189,33 @@ export function useAppointmentManagement(initialData?: {
         setIsSubmitting(false);
     }, [doctors]);
 
+    // Debounce patientSearch → debouncedPatientSearch (300 ms)
     useEffect(() => {
-        if (!effectiveClinicId) return;
-        let cancelled = false;
-        const searchPatients = async () => {
-            if (patientSearch.length < 2) {
-                setPatientSearchResults([]);
-                return;
-            }
-            setPatientSearchLoading(true);
-            const { data } = await supabase.from("patients").select("id, full_name, phone, email, birth_date, allergies, medical_alerts").eq("clinic_id", effectiveClinicId).or(`full_name.ilike.%${patientSearch}%,phone.ilike.%${patientSearch}%`).limit(10);
-            if (!cancelled) {
-                setPatientSearchResults(data || []);
-                setPatientSearchLoading(false);
-            }
+        if (patientSearchDebounceRef.current) clearTimeout(patientSearchDebounceRef.current);
+        patientSearchDebounceRef.current = setTimeout(() => {
+            setDebouncedPatientSearch(patientSearch);
+        }, 300);
+        return () => {
+            if (patientSearchDebounceRef.current) clearTimeout(patientSearchDebounceRef.current);
         };
-        const timer = setTimeout(searchPatients, 300);
-        return () => { cancelled = true; clearTimeout(timer); };
-    }, [patientSearch, effectiveClinicId]);
+    }, [patientSearch]);
+
+    const { data: patientSearchData, isFetching: patientSearchLoading } = useQuery({
+        queryKey: ["patientSearch", effectiveClinicId, debouncedPatientSearch],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from("patients")
+                .select("id, full_name, phone, email, birth_date, allergies, medical_alerts")
+                .eq("clinic_id", effectiveClinicId!)
+                .or(`full_name.ilike.%${debouncedPatientSearch}%,phone.ilike.%${debouncedPatientSearch}%`)
+                .limit(10);
+            return (data || []) as PatientSearchResult[];
+        },
+        enabled: !!effectiveClinicId && debouncedPatientSearch.length >= 2,
+        staleTime: 30 * 1000,
+    });
+
+    const patientSearchResults = debouncedPatientSearch.length >= 2 ? (patientSearchData ?? []) : [];
 
     useEffect(() => {
         if (!effectiveClinicId) return;

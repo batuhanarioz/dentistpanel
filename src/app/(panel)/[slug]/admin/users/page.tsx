@@ -27,7 +27,8 @@ export default function AdminUsersPage() {
     handleCreateUser, handleUpdateUser, handleResetPassword, executeDeleteUser, openEditModal, openDeleteModal
   } = useAdminUsers();
 
-  const [activeTab, setActiveTab] = useState<"members" | "settings" | "audit">("members");
+  const [activeTab, setActiveTab] = useState<"members" | "settings" | "audit" | "enabiz">("members");
+  const [showEnabizModal, setShowEnabizModal] = useState(false);
 
   // Calculate statistics
   const adminCount = users.filter(u => u.role === UserRole.ADMIN || u.role === UserRole.SUPER_ADMIN).length;
@@ -65,6 +66,13 @@ export default function AdminUsersPage() {
                 }`}
             >
               İşlem Günlüğü
+            </button>
+            <button
+              onClick={() => setShowEnabizModal(true)}
+              className="px-6 py-2.5 rounded-xl text-xs font-black transition-all text-slate-500 hover:text-slate-700 hover:bg-white/50 flex items-center gap-1.5"
+            >
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-amber-100 text-amber-600 text-[9px] font-black leading-none">!</span>
+              E-Nabız &amp; USS
             </button>
           </>
         )}
@@ -213,6 +221,65 @@ export default function AdminUsersPage() {
         userEmail={deleteTarget?.email ?? null}
         isProtected={deleteProtected}
       />
+
+      {/* E-Nabız & USS Bilgi Modalı */}
+      {showEnabizModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl overflow-hidden">
+            {/* Dekoratif üst şerit */}
+            <div className="h-1.5 bg-gradient-to-r from-blue-500 via-teal-400 to-emerald-400" />
+
+            <div className="p-8">
+              {/* Başlık */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-teal-100 text-blue-600">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-lg font-black text-slate-900">E-Nabız &amp; USS Entegrasyonu</h2>
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700 uppercase tracking-wider">Yakında</span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium">Sağlık Bakanlığı entegrasyonları</p>
+                </div>
+              </div>
+
+              {/* Açıklama */}
+              <div className="space-y-4 mb-7">
+                <div className="rounded-2xl bg-blue-50 border border-blue-100 p-4">
+                  <h3 className="text-sm font-black text-blue-800 mb-1.5">E-Nabız Nedir?</h3>
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    Sağlık Bakanlığı&apos;nın kişisel sağlık platformudur. Entegrasyon sayesinde hasta tedavi geçmişi, reçete ve tetkik bilgilerini doğrudan kliniğiniz üzerinden görüntüleyebilir; yapılan işlemleri otomatik olarak e-Nabız&apos;a bildirebilirsiniz.
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-teal-50 border border-teal-100 p-4">
+                  <h3 className="text-sm font-black text-teal-800 mb-1.5">USS (Ulusal Sağlık Sistemi) Nedir?</h3>
+                  <p className="text-xs text-teal-700 leading-relaxed">
+                    Sağlık Bakanlığı&apos;na bağlı tüm kliniklerin tanı, tedavi ve ödeme verilerini merkezi sisteme aktardığı platformdur. USS entegrasyonu; SGK bildirimleri, hizmet kodları ve fatura onaylarını panel üzerinden tek adımda gerçekleştirmenizi sağlayacaktır.
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 flex items-start gap-3">
+                  <svg className="h-5 w-5 text-slate-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Bu entegrasyonlar şu an geliştirme aşamasında olup önümüzdeki güncellemede kullanıma açılacaktır. Hazır olduğunda klinik yöneticileri bildirim alacaktır.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowEnabizModal(false)}
+                className="w-full rounded-2xl bg-slate-900 px-6 py-3 text-sm font-black text-white hover:bg-slate-800 transition-colors"
+              >
+                Anladım
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -49,7 +49,7 @@ export type PatientPayment = {
     parent_payment_id: string | null;
 };
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 50;
 
 export function usePatients() {
     const queryClient = useQueryClient();
@@ -70,12 +70,14 @@ export function usePatients() {
         staleTime: 5 * 60 * 1000, // 5 dakika
     });
 
-    // Fetch All Patients (Client-side pagination is handled in page.tsx)
+    // Fetch Patients — server-side search + pagination (50 per page)
+    const debouncedSearch = search.trim();
     const { data: patientsData, isLoading: loading, error: queryError } = useQuery({
-        queryKey: ["patients", clinic.clinicId],
-        queryFn: () => getAllPatients(clinic.clinicId || "", 1, 1000),
+        queryKey: ["patients", clinic.clinicId, debouncedSearch, currentPage],
+        queryFn: () => getAllPatients(clinic.clinicId || "", currentPage, PAGE_SIZE, debouncedSearch || undefined),
         enabled: !!clinic.clinicId,
         staleTime: 5 * 60 * 1000, // 5 dakika
+        placeholderData: (prev) => prev,
     });
 
     const patients = patientsData || [];
@@ -87,6 +89,7 @@ export function usePatients() {
         queryKey: ["patientDetails", selectedPatientId],
         queryFn: () => getPatientDetails(selectedPatientId!),
         enabled: !!selectedPatientId,
+        staleTime: 2 * 60 * 1000,
     });
 
     const appointments = detailData?.appointments || [];
@@ -97,18 +100,10 @@ export function usePatients() {
         return patients.find((p: PatientRow) => p.id === selectedPatientId) || null;
     }, [patients, selectedPatientId]);
 
-    const filteredPatients = useMemo(() => {
-        const term = search.trim().toLowerCase();
-        if (!term) return patients;
-        return patients.filter((p: PatientRow) => {
-            const name = p.full_name?.toLowerCase() ?? "";
-            const phone = p.phone?.replace(/\s+/g, "") ?? "";
-            return name.includes(term) || phone.includes(term.replace(/\s+/g, "")) || phone.includes(term);
-        });
-    }, [patients, search]);
+    // Server-side search is applied; return patients as-is (page-level re-filter removed)
+    const filteredPatients = patients;
 
-    const totalPages = 10; // Not: Toplam sayfa sayısı için API'den total count dönülmeli. 
-    // Şimdilik hızlı kazanım olarak mevcut yapıyı koruyoruz ancak gereksiz slice'ı kaldırıyoruz.
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
     const currentPagePatients = filteredPatients;
 
     const handleSelectPatient = (patient: PatientRow) => {

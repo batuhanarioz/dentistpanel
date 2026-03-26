@@ -345,7 +345,7 @@ export function AuthGuard({ children }: Props) {
           console.error("Error switching clinic context for superadmin:", err);
         }
       };
-      updateClinicContext();
+      void updateClinicContext();
     }
     // Eğer platform sayfalarına döndüyse ve context'te bir klinik varsa temizle
     else if (isSpecialPath && clinicCtx.clinicId !== null) {

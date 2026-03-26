@@ -17,7 +17,11 @@ import {
 } from "@/hooks/useUSSMonitoring";
 
 import { MonitoringSummaryCards } from "@/app/components/monitoring/MonitoringSummaryCards";
-import { TelemetryCharts } from "@/app/components/monitoring/TelemetryCharts";
+import dynamic from "next/dynamic";
+const TelemetryCharts = dynamic(
+    () => import("@/app/components/monitoring/TelemetryCharts").then(m => m.TelemetryCharts),
+    { ssr: false, loading: () => <div className="h-40 flex items-center justify-center text-xs text-slate-500 animate-pulse">Grafikler yükleniyor...</div> }
+);
 import { WorkerHeartbeatTable } from "@/app/components/monitoring/WorkerHeartbeatTable";
 import { AnomalyList } from "@/app/components/monitoring/AnomalyList";
 import { ClinicOverviewTable } from "@/app/components/monitoring/ClinicOverviewTable";

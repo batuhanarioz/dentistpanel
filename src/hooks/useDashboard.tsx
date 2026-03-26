@@ -155,7 +155,7 @@ export function useDashboard() {
     const appointmentIds = useMemo(() => rawAppointments.map(a => a.id), [rawAppointments]);
 
     const { data: revenueData } = useQuery({
-        queryKey: ["todayRevenue", viewDateAppointments, clinic.clinicId, appointmentIds],
+        queryKey: ["todayRevenue", viewDateAppointments, clinic.clinicId],
         queryFn: async () => {
             if (!clinic.clinicId || !appointmentIds.length) return { paidTotal: 0, pendingTotal: 0 };
             const { data } = await supabase
