@@ -23,6 +23,42 @@ import {
     Package,
 } from "lucide-react";
 
+const billingPeriodTR: Record<string, string> = {
+    monthly: "Aylık",
+    annual: "Yıllık",
+    pilot: "Pilot",
+};
+
+function openReceipt(payment: PaymentHistory, clinicName: string) {
+    const period = billingPeriodTR[payment.billing_period] ?? payment.billing_period;
+    const date = new Date(payment.created_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+    const html = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Makbuz</title>
+<style>body{font-family:sans-serif;max-width:520px;margin:40px auto;color:#1e293b}
+h1{font-size:20px;font-weight:900;margin-bottom:4px}
+.sub{color:#64748b;font-size:13px;margin-bottom:32px}
+table{width:100%;border-collapse:collapse}
+td{padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+td:last-child{text-align:right;font-weight:700}
+.total td{font-weight:900;font-size:15px;border-bottom:none;padding-top:16px}
+.badge{background:#dcfce7;color:#16a34a;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+@media print{button{display:none}}</style></head>
+<body>
+<h1>NextGency OS — Makbuz</h1>
+<p class="sub">${clinicName}</p>
+<table>
+<tr><td>Tarih</td><td>${date}</td></tr>
+<tr><td>Paket</td><td>${payment.package_name}</td></tr>
+<tr><td>Dönem</td><td>${period}</td></tr>
+<tr><td>Durum</td><td><span class="badge">Başarılı</span></td></tr>
+<tr class="total"><td>Toplam</td><td>${payment.amount.toLocaleString("tr-TR")} ${payment.currency}</td></tr>
+</table>
+<br><button onclick="window.print()" style="margin-top:24px;padding:10px 24px;background:#0f172a;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Yazdır / PDF Kaydet</button>
+</body></html>`;
+    const w = window.open("", "_blank");
+    w?.document.write(html);
+    w?.document.close();
+}
+
 export default function SubscriptionPage() {
     const clinic = useClinic();
     usePageHeader("Abonelik & Destek");
@@ -45,6 +81,7 @@ export default function SubscriptionPage() {
                 .from("payment_history")
                 .select("id, package_name, billing_period, amount, currency, status, invoice_url, created_at")
                 .eq("clinic_id", clinic.clinicId)
+                .eq("status", "paid")
                 .order("created_at", { ascending: false });
             if (data) setPayments(data as PaymentHistory[]);
             setLoading(false);
@@ -423,7 +460,7 @@ export default function SubscriptionPage() {
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     <p className="text-xs font-bold text-slate-800">{payment.package_name}</p>
-                                                    <p className="text-[10px] text-slate-400 font-medium capitalize">{payment.billing_period}</p>
+                                                    <p className="text-[10px] text-slate-400 font-medium">{billingPeriodTR[payment.billing_period] ?? payment.billing_period}</p>
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     <span className="text-xs font-black text-slate-900">
@@ -454,7 +491,13 @@ export default function SubscriptionPage() {
                                                             <ChevronRight size={14} />
                                                         </a>
                                                     ) : (
-                                                        <span className="text-[10px] text-slate-300 font-medium">—</span>
+                                                        <button
+                                                            onClick={() => openReceipt(payment, clinic.clinicName ?? "")}
+                                                            className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-slate-800 transition-colors flex items-center gap-1 ml-auto"
+                                                        >
+                                                            Makbuz
+                                                            <ChevronRight size={14} />
+                                                        </button>
                                                     )}
                                                 </td>
                                             </tr>

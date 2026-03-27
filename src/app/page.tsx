@@ -496,7 +496,7 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════════════════════════════════
           SECTION 9 — CHAPTER 06: RAPORLAMA VE GENEL BAKIŞ
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="py-24 lg:py-40 bg-white">
+      <section id="showcase" className="py-24 lg:py-40 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           {/* Header */}
           <div className="text-center mb-16 max-w-2xl mx-auto">
