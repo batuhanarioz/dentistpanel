@@ -194,7 +194,7 @@ export default function RootLayout({
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
-                gtag('consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied' });
+                gtag('consent', 'default', { analytics_storage: 'granted', ad_storage: 'denied' });
                 gtag('config', '${GA4_ID}', { anonymize_ip: true });
               `,
             }} />
