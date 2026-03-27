@@ -3,6 +3,7 @@ import "./globals.css";
 import Script from "next/script";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://clinic.nextgency360.com"),
   title: "Diş Kliniği Programı | NextGency OS Klinik Yönetim Sistemi",
   description: "Diş kliniği programı: randevu takibi, hasta yönetimi, ödeme takibi ve WhatsApp otomasyonu tek panelde. Diş hekimleri için klinik yönetim sistemi.",
   keywords: [

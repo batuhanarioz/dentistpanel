@@ -25,7 +25,7 @@ import {
 
 export default function SubscriptionPage() {
     const clinic = useClinic();
-    usePageHeader("Abonelik");
+    usePageHeader("Abonelik & Destek");
 
     // Trial hesaplarda billing_cycle "monthly" default kayıtlı olabilir.
     // Deneme kullanıcısına her zaman "annual" göster (daha avantajlı planı öne çıkar).
@@ -72,17 +72,7 @@ export default function SubscriptionPage() {
         { icon: MessageCircle, text: "7/24 Teknik Destek & Eğitim" },
     ];
 
-    if (!clinic.isAdmin) {
-        return (
-            <div className="flex flex-col items-center justify-center h-64 gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                <div className="h-10 w-10 rounded-full bg-rose-50 flex items-center justify-center">
-                    <AlertCircle className="h-5 w-5 text-rose-500" />
-                </div>
-                <p className="text-sm font-semibold text-slate-900">Yetkisiz Erişim</p>
-                <p className="text-xs text-slate-500">Bu sayfayı yalnızca yönetici yetkisine sahip kullanıcılar görüntüleyebilir.</p>
-            </div>
-        );
-    }
+    // isAdmin olmayan roller de sayfayı görebilir ama hassas bölümler gizlenir
 
     const trialDaysLeft = clinic.currentPeriodEnd
         ? Math.max(0, Math.ceil((new Date(clinic.currentPeriodEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
@@ -90,6 +80,20 @@ export default function SubscriptionPage() {
 
     const isTrialExpiringSoon = isTrial && trialDaysLeft <= 7;
     const visibleAddons = clinic.clinicAddons ?? [];
+
+    // Yıllık aktif abonelik varken aylık plana geçişi engelle
+    const isAnnualActive =
+        !isTrial &&
+        clinic.billingCycle === "annual" &&
+        clinic.subscriptionStatus === "active" &&
+        !!clinic.currentPeriodEnd &&
+        new Date(clinic.currentPeriodEnd) > new Date();
+
+    const isBlockedDowngrade = isAnnualActive && billingCycle === "monthly";
+
+    const periodEndFormatted = clinic.currentPeriodEnd
+        ? new Date(clinic.currentPeriodEnd).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })
+        : "";
 
     return (
         <>
@@ -102,8 +106,8 @@ export default function SubscriptionPage() {
             />
             <div className="max-w-6xl mx-auto space-y-8 pb-12">
 
-                {/* Deneme süresi uyarı banner'ı */}
-                {isTrialExpiringSoon && (
+                {/* Deneme süresi uyarı banner'ı — yalnızca admin */}
+                {isTrialExpiringSoon && clinic.isAdmin && (
                     <div className="rounded-2xl bg-gradient-to-r from-amber-400 to-orange-400 p-4 shadow-lg shadow-amber-100 flex items-center gap-4">
                         <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                             <AlertCircle className="h-5 w-5 text-white" />
@@ -116,7 +120,10 @@ export default function SubscriptionPage() {
                                 Kesintisiz kullanım için aşağıdan bir plan seçerek aboneliğinizi başlatın.
                             </p>
                         </div>
-                        <button className="shrink-0 bg-white text-amber-600 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl hover:bg-amber-50 transition-all">
+                        <button
+                            onClick={() => document.getElementById("plan-selector")?.scrollIntoView({ behavior: "smooth" })}
+                            className="shrink-0 bg-white text-amber-600 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl hover:bg-amber-50 transition-all"
+                        >
                             Plan Seç
                         </button>
                     </div>
@@ -174,14 +181,22 @@ export default function SubscriptionPage() {
                                 )}
                             </div>
                         </div>
-                        <div className="mt-8 flex flex-wrap gap-3">
-                            <button
-                                onClick={() => setShowCheckout(true)}
-                                className="bg-black text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200"
-                            >
-                                Planı Değiştir / Yenile
-                            </button>
-                        </div>
+                        {clinic.isAdmin && (
+                            <div className="mt-8 flex flex-wrap gap-3">
+                                <button
+                                    onClick={() => {
+                                        if (isTrial) {
+                                            document.getElementById("plan-selector")?.scrollIntoView({ behavior: "smooth" });
+                                        } else {
+                                            setShowCheckout(true);
+                                        }
+                                    }}
+                                    className="bg-black text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200"
+                                >
+                                    {isTrial ? "Plan Seç" : "Planı Değiştir / Yenile"}
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="bg-slate-900 rounded-[2rem] p-8 text-white flex flex-col justify-between">
@@ -206,7 +221,7 @@ export default function SubscriptionPage() {
                     </div>
                 </div>
 
-                {/* ── 2. Eklentilerim (dinamik) ─────────────────────────────────── */}
+                {/* ── 2. Eklentilerim ───────────────────────────────────────────── */}
                 {visibleAddons.length > 0 && (
                     <div>
                         <div className="flex items-center gap-3 mb-6">
@@ -226,117 +241,127 @@ export default function SubscriptionPage() {
                     </div>
                 )}
 
-                {/* ── 3. Paket Seçenekleri ──────────────────────────────────────── */}
-                <div className="pt-4">
-                    <div className="text-center mb-10">
-                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Size Uygun Planı Seçin</h2>
-                        <p className="text-slate-500 font-medium mt-2">Daha fazla özellik için paketinizi yükseltebilirsiniz.</p>
-                    </div>
-
-                    <div className="flex justify-center mb-10">
-                        <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-1">
+                {/* ── 3. Paket Seçenekleri — yalnızca admin ────────────────────── */}
+                {clinic.isAdmin && <div id="plan-selector" className="pt-2">
+                    {/* Başlık + Toggle tek satırda */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h2 className="text-xl font-black text-slate-900 tracking-tight">Planınızı Seçin</h2>
+                            <p className="text-slate-500 text-xs font-medium mt-0.5">Aboneliğinizi başlatın veya değiştirin.</p>
+                        </div>
+                        <div className="bg-white p-1 rounded-xl border border-slate-200 shadow-sm flex items-center gap-1 self-start">
                             <button
                                 onClick={() => setBillingCycle("monthly")}
-                                className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${billingCycle === "monthly" ? "bg-black text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
-                                    }`}
+                                className={`px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${billingCycle === "monthly" ? "bg-black text-white shadow-md" : "text-slate-500 hover:bg-slate-50"}`}
                             >
                                 Aylık
                             </button>
                             <button
                                 onClick={() => setBillingCycle("annual")}
-                                className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${billingCycle === "annual" ? "bg-black text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
-                                    }`}
+                                className={`px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${billingCycle === "annual" ? "bg-black text-white shadow-md" : "text-slate-500 hover:bg-slate-50"}`}
                             >
                                 Yıllık
-                                <span className="bg-emerald-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black uppercase shadow-sm">
-                                    %20 İndirim
-                                </span>
+                                <span className="bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">%20</span>
                             </button>
                         </div>
                     </div>
 
-                    <div className="grid lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden flex flex-col">
-                            <div className="p-10 border-b border-slate-50">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <h3 className="text-2xl font-black text-slate-900">NextGency OS Premium</h3>
-                                        <p className="text-slate-500 text-sm mt-1 font-medium">Sınırsız Kullanım, Maksimum Performans</p>
+                    <div className="grid lg:grid-cols-3 gap-5">
+                        {/* Premium Plan Kartı */}
+                        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            {/* Üst: fiyat + başlık */}
+                            <div className="p-6 flex items-center justify-between gap-4 border-b border-slate-100">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-500 text-white flex items-center justify-center shadow-md shadow-teal-100 shrink-0">
+                                        <ShieldCheck size={22} />
                                     </div>
-                                    <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500 text-white flex items-center justify-center shadow-lg shadow-teal-100">
-                                        <ShieldCheck size={28} />
+                                    <div>
+                                        <h3 className="text-base font-black text-slate-900">NextGency OS Premium</h3>
+                                        <p className="text-slate-400 text-xs font-medium">Sınırsız kullanım, tüm özellikler</p>
                                     </div>
                                 </div>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-6xl font-black text-slate-900 tracking-tighter">
-                                        {displayPrice.toLocaleString("tr-TR")} ₺
-                                    </span>
-                                    {billingCycle !== "pilot" && <span className="text-xl text-slate-400 font-bold">/ ay</span>}
-                                    {billingCycle === "pilot" && (
-                                        <span className="text-xl text-indigo-600 font-black ml-2 uppercase tracking-widest">Pilot Paket</span>
+                                <div className="text-right shrink-0">
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-3xl font-black text-slate-900 tracking-tighter">
+                                            {displayPrice.toLocaleString("tr-TR")} ₺
+                                        </span>
+                                        {billingCycle !== "pilot" && <span className="text-sm text-slate-400 font-bold">/ ay</span>}
+                                    </div>
+                                    {billingCycle === "annual" && (
+                                        <p className="text-[11px] text-emerald-600 font-bold mt-0.5">
+                                            Toplam {annualPrice.toLocaleString("tr-TR")} ₺ / yıl
+                                        </p>
+                                    )}
+                                    {billingCycle === "monthly" && (
+                                        <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                                            Yıllıkta 2.400 ₺ tasarruf
+                                        </p>
                                     )}
                                 </div>
-                                {billingCycle === "annual" && (
-                                    <p className="text-sm text-emerald-600 font-bold mt-4 flex items-center gap-2 bg-emerald-50 w-fit px-4 py-1.5 rounded-full">
-                                        <Check size={18} /> Yıllık ödemede aylık 200 ₺ tasarruf
-                                    </p>
-                                )}
                             </div>
-                            <div className="p-10 bg-slate-50/30 flex-1 grid sm:grid-cols-2 gap-6">
+                            {/* Özellikler kompakt grid */}
+                            <div className="px-6 py-4 grid sm:grid-cols-2 gap-x-6 gap-y-2">
                                 {features.map((feature, idx) => (
-                                    <div key={idx} className="flex items-start gap-4">
-                                        <div className="mt-1 bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
-                                            <feature.icon size={18} className="text-teal-600" />
-                                        </div>
-                                        <span className="text-sm font-bold text-slate-700 leading-snug">{feature.text}</span>
+                                    <div key={idx} className="flex items-center gap-2">
+                                        <Check size={13} className="text-teal-500 shrink-0" />
+                                        <span className="text-xs font-semibold text-slate-600">{feature.text}</span>
                                     </div>
                                 ))}
                             </div>
-                            <div className="p-10 border-t border-slate-100 bg-white">
+                            {/* CTA */}
+                            <div className="px-6 pb-6 pt-3">
                                 <button
                                     onClick={() => setShowCheckout(true)}
-                                    disabled={!isTrial && clinic.billingCycle === billingCycle && clinic.subscriptionStatus === "active"}
-                                    className="w-full bg-black text-white py-5 rounded-3xl text-sm font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={
+                                        isBlockedDowngrade ||
+                                        (!isTrial && clinic.billingCycle === billingCycle && clinic.subscriptionStatus === "active")
+                                    }
+                                    className="w-full bg-black text-white py-3.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {!isTrial && clinic.billingCycle === billingCycle && clinic.subscriptionStatus === "active"
-                                        ? "Mevcut Planınız"
-                                        : isTrial
-                                            ? "Denemeyi Bitir, Aboneliği Başlat"
-                                            : "Bu Plana Geçiş Yap"}
+                                    {isBlockedDowngrade
+                                        ? `Aboneliğiniz ${periodEndFormatted} tarihine kadar aktif`
+                                        : !isTrial && clinic.billingCycle === billingCycle && clinic.subscriptionStatus === "active"
+                                            ? "Mevcut Planınız"
+                                            : isTrial
+                                                ? "Denemeyi Bitir, Aboneliği Başlat"
+                                                : "Bu Plana Geçiş Yap"}
                                 </button>
                             </div>
                         </div>
 
-                        <div className="bg-gradient-to-br from-indigo-600 to-indigo-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-6 opacity-10 transform scale-150 rotate-12">
-                                <Sparkles size={120} />
+                        {/* Pilot Klinik Kartı */}
+                        <div className="bg-gradient-to-br from-indigo-600 to-indigo-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden flex flex-col justify-between">
+                            <div className="absolute top-0 right-0 opacity-10 translate-x-4 -translate-y-2">
+                                <Sparkles size={80} />
                             </div>
-                            <h3 className="text-xl font-black mb-4 tracking-tight">Pilot Kliniğimiz Olun</h3>
-                            <p className="text-indigo-100 text-sm leading-relaxed mb-8 font-medium">
-                                Sektörün geleceğini birlikte tasarlayalım. Kliniğinize özel çözümler ve öncelikli destekle sisteme entegrasyon sağlayın.
-                            </p>
-                            <ul className="space-y-4 mb-10">
-                                <li className="flex items-center gap-3 text-sm font-bold">
-                                    <div className="bg-white/20 p-1 rounded-lg"><Check size={16} /></div>
-                                    1 Ay Ücretsiz Kullanım
-                                </li>
-                                <li className="flex items-center gap-3 text-sm font-bold">
-                                    <div className="bg-white/20 p-1 rounded-lg"><Check size={16} /></div>
-                                    Özel Revize Talepleri
-                                </li>
-                            </ul>
+                            <div>
+                                <h3 className="text-base font-black mb-2 tracking-tight">Pilot Kliniğimiz Olun</h3>
+                                <p className="text-indigo-200 text-xs leading-relaxed mb-4 font-medium">
+                                    Kliniğinize özel çözümler ve öncelikli destekle sisteme entegrasyon sağlayın.
+                                </p>
+                                <ul className="space-y-2 mb-5">
+                                    <li className="flex items-center gap-2 text-xs font-bold">
+                                        <div className="bg-white/20 p-0.5 rounded-md"><Check size={12} /></div>
+                                        1 Ay Ücretsiz Kullanım
+                                    </li>
+                                    <li className="flex items-center gap-2 text-xs font-bold">
+                                        <div className="bg-white/20 p-0.5 rounded-md"><Check size={12} /></div>
+                                        Özel Revize Talepleri
+                                    </li>
+                                </ul>
+                            </div>
                             <button
                                 onClick={() => window.open(`https://wa.me/905444412180?text=${encodeURIComponent("Merhaba, Pilot Klinik programınız hakkında bilgi almak istiyorum.")}`, "_blank")}
-                                className="w-full bg-white text-indigo-700 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-lg active:scale-95"
+                                className="w-full bg-white text-indigo-700 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-lg active:scale-95"
                             >
                                 Detaylı Bilgi & Başvuru
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>}
 
-                {/* ── 4. Ödeme Geçmişi ─────────────────────────────────────────── */}
-                <div className="pt-4">
+                {/* ── 4. Ödeme Geçmişi — yalnızca admin ───────────────────────── */}
+                {clinic.isAdmin && <div className="pt-4">
                     <div className="flex items-center gap-3 mb-8">
                         <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100">
                             <History size={18} />
@@ -439,7 +464,7 @@ export default function SubscriptionPage() {
                             </table>
                         </div>
                     </div>
-                </div>
+                </div>}
             </div>
         </>
     );
