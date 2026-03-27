@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
-import { localDateStr } from "../../lib/dateUtils";
+import { supabase } from "@/lib/supabaseClient";
+import { localDateStr } from "@/lib/dateUtils";
 
 type CalendarAppointment = {
   id: string;
