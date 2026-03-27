@@ -133,9 +133,13 @@ export function AuthGuard({ children }: Props) {
   useEffect(() => {
     const initAuth = async () => {
       setLoadingStep("auth");
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (authError || !user) {
+        // Geçersiz/süresi dolmuş refresh token — stale session'ı temizle
+        if (authError?.message?.includes("Refresh Token")) {
+          await supabase.auth.signOut();
+        }
         if (pathname !== "/login" && pathname !== "/") {
           router.replace("/login");
         }

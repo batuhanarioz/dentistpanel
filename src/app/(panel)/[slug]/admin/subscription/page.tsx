@@ -21,6 +21,9 @@ import {
     BarChart3,
     MessageCircle,
     Package,
+    X,
+    RefreshCw,
+    XCircle,
 } from "lucide-react";
 
 const billingPeriodTR: Record<string, string> = {
@@ -72,6 +75,9 @@ export default function SubscriptionPage() {
     const [payments, setPayments] = useState<PaymentHistory[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCheckout, setShowCheckout] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelLoading, setCancelLoading] = useState(false);
+    const [cancelError, setCancelError] = useState<string | null>(null);
 
 
     useEffect(() => {
@@ -119,6 +125,17 @@ export default function SubscriptionPage() {
     const visibleAddons = clinic.clinicAddons ?? [];
 
     // Yıllık aktif abonelik varken aylık plana geçişi engelle
+    // "Ödeme Yöntemini Güncelle" — sadece dönem bitmesine ≤30 gün kaldığında göster
+    // (Daha erken göstermek çifte ödeme riskine yol açar)
+    const daysUntilExpiry = clinic.currentPeriodEnd
+        ? Math.ceil((new Date(clinic.currentPeriodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        : null;
+    const showUpdatePaymentMethod =
+        !isTrial &&
+        clinic.subscriptionStatus === "active" &&
+        daysUntilExpiry !== null &&
+        daysUntilExpiry <= 30;
+
     const isAnnualActive =
         !isTrial &&
         clinic.billingCycle === "annual" &&
@@ -141,6 +158,109 @@ export default function SubscriptionPage() {
                 amountTL={checkoutPrice}
                 onSuccess={() => { setShowCheckout(false); window.location.reload(); }}
             />
+
+            {/* İptal Onay Modalı */}
+            {showCancelModal && (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCancelModal(false)} />
+                    <div className="relative z-10 w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-2xl bg-rose-100 flex items-center justify-center">
+                                    <XCircle className="h-5 w-5 text-rose-500" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black text-slate-900">Aboneliği İptal Et</p>
+                                    <p className="text-[10px] text-slate-400 font-medium">NextGency OS Premium</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                className="h-8 w-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4">
+                                <p className="text-xs font-black text-rose-800 mb-1">Bunu bilmenizi istiyoruz</p>
+                                <p className="text-xs text-rose-700 font-medium leading-relaxed">
+                                    İptal talebiniz destek ekibimize iletilecektir. Mevcut aboneliğiniz
+                                    {periodEndFormatted ? <> <span className="font-black">{periodEndFormatted}</span> tarihine</> : " dönem sonuna"} kadar
+                                    {" "}tam erişimle aktif kalmaya devam eder.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2 text-xs text-slate-500 font-medium">
+                                <div className="flex items-start gap-2">
+                                    <div className="mt-0.5 h-4 w-4 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                                        <Check size={10} className="text-slate-500" />
+                                    </div>
+                                    Dönem sonuna kadar tüm verilere erişiminiz devam eder
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <div className="mt-0.5 h-4 w-4 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                                        <Check size={10} className="text-slate-500" />
+                                    </div>
+                                    Hasta kayıtları ve verileriniz güvende tutulur
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <div className="mt-0.5 h-4 w-4 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                                        <Check size={10} className="text-slate-500" />
+                                    </div>
+                                    İptal işlemi için destek ekibimiz sizi yönlendirecektir
+                                </div>
+                            </div>
+
+                            {cancelError && (
+                                <p className="text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                                    <AlertCircle size={12} /> {cancelError}
+                                </p>
+                            )}
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => { setShowCancelModal(false); setCancelError(null); }}
+                                    className="flex-1 border border-slate-200 text-slate-700 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+                                >
+                                    Vazgeç
+                                </button>
+                                <button
+                                    disabled={cancelLoading}
+                                    onClick={async () => {
+                                        setCancelLoading(true);
+                                        setCancelError(null);
+                                        try {
+                                            const { data: { session } } = await supabase.auth.getSession();
+                                            const res = await fetch("/api/subscription/cancel", {
+                                                method: "POST",
+                                                headers: { Authorization: `Bearer ${session?.access_token}` },
+                                            });
+                                            if (res.ok) {
+                                                setShowCancelModal(false);
+                                                window.location.reload();
+                                            } else {
+                                                const err = await res.json().catch(() => ({}));
+                                                setCancelError(err.error ?? "İptal işlemi başarısız oldu.");
+                                            }
+                                        } catch {
+                                            setCancelError("Bağlantı hatası. Lütfen tekrar deneyin.");
+                                        } finally {
+                                            setCancelLoading(false);
+                                        }
+                                    }}
+                                    className="flex-1 bg-rose-500 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-rose-600 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {cancelLoading ? (
+                                        <><span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> İptal ediliyor...</>
+                                    ) : "Aboneliği İptal Et"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="max-w-6xl mx-auto space-y-8 pb-12">
 
                 {/* Deneme süresi uyarı banner'ı — yalnızca admin */}
@@ -232,6 +352,26 @@ export default function SubscriptionPage() {
                                 >
                                     {isTrial ? "Plan Seç" : "Planı Değiştir / Yenile"}
                                 </button>
+                                {!isTrial && clinic.subscriptionStatus === "active" && (
+                                    <>
+                                        {showUpdatePaymentMethod && (
+                                            <button
+                                                onClick={() => setShowCheckout(true)}
+                                                className="flex items-center gap-2 border border-slate-200 text-slate-700 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
+                                            >
+                                                <RefreshCw size={14} />
+                                                Ödeme Yöntemini Güncelle
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => setShowCancelModal(true)}
+                                            className="flex items-center gap-2 border border-rose-200 text-rose-500 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-rose-50 transition-all active:scale-95"
+                                        >
+                                            <XCircle size={14} />
+                                            Aboneliği İptal Et
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>

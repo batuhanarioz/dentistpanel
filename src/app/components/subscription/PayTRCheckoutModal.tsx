@@ -19,7 +19,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { X, Loader2, AlertCircle, ShieldCheck, Tag, CheckCircle2, ChevronRight } from "lucide-react";
+import { X, Loader2, AlertCircle, ShieldCheck, Tag, CheckCircle2, ChevronRight, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import type { BillingCycle } from "@/lib/paytr";
 
@@ -64,6 +64,7 @@ export function PayTRCheckoutModal({
     const [codeLoading, setCodeLoading] = useState(false);
     const [codeError, setCodeError] = useState<string | null>(null);
     const [discount, setDiscount] = useState<DiscountPreview | null>(null);
+    const [showDiscountInput, setShowDiscountInput] = useState(false);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
     // Modal kapanınca state sıfırla
@@ -73,6 +74,7 @@ export function PayTRCheckoutModal({
             setCodeInput("");
             setCodeError(null);
             setDiscount(null);
+            setShowDiscountInput(false);
         }
     }, [isOpen]);
 
@@ -169,6 +171,21 @@ export function PayTRCheckoutModal({
 
     const planLabel = billingCycle === "annual" ? "Yıllık Plan" : "Aylık Plan";
 
+    // Fiyat hesaplamaları
+    const monthlyPrice = 1199;
+    const annualTotal = 11990;
+    const annualPerMonth = 999;
+    const annualSavings = monthlyPrice * 12 - annualTotal; // 2398
+
+    const baseAmount = discount?.originalAmount ?? amountTL;
+    const finalAmount = discount?.finalAmount ?? amountTL;
+
+    // Yenileme tarihi tahmini
+    const renewalDate = new Date();
+    if (billingCycle === "annual") renewalDate.setFullYear(renewalDate.getFullYear() + 1);
+    else renewalDate.setMonth(renewalDate.getMonth() + 1);
+    const renewalDateStr = renewalDate.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+
     return (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -195,85 +212,135 @@ export function PayTRCheckoutModal({
 
                 {/* İçerik */}
                 <div>
-                    {/* ── Faz: Kod + Devam Ekranı ─────────────────────────────────── */}
+                    {/* ── Faz: Sipariş Özeti + Devam ──────────────────────────────── */}
                     {phase.name === "input" && (
-                        <div className="p-6 space-y-5">
-                            {/* İndirim Kodu */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                    <Tag size={12} /> İndirim Kodu (opsiyonel)
-                                </label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Kodu girin..."
-                                        value={codeInput}
-                                        onChange={e => { setCodeInput(e.target.value.toUpperCase()); setCodeError(null); setDiscount(null); }}
-                                        onKeyDown={e => e.key === "Enter" && validateCode()}
-                                        className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all tracking-widest uppercase"
-                                        maxLength={32}
-                                    />
-                                    <button
-                                        onClick={validateCode}
-                                        disabled={!codeInput.trim() || codeLoading}
-                                        className="shrink-0 bg-slate-900 text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-700 transition-colors disabled:opacity-40"
-                                    >
-                                        {codeLoading ? <Loader2 size={14} className="animate-spin" /> : "Uygula"}
-                                    </button>
+                        <div className="p-6 space-y-4">
+                            {/* Sipariş Özeti */}
+                            <div className="rounded-2xl bg-slate-50 border border-slate-200 overflow-hidden">
+                                <div className="px-5 pt-5 pb-4">
+                                    <p className="text-sm font-black text-slate-900">NextGency OS Premium</p>
+                                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                                        {billingCycle === "annual" ? "Yıllık Plan — 12 Aylık Erişim" : "Aylık Plan — Esnek Kullanım"}
+                                    </p>
+
+                                    <div className="mt-4 space-y-2">
+                                        {billingCycle === "annual" ? (
+                                            <>
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-slate-500 font-medium">Aylık karşılığı</span>
+                                                    <span className="font-bold text-slate-700">{annualPerMonth.toLocaleString("tr-TR")} ₺/ay</span>
+                                                </div>
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-slate-500 font-medium">Aylık plana göre tasarruf</span>
+                                                    <span className="font-bold text-emerald-600">+{annualSavings.toLocaleString("tr-TR")} ₺ (%17)</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-slate-500 font-medium">Yıllıkta tasarruf edilecek</span>
+                                                <span className="font-bold text-emerald-600">+{annualSavings.toLocaleString("tr-TR")} ₺</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
-                                {/* Kod hatası */}
-                                {codeError && (
-                                    <p className="text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
-                                        <AlertCircle size={12} /> {codeError}
-                                    </p>
-                                )}
+                                <div className="border-t border-slate-200 px-5 py-3 flex items-center justify-between bg-white">
+                                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Bugün Ödenecek</span>
+                                    <div className="text-right">
+                                        {discount ? (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold text-slate-400 line-through">
+                                                    {baseAmount.toLocaleString("tr-TR")} ₺
+                                                </span>
+                                                <span className="text-lg font-black text-slate-900">
+                                                    {finalAmount.toLocaleString("tr-TR")} ₺
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-lg font-black text-slate-900">
+                                                {amountTL.toLocaleString("tr-TR")} ₺
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
 
-                                {/* Kod başarılı önizleme */}
-                                {discount && (
-                                    <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                                            <p className="text-xs font-black text-emerald-800">{discount.message}</p>
+                            {/* İndirim kodu — collapsible */}
+                            <div>
+                                <button
+                                    onClick={() => setShowDiscountInput(v => !v)}
+                                    className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    <Tag size={13} />
+                                    İndirim kodum var
+                                    <ChevronDown size={13} className={`transition-transform ${showDiscountInput ? "rotate-180" : ""}`} />
+                                </button>
+
+                                {showDiscountInput && (
+                                    <div className="mt-3 space-y-2">
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Kodu girin..."
+                                                value={codeInput}
+                                                onChange={e => { setCodeInput(e.target.value.toUpperCase()); setCodeError(null); setDiscount(null); }}
+                                                onKeyDown={e => e.key === "Enter" && validateCode()}
+                                                className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all tracking-widest uppercase"
+                                                maxLength={32}
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={validateCode}
+                                                disabled={!codeInput.trim() || codeLoading}
+                                                className="shrink-0 bg-slate-900 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-700 transition-colors disabled:opacity-40"
+                                            >
+                                                {codeLoading ? <Loader2 size={14} className="animate-spin" /> : "Uygula"}
+                                            </button>
                                         </div>
-                                        <div className="flex items-center justify-between pt-1 border-t border-emerald-200">
-                                            <div className="space-y-0.5">
-                                                <p className="text-[10px] font-bold text-slate-400 line-through">
-                                                    {discount.originalAmount.toLocaleString("tr-TR")} ₺
-                                                </p>
-                                                <p className="text-lg font-black text-emerald-700">
-                                                    {discount.finalAmount.toLocaleString("tr-TR")} ₺
-                                                    <span className="text-[11px] font-bold text-slate-400 ml-1">/ {billingCycle === "annual" ? "yıl" : "ay"}</span>
-                                                </p>
-                                            </div>
-                                            <div className="bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest">
-                                                {discount.discountType === "percent"
-                                                    ? `%${discount.discountValue} İndirim`
-                                                    : `${discount.discountValue.toLocaleString("tr-TR")} ₺ İndirim`}
-                                            </div>
-                                        </div>
-                                        {discount.isRecurring && (
-                                            <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">
-                                                Bu indirim kod aktif olduğu sürece her dönem uygulanır
+
+                                        {codeError && (
+                                            <p className="text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                                                <AlertCircle size={12} /> {codeError}
                                             </p>
+                                        )}
+
+                                        {discount && (
+                                            <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                                                    <p className="text-xs font-black text-emerald-800">{discount.message}</p>
+                                                </div>
+                                                <div className="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest shrink-0 ml-2">
+                                                    {discount.discountType === "percent"
+                                                        ? `%${discount.discountValue}`
+                                                        : `-${discount.discountValue.toLocaleString("tr-TR")} ₺`}
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Ödemeye Geç butonu */}
+                            {/* CTA Butonu */}
                             <button
                                 onClick={startCheckout}
-                                className="w-full flex items-center justify-between bg-slate-900 text-white px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-[0.98] shadow-xl shadow-slate-200"
+                                className="w-full flex items-center justify-between bg-slate-900 text-white px-6 py-4 rounded-2xl text-sm font-black hover:bg-slate-800 transition-all active:scale-[0.98] shadow-xl shadow-slate-200"
                             >
-                                <span>Ödemeye Geç</span>
+                                <span>Güvenli Ödemeye Geç</span>
                                 <div className="flex items-center gap-2">
                                     <span className="font-black text-emerald-400">
-                                        {(discount?.finalAmount ?? amountTL).toLocaleString("tr-TR")} ₺
+                                        {finalAmount.toLocaleString("tr-TR")} ₺
                                     </span>
                                     <ChevronRight size={18} />
                                 </div>
                             </button>
+
+                            {/* Yenileme notu */}
+                            <p className="text-center text-[10px] text-slate-400 font-medium leading-relaxed">
+                                Aboneliğiniz <span className="font-bold text-slate-600">{renewalDateStr}</span> tarihinde yenilenir.
+                                <br />
+                                İstediğiniz zaman destek ekibimizle iletişime geçebilirsiniz.
+                            </p>
                         </div>
                     )}
 

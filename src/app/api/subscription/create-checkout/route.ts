@@ -22,6 +22,7 @@ import {
     PAYTR_CONFIG,
     generateIframeHash,
     generateOrderId,
+    getRecurringParams,
     tlToKurus,
     type BillingCycle,
 } from "@/lib/paytr";
@@ -168,6 +169,10 @@ export const POST = withAuth(
             currency: "TL",
             test_mode: PAYTR_CONFIG.TEST_MODE,
             lang: "tr",
+            // ── Recurring / otomatik yenileme parametreleri ───────────────────
+            // PayTR bu parametrelerle kartı saklar ve belirtilen periyotta otomatik çeker.
+            // recurring_payment: "0" = ilk ödeme; sonraki çekimlerde PayTR webhook'ta "1" gönderir.
+            ...getRecurringParams(billingCycle),
         };
 
         // ── 7. PayTR API'sini çağır ───────────────────────────────────────────

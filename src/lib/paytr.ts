@@ -22,11 +22,12 @@ export const PAYTR_CONFIG = {
     /** 1 = test modu, 0 = canlı */
     TEST_MODE: process.env.PAYTR_TEST_MODE === "0" ? "0" : "1",
 
-    /** PayTR sabit endpoint'leri — dokümantasyon ile doğrula */
+    /** PayTR sabit endpoint'leri */
     IFRAME_TOKEN_URL: "https://www.paytr.com/odeme/api/get-token",
     IFRAME_BASE_URL: "https://www.paytr.com/odeme/guvenli",
-    // TODO: PayTR recurring cancel endpoint — dokümantasyon gelince güncelle
     RECURRING_CANCEL_URL: "https://www.paytr.com/odeme/api/recurring-cancel",
+    /** Kayıtlı kart ile manuel ücretlendirme (dunning retry) */
+    RECURRING_CHARGE_URL: "https://www.paytr.com/odeme/api/recurring-payment",
 } as const;
 
 // ─── Tipler ──────────────────────────────────────────────────────────────────
@@ -139,16 +140,46 @@ export function verifyWebhookHash(payload: PaytrWebhookPayload): boolean {
 
 /**
  * Recurring cancel hash üretir.
- * TODO: PayTR dokümantasyonundan kesin parametreleri doğrula
+ * Algoritma: BASE64( HMAC-SHA256( merchant_id + merchant_oid + merchant_salt, merchant_key ) )
  */
 export function generateCancelHash(merchantOid: string): string {
     const { MERCHANT_ID, MERCHANT_KEY, MERCHANT_SALT } = PAYTR_CONFIG;
-
-    // TODO: PayTR recurring cancel hash algoritmasını doğrula
-    const hashStr = MERCHANT_ID + merchantOid;
+    const hashStr = MERCHANT_ID + merchantOid + MERCHANT_SALT;
     return crypto
         .createHmac("sha256", MERCHANT_KEY)
-        .update(hashStr + MERCHANT_SALT)
+        .update(hashStr)
+        .digest("base64");
+}
+
+/**
+ * Recurring retry (dunning) hash üretir.
+ * Algoritma: BASE64( HMAC-SHA256(
+ *   merchant_id + original_merchant_oid + new_merchant_oid + payment_amount + currency + test_mode + merchant_salt,
+ *   merchant_key
+ * ))
+ */
+export function generateRetryHash(params: {
+    originalMerchantOid: string;
+    newMerchantOid: string;
+    paymentAmountKurus: string;
+    currency?: string;
+    testMode?: string;
+}): string {
+    const { MERCHANT_ID, MERCHANT_KEY, MERCHANT_SALT, TEST_MODE } = PAYTR_CONFIG;
+    const { originalMerchantOid, newMerchantOid, paymentAmountKurus, currency = "TL", testMode = TEST_MODE } = params;
+
+    const hashStr =
+        MERCHANT_ID +
+        originalMerchantOid +
+        newMerchantOid +
+        paymentAmountKurus +
+        currency +
+        testMode +
+        MERCHANT_SALT;
+
+    return crypto
+        .createHmac("sha256", MERCHANT_KEY)
+        .update(hashStr)
         .digest("base64");
 }
 
@@ -172,7 +203,8 @@ export function kurusToTl(kurus: string): number {
 export function generateOrderId(clinicId: string): string {
     const prefix = clinicId.replace(/-/g, "").slice(0, 8).toUpperCase();
     const ts = Date.now().toString(36).toUpperCase();
-    const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
+    // 6 random chars (base36) → ~2.17 milyar olasılık, aynı millisaniyede çakışma pratikte imkansız
+    const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
     return `${prefix}${ts}${rand}`;
 }
 
@@ -191,19 +223,23 @@ export function calculatePeriodEnd(cycle: BillingCycle, fromDate = new Date()): 
 
 /**
  * billing_cycle'a göre PayTR recurring parametrelerini döner.
- * TODO: PayTR dokümantasyonundan recurring_payment_frequency_type değerlerini doğrula
+ *
+ * PayTR recurring_payment_frequency_type desteklenen değerler: "D" | "W" | "M"
+ * "Y" (yearly) desteklenmez — yıllık abonelik için "M" + frequency "12" kullanılır.
+ *
+ * Aylık  → her 1 ay
+ * Yıllık → her 12 ay (PayTR'de "Y" tipi yoktur)
  */
 export function getRecurringParams(cycle: BillingCycle): {
     recurring_payment_num: string;
     recurring_payment_frequency: string;
-    recurring_payment_frequency_type: string; // "M" = aylık, "Y" = yıllık (doğrula)
-    recurring_payment_max_charge: string;      // 0 = limitsiz (doğrula)
+    recurring_payment_frequency_type: string;
+    recurring_payment_max_charge: string;
 } {
     return {
-        recurring_payment_num: "0",       // 0 = sonsuz yineleme
-        recurring_payment_frequency: "1",
-        // TODO: PayTR "Y" (yearly) destekliyor mu, doğrula
-        recurring_payment_frequency_type: cycle === "annual" ? "Y" : "M",
-        recurring_payment_max_charge: "0",
+        recurring_payment_num: "0",              // 0 = sonsuz yineleme
+        recurring_payment_frequency: cycle === "annual" ? "12" : "1",
+        recurring_payment_frequency_type: "M",   // her zaman aylık tip; yıllık için freq=12
+        recurring_payment_max_charge: "0",       // 0 = tutar sınırı yok
     };
 }

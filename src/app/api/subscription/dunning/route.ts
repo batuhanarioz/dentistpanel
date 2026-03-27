@@ -16,7 +16,11 @@ import {
     canRetryNow,
 } from "@/lib/dunning";
 import {
+    PAYTR_CONFIG,
     calculatePeriodEnd,
+    generateOrderId,
+    generateRetryHash,
+    tlToKurus,
     type BillingCycle,
 } from "@/lib/paytr";
 
@@ -162,29 +166,15 @@ export async function GET(req: NextRequest) {
 // ─── Yardımcı Fonksiyonlar ────────────────────────────────────────────────────
 
 /**
- * PayTR direct (server-to-server) retry charge.
- * Kayıtlı kart token'ı ile yeni ücretlendirme dener.
- *
- * ⚠️  DEVRE DIŞI: PayTR recurring-charge endpoint'i ve hash algoritması
- *     dokümantasyon alındıktan sonra doldurulacak.
- *     Şu an her zaman false döndürür → dunning sadece bildirim + durum
- *     güncellemesi yapar, otomatik kart çekimi yapmaz.
- *
- * Dokümantasyon gelince implement edilecekler:
- *   1. PAYTR_CONFIG.RECURRING_CHARGE_URL — gerçek endpoint
- *   2. generateRetryHash(params) — src/lib/paytr.ts'e eklenecek
- *   3. paytr_token parametresi formBody'ye eklenecek
+ * PayTR server-to-server retry charge.
+ * Kayıtlı kart (recurring token) ile yeni ücretlendirme dener.
+ * PayTR'nin /odeme/api/recurring-payment endpoint'ini kullanır.
  */
 async function attemptRetryCharge(
     clinicId: string,
     billingCycle: BillingCycle
 ): Promise<boolean> {
-    // TODO: PayTR dokümantasyonu alınınca aşağıdaki bloğu aç ve implement et
-    console.warn(`[Dunning Retry] Otomatik kart çekimi henüz aktif değil — klinik: ${clinicId}, dönem: ${billingCycle}`);
-    void clinicId; void billingCycle; // unused until implemented
-    return false;
-
-    /* ── Gerçek implementasyon (doküman gelince açılacak) ────────────────────
+    // En son başarılı ödeme → recurring token bu merchant_oid'e bağlı
     const { data: lastOrder } = await supabaseAdmin
         .from("paytr_orders")
         .select("merchant_oid, amount_tl")
@@ -194,9 +184,15 @@ async function attemptRetryCharge(
         .limit(1)
         .maybeSingle();
 
-    if (!lastOrder) return false;
+    if (!lastOrder) {
+        console.warn(`[Dunning Retry] Son ödeme bulunamadı — klinik: ${clinicId}`);
+        return false;
+    }
 
     const newMerchantOid = generateOrderId(clinicId);
+    const paymentAmountKurus = tlToKurus(lastOrder.amount_tl);
+
+    // Yeni sipariş kaydı (webhook bu ID ile eşleşecek)
     await supabaseAdmin.from("paytr_orders").insert({
         merchant_oid: newMerchantOid,
         clinic_id: clinicId,
@@ -205,31 +201,46 @@ async function attemptRetryCharge(
         status: "pending",
     });
 
+    const paytrToken = generateRetryHash({
+        originalMerchantOid: lastOrder.merchant_oid,
+        newMerchantOid,
+        paymentAmountKurus,
+    });
+
     const formBody = new URLSearchParams({
         merchant_id: PAYTR_CONFIG.MERCHANT_ID,
-        merchant_oid: lastOrder.merchant_oid,
-        new_merchant_oid: newMerchantOid,
-        payment_amount: tlToKurus(lastOrder.amount_tl),
+        merchant_oid: lastOrder.merchant_oid,   // orijinal — kart buraya bağlı
+        new_merchant_oid: newMerchantOid,        // yeni sipariş ID
+        payment_amount: paymentAmountKurus,
         currency: "TL",
         test_mode: PAYTR_CONFIG.TEST_MODE,
-        ...getRecurringParams(billingCycle),
-        paytr_token: generateRetryHash(...), // TODO: implement
+        paytr_token: paytrToken,
     }).toString();
 
-    const res = await fetch(PAYTR_CONFIG.RECURRING_CHARGE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formBody,
-    });
-    const data = await res.json() as { status: string };
-    const success = data.status === "success";
+    let success = false;
+    try {
+        const res = await fetch(PAYTR_CONFIG.RECURRING_CHARGE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formBody,
+        });
+        const data = await res.json() as { status: string; reason?: string };
+        success = data.status === "success";
+        if (!success) {
+            console.warn(`[Dunning Retry] PayTR retry başarısız — klinik: ${clinicId}, sebep: ${data.reason}`);
+        }
+    } catch (err) {
+        console.error(`[Dunning Retry] PayTR API hatası — klinik: ${clinicId}:`, err);
+    }
 
     await supabaseAdmin.from("paytr_orders")
-        .update({ status: success ? "paid" : "failed", ...(success ? { paid_at: new Date().toISOString() } : {}) })
+        .update({
+            status: success ? "paid" : "failed",
+            ...(success ? { paid_at: new Date().toISOString() } : {}),
+        })
         .eq("merchant_oid", newMerchantOid);
 
     return success;
-    ─────────────────────────────────────────────────────────────────────────── */
 }
 
 
