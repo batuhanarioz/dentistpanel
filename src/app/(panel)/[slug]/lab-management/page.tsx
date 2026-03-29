@@ -175,8 +175,8 @@ export default function LabManagementPage() {
                                 key={tab.value}
                                 onClick={() => handleTabChange(tab.value)}
                                 className={`whitespace-nowrap px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${activeTab === tab.value
-                                        ? "bg-white text-slate-900 shadow-sm ring-1 ring-black/5"
-                                        : "text-slate-500 hover:text-slate-800"
+                                    ? "bg-white text-slate-900 shadow-sm ring-1 ring-black/5"
+                                    : "text-slate-500 hover:text-slate-800"
                                     }`}
                             >
                                 {tab.label}
