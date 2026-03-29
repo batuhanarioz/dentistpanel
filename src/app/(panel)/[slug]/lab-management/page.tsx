@@ -10,12 +10,12 @@ import { LabJobModal } from "@/app/components/lab/LabJobModal";
 // ─── Statü sekmeleri ──────────────────────────────────────────────────────────
 
 const STATUS_TABS = [
-    { value: "all",         label: "Tümü" },
-    { value: "sent",        label: "Gönderildi" },
+    { value: "all", label: "Tümü" },
+    { value: "sent", label: "Gönderildi" },
     { value: "in_progress", label: "İşlemde" },
-    { value: "try_in",      label: "Prova" },
-    { value: "received",    label: "Teslim Alındı" },
-    { value: "cancelled",   label: "İptal" },
+    { value: "try_in", label: "Prova" },
+    { value: "received", label: "Teslim Alındı" },
+    { value: "cancelled", label: "İptal" },
 ];
 
 // ─── Yardımcılar ──────────────────────────────────────────────────────────────
@@ -140,9 +140,9 @@ export default function LabManagementPage() {
     }
 
     const nextStatus: Partial<Record<LabJobStatus, { status: LabJobStatus; label: string }>> = {
-        sent:        { status: "in_progress", label: "→ İşlemde" },
-        in_progress: { status: "try_in",      label: "→ Provaya Al" },
-        try_in:      { status: "received",    label: "→ Teslim Alındı" },
+        sent: { status: "in_progress", label: "→ İşlemde" },
+        in_progress: { status: "try_in", label: "→ Provaya Al" },
+        try_in: { status: "received", label: "→ Teslim Alındı" },
     };
 
     return (
@@ -151,11 +151,11 @@ export default function LabManagementPage() {
             {/* Stat kartları */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 {[
-                    { label: "Gönderildi",    value: stats.sent,        color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200"   },
-                    { label: "İşlemde",       value: stats.in_progress, color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200"    },
-                    { label: "Prova",         value: stats.try_in,      color: "text-purple-700",  bg: "bg-purple-50",  border: "border-purple-200"  },
-                    { label: "Teslim Alındı", value: stats.received,    color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
-                    { label: "Geciken",       value: stats.overdue,     color: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-200"    },
+                    { label: "Gönderildi", value: stats.sent, color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" },
+                    { label: "İşlemde", value: stats.in_progress, color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200" },
+                    { label: "Prova", value: stats.try_in, color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-200" },
+                    { label: "Teslim Alındı", value: stats.received, color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
+                    { label: "Geciken", value: stats.overdue, color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200" },
                 ].map(s => (
                     <div key={s.label} className={`rounded-2xl border ${s.bg} ${s.border} px-4 py-3`}>
                         <p className={`text-[10px] font-black uppercase tracking-widest ${s.color}`}>{s.label}</p>
@@ -174,11 +174,10 @@ export default function LabManagementPage() {
                             <button
                                 key={tab.value}
                                 onClick={() => handleTabChange(tab.value)}
-                                className={`whitespace-nowrap px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${
-                                    activeTab === tab.value
+                                className={`whitespace-nowrap px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${activeTab === tab.value
                                         ? "bg-white text-slate-900 shadow-sm ring-1 ring-black/5"
                                         : "text-slate-500 hover:text-slate-800"
-                                }`}
+                                    }`}
                             >
                                 {tab.label}
                             </button>

@@ -114,8 +114,8 @@ function RecallCard({ item, onAction }: {
                         }`}
                 >
                     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.094.541 4.065 1.49 5.782L.055 23.07a.75.75 0 0 0 .94.908l5.417-1.416A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.962 9.962 0 0 1-5.063-1.375l-.363-.214-3.757.982.999-3.648-.235-.376A9.96 9.96 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.094.541 4.065 1.49 5.782L.055 23.07a.75.75 0 0 0 .94.908l5.417-1.416A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.962 9.962 0 0 1-5.063-1.375l-.363-.214-3.757.982.999-3.648-.235-.376A9.96 9.96 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
                     </svg>
                     WhatsApp
                 </a>
@@ -196,9 +196,9 @@ function EmptyState({ tab, hasSearch }: { tab: string; hasSearch: boolean }) {
 // ─── Tab tanımları ────────────────────────────────────────────────────────────
 
 const TABS: { value: RecallStatus; label: string }[] = [
-    { value: "pending",   label: "Bekleyenler" },
+    { value: "pending", label: "Bekleyenler" },
     { value: "contacted", label: "Ulaşıldı" },
-    { value: "booked",    label: "Randevu Alındı" },
+    { value: "booked", label: "Randevu Alındı" },
     { value: "dismissed", label: "Atlandı" },
 ];
 
@@ -219,20 +219,20 @@ export default function RecallPage() {
     // ── İstatistikler ─────────────────────────────────────────────────────────
     const today = todayIST();
     const stats = useMemo(() => {
-        const pending   = allItems.filter(i => i.status === "pending").length;
-        const overdue   = allItems.filter(i => i.status === "pending" && i.recall_due_at <= today).length;
+        const pending = allItems.filter(i => i.status === "pending").length;
+        const overdue = allItems.filter(i => i.status === "pending" && i.recall_due_at <= today).length;
         const contacted = allItems.filter(i => i.status === "contacted").length;
-        const booked    = allItems.filter(i => i.status === "booked").length;
-        const total     = allItems.filter(i => i.status !== "dismissed").length;
-        const rate      = total > 0 ? Math.round((booked / total) * 100) : 0;
+        const booked = allItems.filter(i => i.status === "booked").length;
+        const total = allItems.filter(i => i.status !== "dismissed").length;
+        const rate = total > 0 ? Math.round((booked / total) * 100) : 0;
         return { pending, overdue, contacted, booked, rate };
     }, [allItems, today]);
 
     // ── Tab sayıları ──────────────────────────────────────────────────────────
     const tabCounts = useMemo(() => ({
-        pending:   allItems.filter(i => i.status === "pending").length,
+        pending: allItems.filter(i => i.status === "pending").length,
         contacted: allItems.filter(i => i.status === "contacted").length,
-        booked:    allItems.filter(i => i.status === "booked").length,
+        booked: allItems.filter(i => i.status === "booked").length,
         dismissed: allItems.filter(i => i.status === "dismissed").length,
     }), [allItems]);
 
@@ -257,9 +257,8 @@ export default function RecallPage() {
         <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
             {/* Başlık */}
             <div>
-                <h1 className="text-2xl font-black text-slate-900">Recall Çağrı Listesi</h1>
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                    Kontrol zamanı gelen hastaları WhatsApp ile arayın
+                    Kontrol zamanı gelen hastalarınıza ulaşın
                 </p>
             </div>
 
@@ -314,11 +313,10 @@ export default function RecallPage() {
                 {activeTab === "pending" && (
                     <button
                         onClick={() => setOverdueOnly(v => !v)}
-                        className={`shrink-0 px-4 py-2.5 rounded-2xl text-[11px] font-black border transition-all ${
-                            overdueOnly
-                                ? "bg-rose-500 text-white border-rose-500 shadow-sm"
-                                : "bg-white text-slate-600 border-slate-200 hover:border-rose-300 hover:text-rose-600"
-                        }`}
+                        className={`shrink-0 px-4 py-2.5 rounded-2xl text-[11px] font-black border transition-all ${overdueOnly
+                            ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-rose-300 hover:text-rose-600"
+                            }`}
                     >
                         🔴 Gecikmiş
                     </button>
@@ -340,12 +338,11 @@ export default function RecallPage() {
                         >
                             {tab.label}
                             {count > 0 && (
-                                <span className={`ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-white text-[9px] font-black ${
-                                    tab.value === "pending" ? "bg-teal-500" :
+                                <span className={`ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-white text-[9px] font-black ${tab.value === "pending" ? "bg-teal-500" :
                                     tab.value === "contacted" ? "bg-blue-500" :
-                                    tab.value === "booked" ? "bg-emerald-500" :
-                                    "bg-slate-400"
-                                }`}>
+                                        tab.value === "booked" ? "bg-emerald-500" :
+                                            "bg-slate-400"
+                                    }`}>
                                     {count > 99 ? "99+" : count}
                                 </span>
                             )}

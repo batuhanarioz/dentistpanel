@@ -316,7 +316,7 @@ export function LabJobModal({ open, onClose, editJob, prefilledPatient }: Props)
                             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1.5">
                                 Beklenen Teslim <span className="text-rose-500">*</span>
                             </label>
-                            <PremiumDatePicker value={expectedAt} onChange={setExpectedAt} compact />
+                            <PremiumDatePicker value={expectedAt} onChange={setExpectedAt} compact align="right" />
                         </div>
                     </div>
 
