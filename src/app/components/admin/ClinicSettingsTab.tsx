@@ -1329,6 +1329,7 @@ export function ClinicSettingsTab() {
                                                 min="0"
                                                 step="0.01"
                                                 value={newTreatmentMaterialCost}
+                                                onFocus={(e) => e.target.select()}
                                                 onChange={(e) => setNewTreatmentMaterialCost(parseFloat(e.target.value) || 0)}
                                                 className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
                                             />
@@ -1341,6 +1342,7 @@ export function ClinicSettingsTab() {
                                                 max="100"
                                                 step="0.1"
                                                 value={newTreatmentPrimPercent}
+                                                onFocus={(e) => e.target.select()}
                                                 onChange={(e) => setNewTreatmentPrimPercent(parseFloat(e.target.value) || 0)}
                                                 className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
                                             />
@@ -1405,6 +1407,7 @@ export function ClinicSettingsTab() {
                                                             min="0"
                                                             step="0.01"
                                                             value={editingMaterialCost}
+                                                            onFocus={(e) => e.target.select()}
                                                             onChange={e => setEditingMaterialCost(parseFloat(e.target.value) || 0)}
                                                             className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
                                                         />
@@ -1417,6 +1420,7 @@ export function ClinicSettingsTab() {
                                                             max="100"
                                                             step="0.1"
                                                             value={editingPrimPercent}
+                                                            onFocus={(e) => e.target.select()}
                                                             onChange={e => setEditingPrimPercent(parseFloat(e.target.value) || 0)}
                                                             className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
                                                         />
