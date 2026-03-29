@@ -77,7 +77,7 @@ function RecallCard({ item, onAction }: {
                     </span>
                     {attemptCount > 0 && (
                         <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">
-                            📞 {attemptCount}x arandı
+                            💬 {attemptCount}x ulaşıldı
                         </span>
                     )}
                 </div>
@@ -120,13 +120,13 @@ function RecallCard({ item, onAction }: {
                     WhatsApp
                 </a>
 
-                {/* Arandı */}
+                {/* Ulaşıldı */}
                 {item.status === "pending" && (
                     <button
                         onClick={() => onAction(item.id, "contacted")}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 transition-all"
                     >
-                        ✓ Arandı
+                        ✓ Ulaşıldı
                     </button>
                 )}
 
@@ -140,13 +140,13 @@ function RecallCard({ item, onAction }: {
                     </button>
                 )}
 
-                {/* Tekrar Ara (contacted → pending olarak işaretleyip contacted_at ile sayacı artır) */}
+                {/* Tekrar Ulaş */}
                 {item.status === "contacted" && (
                     <button
                         onClick={() => onAction(item.id, "contacted")}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 transition-all"
                     >
-                        🔄 Tekrar Ara
+                        🔄 Tekrar Ulaş
                     </button>
                 )}
 
@@ -177,7 +177,7 @@ function EmptyState({ tab, hasSearch }: { tab: string; hasSearch: boolean }) {
     }
     const messages: Record<string, { icon: string; text: string }> = {
         pending: { icon: "📋", text: "Bugün aranacak hasta yok." },
-        contacted: { icon: "📞", text: "Aranmış hasta kaydı yok." },
+        contacted: { icon: "💬", text: "Ulaşılmış hasta kaydı yok." },
         booked: { icon: "📅", text: "Randevu alınan hasta yok." },
         dismissed: { icon: "✕", text: "Atlanan kayıt yok." },
     };
@@ -197,7 +197,7 @@ function EmptyState({ tab, hasSearch }: { tab: string; hasSearch: boolean }) {
 
 const TABS: { value: RecallStatus; label: string }[] = [
     { value: "pending",   label: "Bekleyenler" },
-    { value: "contacted", label: "Arandı" },
+    { value: "contacted", label: "Ulaşıldı" },
     { value: "booked",    label: "Randevu Alındı" },
     { value: "dismissed", label: "Atlandı" },
 ];
@@ -278,7 +278,7 @@ export default function RecallPage() {
                     />
                     <StatCard
                         value={stats.contacted}
-                        label="Arandı"
+                        label="Ulaşıldı"
                         cls="bg-blue-50 border-blue-200 text-blue-700"
                     />
                     <StatCard

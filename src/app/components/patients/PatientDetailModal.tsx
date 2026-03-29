@@ -995,7 +995,7 @@ export function PatientDetailModal({
                                     {patientRecalls.map(recall => {
                                         const statusCfg: Record<RecallStatus, { label: string; cls: string }> = {
                                             pending:   { label: "Bekliyor",       cls: "bg-slate-100 text-slate-600" },
-                                            contacted: { label: "Arandı",         cls: "bg-blue-50 text-blue-700" },
+                                            contacted: { label: "Ulaşıldı",       cls: "bg-blue-50 text-blue-700" },
                                             booked:    { label: "Randevu Alındı", cls: "bg-emerald-50 text-emerald-700" },
                                             dismissed: { label: "Atlandı",        cls: "bg-rose-50 text-rose-600" },
                                         };
