@@ -601,3 +601,15 @@ export const LAB_JOB_TRANSITIONS: Record<LabJobStatus, LabJobStatus[]> = {
   received:    [],             // final state
   cancelled:   ["sent"],       // sadece admin geri alabiliyor (API tarafında)
 };
+
+// ─── Asistan Rehberi (Treatment Library) ─────────────────────────────────────
+
+export interface TreatmentLibraryItem {
+  id: string;
+  name: string;
+  category: string;
+  protocol_notes: string | null;
+  sort_order: number;
+  /** Klinik override varsa bu alan dolu, yoksa null — JS tarafında merge edilir */
+  custom_notes?: string | null;
+}
