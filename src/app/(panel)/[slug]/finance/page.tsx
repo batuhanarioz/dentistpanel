@@ -272,7 +272,6 @@ export default function FinancePage() {
             <div className="flex flex-col gap-4">
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-black text-slate-900">Karlılık ve Hak Ediş</h1>
                         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                             Tahsilat · Malzeme Maliyeti · Hekim Hak Edişi · Net Kâr
                         </p>
@@ -300,8 +299,8 @@ export default function FinancePage() {
                                 key={r.label}
                                 onClick={() => { setFrom(range.from); setTo(range.to); }}
                                 className={`shrink-0 px-3 py-2 rounded-xl text-xs font-black transition-all border ${isActive
-                                        ? "bg-teal-600 text-white border-teal-600 shadow-sm"
-                                        : "bg-white text-slate-600 border-slate-200 hover:border-teal-300"
+                                    ? "bg-teal-600 text-white border-teal-600 shadow-sm"
+                                    : "bg-white text-slate-600 border-slate-200 hover:border-teal-300"
                                     }`}
                             >
                                 {r.label}

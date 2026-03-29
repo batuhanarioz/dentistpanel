@@ -9,18 +9,18 @@ import type { TreatmentLibraryItem } from "@/types/database";
 // ─── Kategori Renkleri ─────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-    "Koruyucu":      { bg: "bg-emerald-50",  text: "text-emerald-700", border: "border-emerald-200" },
-    "Restoratif":    { bg: "bg-blue-50",     text: "text-blue-700",    border: "border-blue-200"    },
-    "Endodontik":    { bg: "bg-orange-50",   text: "text-orange-700",  border: "border-orange-200"  },
-    "Periodontal":   { bg: "bg-teal-50",     text: "text-teal-700",    border: "border-teal-200"    },
-    "Oral Cerrahi":  { bg: "bg-red-50",      text: "text-red-700",     border: "border-red-200"     },
-    "Protetik":      { bg: "bg-violet-50",   text: "text-violet-700",  border: "border-violet-200"  },
-    "İmplantoloji":  { bg: "bg-indigo-50",   text: "text-indigo-700",  border: "border-indigo-200"  },
-    "Ortodonti":     { bg: "bg-pink-50",     text: "text-pink-700",    border: "border-pink-200"    },
-    "Estetik":       { bg: "bg-fuchsia-50",  text: "text-fuchsia-700", border: "border-fuchsia-200" },
-    "Pedodonti":     { bg: "bg-yellow-50",   text: "text-yellow-700",  border: "border-yellow-200"  },
-    "Radyoloji":     { bg: "bg-slate-100",   text: "text-slate-700",   border: "border-slate-200"   },
-    "Diğer":         { bg: "bg-gray-50",     text: "text-gray-600",    border: "border-gray-200"    },
+    "Koruyucu": { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+    "Restoratif": { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+    "Endodontik": { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+    "Periodontal": { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
+    "Oral Cerrahi": { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
+    "Protetik": { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" },
+    "İmplantoloji": { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
+    "Ortodonti": { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
+    "Estetik": { bg: "bg-fuchsia-50", text: "text-fuchsia-700", border: "border-fuchsia-200" },
+    "Pedodonti": { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200" },
+    "Radyoloji": { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-200" },
+    "Diğer": { bg: "bg-gray-50", text: "text-gray-600", border: "border-gray-200" },
 };
 
 function categoryColor(cat: string) {
@@ -30,15 +30,65 @@ function categoryColor(cat: string) {
 // ─── Protokol Satırlarını Render Et ───────────────────────────────────────────
 
 function ProtocolLines({ text }: { text: string }) {
-    const lines = text.split("\n").filter(Boolean);
+    const lines = text.split("\n").filter((l) => l.trim() !== "");
+    const [checkedState, setCheckedState] = useState<Record<number, boolean>>({});
+
+    const toggleCheck = (index: number) => {
+        setCheckedState((prev) => ({ ...prev, [index]: !prev[index] }));
+    };
+
     return (
-        <ul className="space-y-1.5">
-            {lines.map((line, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-slate-700 leading-relaxed">
-                    <span className="mt-1 shrink-0 w-1.5 h-1.5 rounded-full bg-teal-400" />
-                    <span>{line.replace(/^•\s*/, "")}</span>
-                </li>
-            ))}
+        <ul className="space-y-2">
+            {lines.map((line, i) => {
+                const trimmed = line.trim();
+                const isHeading = trimmed.endsWith(":");
+                // Sadece baştaki tire veya noktaları temizle
+                const cleanLine = trimmed.replace(/^[-•*]\s*/, "");
+
+                // Basit Markdown (kalın yazı) desteği: **metin**
+                const renderText = (str: string) => {
+                    const parts = str.split(/(\*\*.*?\*\*)/g);
+                    return parts.map((part, idx) => {
+                        if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+                            return <strong key={idx} className="font-semibold text-slate-900">{part.slice(2, -2)}</strong>;
+                        }
+                        return part;
+                    });
+                };
+
+                if (isHeading) {
+                    return (
+                        <li key={i} className="pt-3 pb-1 text-sm font-semibold text-slate-800 border-b border-slate-100 mb-1">
+                            {renderText(cleanLine)}
+                        </li>
+                    );
+                }
+
+                const isChecked = checkedState[i] || false;
+
+                return (
+                    <li
+                        key={i}
+                        className={`flex items-start gap-3 text-sm leading-relaxed cursor-pointer transition-all group ${isChecked ? "text-slate-400" : "text-slate-700 hover:text-slate-900"
+                            }`}
+                        onClick={() => toggleCheck(i)}
+                    >
+                        <div className={`mt-0.5 shrink-0 w-4 h-4 rounded shadow-sm border flex items-center justify-center transition-colors ${isChecked
+                                ? "bg-teal-500 border-teal-500"
+                                : "bg-white border-slate-300 group-hover:border-teal-400"
+                            }`}>
+                            {isChecked && (
+                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                            )}
+                        </div>
+                        <span className={`select-none ${isChecked ? "line-through opacity-70" : ""}`}>
+                            {renderText(cleanLine)}
+                        </span>
+                    </li>
+                );
+            })}
         </ul>
     );
 }
@@ -135,7 +185,11 @@ function DetailPanel({ item, canEdit, onClose }: DetailPanelProps) {
                     ) : (
                         <>
                             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Protokolü Düzenle</h3>
-                            <p className="text-xs text-slate-400 mb-2">Her satır ayrı bir adım olarak gösterilir. Başına • eklemenize gerek yok.</p>
+                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 mb-3 text-xs text-slate-500 space-y-1.5">
+                                <p>• Her satır ayrı bir işlem / checklist öğesi olur.</p>
+                                <p>• Satır sonuna iki nokta (<b>:</b>) koyarsanız <b>Başlık</b> olur. (Örn: <i>Kullanılacak Malzemeler:</i>)</p>
+                                <p>• Kelimenin başına ve sonuna iki yıldız koyarak <b>**kalın**</b> yapabilirsiniz.</p>
+                            </div>
                             <textarea
                                 ref={textareaRef}
                                 value={draft}
@@ -261,13 +315,12 @@ export default function RehberPage() {
                             <button
                                 key={cat}
                                 onClick={() => setActiveCategory(cat)}
-                                className={`whitespace-nowrap shrink-0 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all ${
-                                    isActive
+                                className={`whitespace-nowrap shrink-0 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all ${isActive
                                         ? col
                                             ? `${col.bg} ${col.text} ring-1 ${col.border}`
                                             : "bg-slate-800 text-white"
                                         : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300"
-                                }`}
+                                    }`}
                             >
                                 {cat}
                             </button>
