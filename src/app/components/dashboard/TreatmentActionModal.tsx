@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
 import { supabase } from "@/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
 import { useTreatmentPlanMutations } from "@/hooks/useTreatmentPlanning";
@@ -548,13 +549,7 @@ export function TreatmentActionModal({
                                             <div className="grid grid-cols-3 gap-2">
                                                 <div className="col-span-2 space-y-1">
                                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tarih</label>
-                                                    <input
-                                                        type="date"
-                                                        value={nextDate}
-                                                        min={minDateStr}
-                                                        onChange={(e) => setNextDate(e.target.value)}
-                                                        className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-teal-500 transition-all"
-                                                    />
+                                                    <PremiumDatePicker value={nextDate} onChange={setNextDate} compact />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Saat</label>

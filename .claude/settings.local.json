@@ -45,11 +45,31 @@
       "Bash(grep -E \"^.*Error.*$\")",
       "Bash(find '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/lib' -name *.ts)",
       "Bash(find \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]\" -name \"page.tsx\")",
-      "Bash(grep -r \"from.*app/lib/\\\\|from.*constants/plans\\\\|GuidedTour\" '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src' --include=*.tsx --include=*.ts -l)"
+      "Bash(grep -r \"from.*app/lib/\\\\|from.*constants/plans\\\\|GuidedTour\" '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src' --include=*.tsx --include=*.ts -l)",
+      "Bash(find '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src' -iname *paytr* -o -iname *pay*)",
+      "Bash(npx vitest:*)",
+      "Bash(ls -la \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/reports/\")",
+      "Bash(ls -la \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/\")",
+      "Bash(ls -la \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/payment-management/\")",
+      "Bash(ls -la \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/admin/\")",
+      "Bash(find '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel' -path *supabase* -o -path *migration*)",
+      "Bash(grep -E \"\\\\.\\(sql|ts\\)$\")",
+      "Bash(grep -l \"payments\" \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/supabase/migrations\"/*.sql)",
+      "Bash(grep -l 'CREATE TABLE.*payments' /Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/supabase/migrations/*.sql)",
+      "Bash(ls -la '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/patients/')",
+      "Bash(ls -la \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/appointments/\")",
+      "Bash(ls -la \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/appointment-management/\")",
+      "Bash(ls -la '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/appointments/components/')",
+      "Bash(ls -la '/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/appointment-management/components/')",
+      "Bash(ls -la \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/treatment-plans/\")",
+      "Bash(ls -la \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]/refer/\")",
+      "Bash(find \"/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/\\(panel\\)/[slug]\" -name \"Dashboard*\")",
+      "Bash(grep -v \"^$\")"
     ],
     "additionalDirectories": [
       "/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/(panel)/[slug]/admin/subscription",
-      "/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/(panel)/[slug]"
+      "/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/(panel)/[slug]",
+      "/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/api/lab-jobs"
     ]
   }
 }

@@ -5,14 +5,24 @@ import { isPaid, getPaymentStatusConfig, normalizePaymentMethod } from "@/consta
 import { useTreatmentPlans, useTreatmentPlanMutations, PLAN_STATUS_CONFIG, ITEM_STATUS_CONFIG } from "@/hooks/useTreatmentPlanning";
 import { CreateTreatmentPlanModal } from "@/app/components/treatments/CreateTreatmentPlanModal";
 import { ToothChart } from "@/app/components/dental/ToothChart";
-import { useDentalChart, useDentalChartMutation } from "@/hooks/useDentalChart";
+import { useDentalChart } from "@/hooks/useDentalChart";
 import { AnamnesisSection } from "@/app/components/patients/AnamnesisSection";
 import { useAnamnesis, useAnamnesisMutation } from "@/hooks/useAnamnesis";
-import type { TeethData, ToothData, PatientAnamnesis } from "@/types/database";
+import type { TeethData, PatientAnamnesis } from "@/types/database";
 import { printReceipt } from "@/lib/receiptGenerator";
 import { useAppointmentManagement } from "@/hooks/useAppointmentManagement";
 import { AppointmentModal } from "@/app/components/appointments/AppointmentModal";
 import { QuickPaymentModal } from "@/app/components/dashboard/QuickPaymentModal";
+import { LabJobModal } from "@/app/components/lab/LabJobModal";
+import { useLabJobs, LAB_JOB_STATUSES } from "@/hooks/useLabJobs";
+import { usePatientRecallHistory } from "@/hooks/useRecallQueue";
+import type { RecallStatus } from "@/types/database";
+import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
+import dynamic from "next/dynamic";
+const Odontogram3DModal = dynamic(
+    () => import("@/app/components/dental/Odontogram3DModal"),
+    { ssr: false }
+);
 
 interface PatientDetailModalProps {
     isOpen: boolean;
@@ -54,14 +64,7 @@ export function PatientDetailModal({
 
     // Diş şeması
     const { data: dentalChart, isLoading: chartLoading } = useDentalChart(isOpen ? patient?.id : undefined);
-    const saveChart = useDentalChartMutation(patient?.id);
-    const [chartDraft, setChartDraft] = useState<TeethData>({});
-    const [chartEditMode, setChartEditMode] = useState(false);
-    const [chartSaving, setChartSaving] = useState(false);
-
-    useEffect(() => {
-        setChartDraft(dentalChart?.teeth_data ?? {});
-    }, [dentalChart, patient?.id]);
+    const [odontogram3DOpen, setOdontogram3DOpen] = useState(false);
 
     // Editing state
     const [isEditing, setIsEditing] = useState(false);
@@ -75,11 +78,19 @@ export function PatientDetailModal({
     // Ödeme ekleme (inline) — seçili randevu üzerinden
     const [paymentTarget, setPaymentTarget] = useState<{ appointmentId: string; patientName: string; amount: number } | null>(null);
 
+    // Lab işi oluşturma
+    const [labModalOpen, setLabModalOpen] = useState(false);
+
+    // Hastanın lab işleri
+    const { data: patientLabJobs = [], isLoading: labJobsLoading } = useLabJobs("all", isOpen ? patient?.id : undefined);
+
+    // Hastanın recall geçmişi
+    const { data: patientRecalls = [] } = usePatientRecallHistory(isOpen ? patient?.id : undefined);
+
     useEffect(() => {
         if (!isOpen) {
             setIsEditing(false);
             setAnamnesisEditMode(false);
-            setChartEditMode(false);
         }
         if (patient) {
             setEditForm({
@@ -121,28 +132,6 @@ export function PatientDetailModal({
 
     const handlePlanCreated = () => {
         setShowCreatePlan(false);
-    };
-
-    const handleToothChange = (toothNo: string, data: ToothData | null) => {
-        setChartDraft(prev => {
-            const next = { ...prev };
-            if (data === null) delete next[toothNo];
-            else next[toothNo] = data;
-            return next;
-        });
-    };
-
-    const handleChartSave = async () => {
-        if (!patient) return;
-        setChartSaving(true);
-        await saveChart.mutateAsync(chartDraft);
-        setChartSaving(false);
-        setChartEditMode(false);
-    };
-
-    const handleChartCancel = () => {
-        setChartDraft(dentalChart?.teeth_data ?? {});
-        setChartEditMode(false);
     };
 
     const handleDelete = async () => {
@@ -390,11 +379,12 @@ export function PatientDetailModal({
                                         <div className="flex gap-2">
                                             {isEditing ? (
                                                 <>
-                                                    <input
-                                                        type="date"
-                                                        className="w-1/2 text-xs font-bold border-b border-slate-100 focus:border-teal-500 outline-none py-1"
+                                                    <PremiumDatePicker
                                                         value={editForm.birth_date || ""}
-                                                        onChange={e => setEditForm(f => ({ ...f, birth_date: e.target.value }))}
+                                                        onChange={d => setEditForm(f => ({ ...f, birth_date: d }))}
+                                                        compact
+                                                        placeholder="Doğum tarihi"
+                                                        className="w-1/2"
                                                     />
                                                     <input
                                                         className="w-1/2 text-xs font-bold border-b border-slate-100 focus:border-teal-500 outline-none py-1"
@@ -518,25 +508,33 @@ export function PatientDetailModal({
                                     </div>
                                     <h3 className="text-xs font-black uppercase tracking-tight text-teal-600">Randevu Geçmişi</h3>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (patient) {
-                                            apptMgmt.openNew();
-                                            // hasta bilgilerini ön doldur
-                                            apptMgmt.setPatientSearch(patient.full_name);
-                                            apptMgmt.setSelectedPatientId(patient.id);
-                                            if (patient.phone) apptMgmt.setPhoneNumber(patient.phone.replace(/^\+90/, "").replace(/\s/g, ""));
-                                            apptMgmt.setForm(prev => ({ ...prev, patientName: patient.full_name }));
-                                        }
-                                    }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-colors"
-                                >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    Yeni Randevu
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setLabModalOpen(true)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 rounded-xl hover:bg-slate-200 transition-colors"
+                                    >
+                                        🔬 Lab İşi
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (patient) {
+                                                apptMgmt.openNew();
+                                                apptMgmt.setPatientSearch(patient.full_name);
+                                                apptMgmt.setSelectedPatientId(patient.id);
+                                                if (patient.phone) apptMgmt.setPhoneNumber(patient.phone.replace(/^\+90/, "").replace(/\s/g, ""));
+                                                apptMgmt.setForm(prev => ({ ...prev, patientName: patient.full_name }));
+                                            }
+                                        }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-colors"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Yeni Randevu
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="space-y-3">
@@ -885,30 +883,17 @@ export function PatientDetailModal({
                                         </span>
                                     )}
                                 </div>
-                                {!chartEditMode ? (
-                                    <button
-                                        onClick={() => setChartEditMode(true)}
-                                        className="h-8 px-4 rounded-xl bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-colors"
-                                    >
-                                        Düzenle
-                                    </button>
-                                ) : (
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={handleChartCancel}
-                                            className="h-8 px-4 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-colors"
-                                        >
-                                            Vazgeç
-                                        </button>
-                                        <button
-                                            onClick={handleChartSave}
-                                            disabled={chartSaving}
-                                            className="h-8 px-5 rounded-xl bg-[#007f6e] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#006d5e] transition-colors disabled:opacity-60"
-                                        >
-                                            {chartSaving ? "..." : "Kaydet"}
-                                        </button>
-                                    </div>
-                                )}
+                                <button
+                                    onClick={() => setOdontogram3DOpen(true)}
+                                    className="h-8 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border"
+                                    style={{
+                                        background: "linear-gradient(135deg, #0f766e22, #0ea5e922)",
+                                        borderColor: "#0f766e55",
+                                        color: "#0f766e",
+                                    }}
+                                >
+                                    Düzenle
+                                </button>
                             </div>
 
                             <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
@@ -918,14 +903,131 @@ export function PatientDetailModal({
                                     </div>
                                 ) : (
                                     <ToothChart
-                                        teethData={chartEditMode ? chartDraft : (dentalChart?.teeth_data ?? {})}
-                                        editMode={chartEditMode}
-                                        onChange={handleToothChange}
+                                        teethData={dentalChart?.teeth_data ?? {}}
+                                        editMode={false}
                                         patientName={patient.full_name}
+                                        on3DOpen={() => setOdontogram3DOpen(true)}
                                     />
                                 )}
                             </div>
                         </div>
+
+                        {/* Lab İşleri Section */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-violet-700">
+                                    <div className="h-6 w-6 rounded-lg bg-violet-50 flex items-center justify-center">
+                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1 1 .03 2.798-1.414 2.798H4.212c-1.444 0-2.414-1.798-1.414-2.798L4.2 15.3" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-xs font-black uppercase tracking-tight">Lab İşleri</h3>
+                                    {patientLabJobs.length > 0 && (
+                                        <span className="text-[10px] font-bold text-slate-400">{patientLabJobs.length} iş</span>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setLabModalOpen(true)}
+                                    className="flex items-center gap-1.5 h-8 px-4 rounded-xl bg-violet-50 text-violet-700 text-[10px] font-black uppercase tracking-widest border border-violet-100 hover:bg-violet-100 transition-colors"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Yeni
+                                </button>
+                            </div>
+
+                            {labJobsLoading ? (
+                                <div className="bg-white rounded-2xl p-8 text-center border border-slate-100 shadow-sm">
+                                    <p className="text-xs font-bold text-slate-400">Yükleniyor...</p>
+                                </div>
+                            ) : patientLabJobs.length === 0 ? (
+                                <div className="bg-white rounded-2xl p-8 text-center border border-slate-100 shadow-sm">
+                                    <p className="text-xs font-bold text-slate-400">Henüz lab işi bulunmuyor.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {patientLabJobs.map(job => {
+                                        const statusCfg = LAB_JOB_STATUSES.find(s => s.value === job.status);
+                                        return (
+                                            <div key={job.id} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center justify-between gap-3">
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <p className="text-xs font-black text-slate-800 truncate">{job.job_type}</p>
+                                                        {statusCfg && (
+                                                            <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusCfg.bg} ${statusCfg.color}`}>
+                                                                <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+                                                                {statusCfg.label}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">{job.lab_name}</p>
+                                                    {job.tooth_numbers && (
+                                                        <p className="text-[10px] text-slate-400 font-medium">Dişler: {job.tooth_numbers}</p>
+                                                    )}
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-[10px] font-bold text-slate-500">
+                                                        {new Date(job.expected_at).toLocaleDateString("tr-TR")}
+                                                    </p>
+                                                    <p className="text-[9px] text-slate-400">Beklenen</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Recall Geçmişi Section */}
+                        {patientRecalls.length > 0 && (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-amber-700">
+                                    <div className="h-6 w-6 rounded-lg bg-amber-50 flex items-center justify-center">
+                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-xs font-black uppercase tracking-tight">Recall Geçmişi</h3>
+                                    <span className="text-[10px] font-bold text-slate-400">{patientRecalls.length} kayıt</span>
+                                </div>
+                                <div className="space-y-2">
+                                    {patientRecalls.map(recall => {
+                                        const statusCfg: Record<RecallStatus, { label: string; cls: string }> = {
+                                            pending:   { label: "Bekliyor",       cls: "bg-slate-100 text-slate-600" },
+                                            contacted: { label: "Arandı",         cls: "bg-blue-50 text-blue-700" },
+                                            booked:    { label: "Randevu Alındı", cls: "bg-emerald-50 text-emerald-700" },
+                                            dismissed: { label: "Atlandı",        cls: "bg-rose-50 text-rose-600" },
+                                        };
+                                        const cfg = statusCfg[recall.status];
+                                        return (
+                                            <div key={recall.id} className="bg-white rounded-2xl p-3.5 border border-slate-100 shadow-sm flex items-center justify-between gap-3">
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <p className="text-xs font-black text-slate-800">{recall.treatment_type}</p>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${cfg.cls}`}>
+                                                            {cfg.label}
+                                                        </span>
+                                                        {recall.contact_attempts > 0 && (
+                                                            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                                                📞 {recall.contact_attempts}x
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                                        Son tedavi: {new Date(recall.last_treatment_date + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" })}
+                                                        {" · "}Recall: {new Date(recall.recall_due_at + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" })}
+                                                    </p>
+                                                    {recall.notes && (
+                                                        <p className="text-[10px] text-slate-500 italic mt-1 border-l-2 border-slate-200 pl-2">{recall.notes}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                     </div>
 
@@ -945,7 +1047,7 @@ export function PatientDetailModal({
 
                                 <div className="flex w-full sm:w-auto items-center gap-3 order-1 sm:order-2">
                                     <button
-                                        onClick={isEditing ? handleSave : () => { setIsEditing(true); setAnamnesisEditMode(true); setChartEditMode(true); }}
+                                        onClick={isEditing ? handleSave : () => { setIsEditing(true); setAnamnesisEditMode(true); }}
                                         disabled={saving}
                                         className="w-full sm:w-auto px-6 sm:px-12 h-12 rounded-2xl bg-white border-2 border-slate-100 text-xs font-black text-slate-600 hover:border-[#007f6e] hover:text-teal-600 transition-all uppercase tracking-widest shadow-sm flex items-center justify-center gap-2"
                                     >
@@ -1031,6 +1133,23 @@ export function PatientDetailModal({
                     patientId={patient.id}
                     initialAmount={paymentTarget.amount}
                     onSuccess={() => setPaymentTarget(null)}
+                />
+            )}
+
+            {/* Lab işi oluşturma */}
+            <LabJobModal
+                open={labModalOpen}
+                onClose={() => setLabModalOpen(false)}
+                prefilledPatient={patient ? { id: patient.id, full_name: patient.full_name, phone: patient.phone ?? null } : null}
+            />
+
+            {/* 3D Odontogram */}
+            {patient && (
+                <Odontogram3DModal
+                    open={odontogram3DOpen}
+                    onClose={() => setOdontogram3DOpen(false)}
+                    patientId={patient.id}
+                    patientName={patient.full_name}
                 />
             )}
         </>

@@ -491,7 +491,7 @@ export async function getTreatmentDefinitions(clinicId: string): Promise<Treatme
     if (!clinicId) return [];
     const { data, error } = await supabase
         .from("treatment_definitions")
-        .select("id, clinic_id, name, default_duration, color, created_at, updated_at")
+        .select("id, clinic_id, name, default_duration, color, material_cost, doctor_prim_percent, recall_interval_days, created_at, updated_at")
         .eq("clinic_id", clinicId)
         .order("name", { ascending: true });
 

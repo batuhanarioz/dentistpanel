@@ -21,11 +21,11 @@ const UPPER_CROWN_Y = UPPER_ROOT_Y + ROOT_H;        // 36
 const UPPER_CROWN_B = UPPER_CROWN_Y + CROWN_H;      // 68
 const UPPER_NUM_Y   = 12;
 
-const OCSEP_Y      = UPPER_CROWN_B + 8;             // 76  — occlusal separator top
-const OCSEP_H      = 24;
+const OCSEP_Y      = UPPER_CROWN_B + 6;             // 74  — occlusal separator top
+const OCSEP_H      = 30;                             // daha geniş → okunaklı
 const OCSEP_TEXT_Y = OCSEP_Y + OCSEP_H / 2 + 3;    // ≈ 90
 
-const LOWER_CROWN_Y = OCSEP_Y + OCSEP_H + 6;        // 106
+const LOWER_CROWN_Y = OCSEP_Y + OCSEP_H + 6;        // 110
 const LOWER_CROWN_B = LOWER_CROWN_Y + CROWN_H;      // 138
 const LOWER_ROOT_B  = LOWER_CROWN_B + ROOT_H;       // 156
 const LOWER_NUM_Y   = LOWER_ROOT_B + 12;             // 168
@@ -157,12 +157,14 @@ interface ToothChartProps {
     onChange?: (toothNo: string, data: ToothData | null) => void;
     /** Patient name shown in full-screen presentation header */
     patientName?: string;
-    /** Hides "Hastaya Göster" button and legend — for tight spaces */
+    /** Hides legend and action buttons — for tight spaces */
     compact?: boolean;
     /** Controlled prop: forces presentation overlay open from outside */
     presentationOpen?: boolean;
     /** Called when presentation overlay is closed */
     onPresentationClose?: () => void;
+    /** 3D Görünüm butonuna tıklandığında çağrılır */
+    on3DOpen?: () => void;
 }
 
 export function ToothChart({
@@ -173,6 +175,7 @@ export function ToothChart({
     compact = false,
     presentationOpen,
     onPresentationClose,
+    on3DOpen,
 }: ToothChartProps) {
     const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
     const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
@@ -234,19 +237,30 @@ export function ToothChart({
     // Shared SVG content (reused in presentation overlay)
     const svgBody = (
         <>
-            <rect x={0} y={OCSEP_Y} width={VIEW_W} height={OCSEP_H} fill="#f8fafc" />
-            <line x1={0} y1={OCSEP_Y} x2={VIEW_W} y2={OCSEP_Y} stroke="#e2e8f0" strokeWidth={1} />
-            <line x1={0} y1={OCSEP_Y + OCSEP_H} x2={VIEW_W} y2={OCSEP_Y + OCSEP_H} stroke="#e2e8f0" strokeWidth={1} />
-            <text x={VIEW_W / 2} y={OCSEP_TEXT_Y} textAnchor="middle" fontSize="7" fontWeight="800"
-                  fill="#cbd5e1" letterSpacing="3" fontFamily="system-ui">OKLÜZAL DÜZLEM</text>
+            {/* Oklüzal separator — belirgin arka plan + okunaklı etiket */}
+            <rect x={0} y={OCSEP_Y} width={VIEW_W} height={OCSEP_H} fill="#eef2f7" />
+            <line x1={0} y1={OCSEP_Y} x2={VIEW_W} y2={OCSEP_Y} stroke="#cbd5e1" strokeWidth={1.5} />
+            <line x1={0} y1={OCSEP_Y + OCSEP_H} x2={VIEW_W} y2={OCSEP_Y + OCSEP_H} stroke="#cbd5e1" strokeWidth={1.5} />
 
+            {/* Sol yatay çizgi */}
+            <line x1={MARGIN + 28} y1={OCSEP_TEXT_Y - 4} x2={VIEW_W / 2 - 52} y2={OCSEP_TEXT_Y - 4}
+                  stroke="#94a3b8" strokeWidth={1} />
+            {/* "OKLÜZAL DÜZLEM" merkez etiketi */}
+            <text x={VIEW_W / 2} y={OCSEP_TEXT_Y} textAnchor="middle" fontSize="8.5" fontWeight="800"
+                  fill="#64748b" letterSpacing="2.5" fontFamily="system-ui">OKLÜZAL DÜZLEM</text>
+            {/* Sağ yatay çizgi */}
+            <line x1={VIEW_W / 2 + 52} y1={OCSEP_TEXT_Y - 4} x2={VIEW_W - MARGIN - 28} y2={OCSEP_TEXT_Y - 4}
+                  stroke="#94a3b8" strokeWidth={1} />
+
+            {/* Orta dikey çizgi */}
             <line x1={MIDLINE_X} y1={6} x2={MIDLINE_X} y2={VIEW_H - 6}
-                  stroke="#e2e8f0" strokeWidth={1} strokeDasharray="4 3" />
+                  stroke="#cbd5e1" strokeWidth={1} strokeDasharray="4 3" />
 
-            <text x={MARGIN + 2} y={OCSEP_Y + OCSEP_H / 2 + 3} fontSize="8" fontWeight="700" fill="#d1d5db" fontFamily="system-ui">Q1</text>
-            <text x={MIDLINE_X + 4} y={OCSEP_Y + OCSEP_H / 2 + 3} fontSize="8" fontWeight="700" fill="#d1d5db" fontFamily="system-ui">Q2</text>
-            <text x={MARGIN + 2} y={LOWER_CROWN_Y + CROWN_H / 2 + 3} fontSize="8" fontWeight="700" fill="#d1d5db" fontFamily="system-ui">Q4</text>
-            <text x={MIDLINE_X + 4} y={LOWER_CROWN_Y + CROWN_H / 2 + 3} fontSize="8" fontWeight="700" fill="#d1d5db" fontFamily="system-ui">Q3</text>
+            {/* Kadran etiketleri */}
+            <text x={MARGIN + 3} y={OCSEP_Y + OCSEP_H / 2 + 3} fontSize="9" fontWeight="800" fill="#94a3b8" fontFamily="system-ui">Q1</text>
+            <text x={MIDLINE_X + 5} y={OCSEP_Y + OCSEP_H / 2 + 3} fontSize="9" fontWeight="800" fill="#94a3b8" fontFamily="system-ui">Q2</text>
+            <text x={MARGIN + 3} y={LOWER_CROWN_Y + CROWN_H / 2 + 3} fontSize="9" fontWeight="800" fill="#94a3b8" fontFamily="system-ui">Q4</text>
+            <text x={MIDLINE_X + 5} y={LOWER_CROWN_Y + CROWN_H / 2 + 3} fontSize="9" fontWeight="800" fill="#94a3b8" fontFamily="system-ui">Q3</text>
 
             {UPPER_POS.map(pos => (
                 <ToothCell key={pos.toothNo} pos={pos} isUpper={true}
@@ -298,15 +312,15 @@ export function ToothChart({
                         ))}
                     </div>
 
-                    {!editMode && (
+                    {!editMode && on3DOpen && (
                         <button
-                            onClick={() => setPresentationMode(true)}
+                            onClick={on3DOpen}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#007f6e] text-white text-[9px] font-black uppercase tracking-widest hover:bg-[#006d5e] transition-colors shadow-sm"
                         >
                             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
                             </svg>
-                            Hastaya Göster
+                            3D Görünüm
                         </button>
                     )}
                 </div>

@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { usePaymentManagement } from "@/hooks/usePaymentManagement";
 import { PaymentStats } from "@/app/components/payments/PaymentStats";
 import { PaymentList } from "@/app/components/payments/PaymentList";
 import { NewPaymentModal, PaymentDetailModal } from "@/app/components/payments/PaymentModals";
+import { DayCloseModal } from "@/app/components/payments/DayCloseModal";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
 import { PaymentProjection } from "@/app/components/payments/PaymentProjection";
 import { PaymentAgingReport } from "@/app/components/payments/PaymentAgingReport";
@@ -50,9 +51,54 @@ function exportToCSV(payments: PaymentRow[]) {
   URL.revokeObjectURL(url);
 }
 
+interface ClosingRecord {
+  id: string;
+  closing_date: string;
+  closed_at: string;
+  payment_count: number;
+  calc_total: number;
+  actual_nakit: number;
+  actual_kart: number;
+  actual_havale: number;
+  actual_diger: number;
+  diff_total: number;
+  notes: string | null;
+  users?: { full_name: string | null } | null;
+}
+
+function fmt(n: number) {
+  return n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function PaymentsInner() {
   const searchParams = useSearchParams();
   const appointmentIdParam = searchParams.get("appointmentId");
+  const [dayCloseOpen, setDayCloseOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [closings, setClosings] = useState<ClosingRecord[]>([]);
+  const [closingsLoading, setClosingsLoading] = useState(false);
+
+  async function loadHistory() {
+    setClosingsLoading(true);
+    try {
+      const { supabase } = await import("@/lib/supabaseClient");
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/daily-closing/history?limit=30", {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setClosings(json.closings ?? []);
+      }
+    } finally {
+      setClosingsLoading(false);
+    }
+  }
+
+  function handleToggleHistory() {
+    if (!historyOpen && closings.length === 0) loadHistory();
+    setHistoryOpen(v => !v);
+  }
 
   const {
     today, listSearch, setListSearch, statusFilter, setStatusFilter, methodFilter, setMethodFilter,
@@ -211,6 +257,17 @@ function PaymentsInner() {
             </button>
 
             <button
+              onClick={() => setDayCloseOpen(true)}
+              title="Gün Sonu Kasa Kapatma"
+              className="h-[42px] px-4 rounded-xl border-2 border-slate-200 bg-white text-[10px] font-black text-slate-700 hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap shrink-0 uppercase tracking-widest"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+              </svg>
+              <span className="hidden sm:inline">Gün Sonu</span>
+            </button>
+
+            <button
               onClick={() => setIsModalOpen(true)}
               className="w-full sm:w-auto h-[42px] rounded-xl bg-emerald-600 px-6 text-[10px] font-black text-white shadow-lg shadow-emerald-200 hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap shrink-0 uppercase tracking-widest"
             >
@@ -365,6 +422,96 @@ function PaymentsInner() {
         operationError={error} onClearError={() => setHookError(null)}
         onPaymentSuccess={refresh}
       />
+
+      {/* Geçmiş Kapanışlar */}
+      <div className="rounded-3xl border bg-white shadow-sm overflow-hidden">
+        <button
+          onClick={handleToggleHistory}
+          className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-lg">🏦</span>
+            <div className="text-left">
+              <p className="text-sm font-black text-slate-900">Geçmiş Kasa Kapanışları</p>
+              <p className="text-[10px] font-semibold text-slate-400">Son 30 günlük kapanış geçmişi</p>
+            </div>
+          </div>
+          <svg
+            className={`w-4 h-4 text-slate-400 transition-transform ${historyOpen ? "rotate-180" : ""}`}
+            fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+
+        {historyOpen && (
+          <div className="border-t border-slate-100">
+            {closingsLoading ? (
+              <div className="flex items-center justify-center py-12 text-slate-400 text-sm font-semibold animate-pulse">
+                Yükleniyor...
+              </div>
+            ) : closings.length === 0 ? (
+              <div className="py-10 text-center text-sm font-semibold text-slate-400">
+                Henüz kapanış kaydı bulunmuyor.
+              </div>
+            ) : (
+              <>
+                {/* Desktop header */}
+                <div className="hidden sm:grid grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] gap-4 px-6 py-2.5 bg-slate-50/50 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <span>Tarih</span>
+                  <span className="text-right">Sistem Toplam</span>
+                  <span className="text-right">Sayılan Toplam</span>
+                  <span className="text-right">Fark</span>
+                  <span>Kapatan</span>
+                  <span />
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {closings.map(c => {
+                    const actualTotal = c.actual_nakit + c.actual_kart + c.actual_havale + c.actual_diger;
+                    const hasDiff = c.diff_total !== 0;
+                    const dateLabel = new Date(c.closing_date + "T12:00:00").toLocaleDateString("tr-TR", {
+                      day: "numeric", month: "short", year: "numeric", weekday: "short",
+                    });
+                    const closedAt = new Date(c.closed_at).toLocaleTimeString("tr-TR", {
+                      timeZone: "Asia/Istanbul", hour: "2-digit", minute: "2-digit",
+                    });
+                    return (
+                      <div key={c.id} className="px-6 py-3 grid sm:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] gap-2 sm:gap-4 items-center text-sm">
+                        <div>
+                          <p className="font-bold text-slate-800">{dateLabel}</p>
+                          <p className="text-[10px] font-semibold text-slate-400">{closedAt} · {c.payment_count} tahsilat</p>
+                        </div>
+                        <p className="sm:text-right font-mono text-slate-600">
+                          <span className="sm:hidden text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Sistem:</span>
+                          {fmt(c.calc_total)} ₺
+                        </p>
+                        <p className="sm:text-right font-mono font-bold text-slate-900">
+                          <span className="sm:hidden text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Sayılan:</span>
+                          {fmt(actualTotal)} ₺
+                        </p>
+                        <p className={`sm:text-right font-mono font-bold ${hasDiff ? (c.diff_total > 0 ? "text-emerald-600" : "text-rose-600") : "text-slate-400"}`}>
+                          <span className="sm:hidden text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Fark:</span>
+                          {hasDiff ? `${c.diff_total > 0 ? "+" : ""}${fmt(c.diff_total)} ₺` : "—"}
+                        </p>
+                        <p className="text-[11px] font-semibold text-slate-500 truncate">
+                          {(c.users as { full_name: string | null } | null)?.full_name ?? "—"}
+                        </p>
+                        {hasDiff && c.notes ? (
+                          <div className="col-span-full sm:col-span-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 truncate" title={c.notes}>
+                            💬 {c.notes}
+                          </div>
+                        ) : <div />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <DayCloseModal open={dayCloseOpen} onClose={() => { setDayCloseOpen(false); if (historyOpen) { setClosings([]); loadHistory(); } }} />
     </div>
   );
 }

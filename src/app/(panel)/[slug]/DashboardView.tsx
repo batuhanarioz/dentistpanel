@@ -24,6 +24,7 @@ import { AppointmentModal } from "@/app/components/appointments/AppointmentModal
 import toast from "react-hot-toast";
 import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
 import { SectionErrorBoundary } from "@/app/components/SectionErrorBoundary";
+import { LabAlertBanner } from "@/app/components/lab/LabAlertBanner";
 
 function pickGreeting(name: string | null): string {
     const firstName = name?.split(" ")[0] ?? "";
@@ -159,6 +160,10 @@ export default function DashboardView() {
                     </p>
                 </div>
             )}
+
+            <SectionErrorBoundary label="Laboratuvar Alarmı">
+                <LabAlertBanner />
+            </SectionErrorBoundary>
 
             <SectionErrorBoundary label="İstatistik Kartları">
                 <StatCards

@@ -55,6 +55,9 @@ export function ClinicSettingsTab() {
     const [taskDefs, setTaskDefs] = useState<TaskDefinition[]>([]);
     const [clinicRoles, setClinicRoles] = useState<TaskRole[]>([]);
     const [checklistLoading, setChecklistLoading] = useState(false);
+    const [dayCloseRoles, setDayCloseRoles] = useState<string[]>(
+        clinic.clinicSettings?.feature_permissions?.day_close_roles ?? []
+    );
 
     // General (Working Hours) State
     const [activeGeneralTab, setActiveGeneralTab] = useState<"standard" | "exceptions">("standard");
@@ -72,10 +75,16 @@ export function ClinicSettingsTab() {
     const [treatmentDefinitions, setTreatmentDefinitions] = useState<TreatmentDefinition[]>([]);
     const [newTreatmentName, setNewTreatmentName] = useState("");
     const [newTreatmentDuration, setNewTreatmentDuration] = useState(30);
+    const [newTreatmentMaterialCost, setNewTreatmentMaterialCost] = useState(0);
+    const [newTreatmentPrimPercent, setNewTreatmentPrimPercent] = useState(0);
     const [isTreatmentsLoading, setIsTreatmentsLoading] = useState(false);
     const [editingTreatmentId, setEditingTreatmentId] = useState<string | null>(null);
     const [editingTreatmentName, setEditingTreatmentName] = useState("");
     const [editingTreatmentDuration, setEditingTreatmentDuration] = useState(30);
+    const [editingMaterialCost, setEditingMaterialCost] = useState(0);
+    const [editingPrimPercent, setEditingPrimPercent] = useState(0);
+    const [newTreatmentRecallDays, setNewTreatmentRecallDays] = useState<number | null>(null);
+    const [editingRecallDays, setEditingRecallDays] = useState<number | null>(null);
 
     // Channel State
     const [channels, setChannels] = useState<string[]>(clinic.clinicSettings?.appointment_channels ?? []);
@@ -285,11 +294,17 @@ export function ClinicSettingsTab() {
         try {
             const { error } = await upsertTreatmentDefinition(clinic.clinicId, {
                 name: newTreatmentName,
-                default_duration: newTreatmentDuration
+                default_duration: newTreatmentDuration,
+                material_cost: newTreatmentMaterialCost,
+                doctor_prim_percent: newTreatmentPrimPercent,
+                recall_interval_days: newTreatmentRecallDays,
             });
             if (error) throw error;
             setNewTreatmentName("");
             setNewTreatmentDuration(30);
+            setNewTreatmentMaterialCost(0);
+            setNewTreatmentPrimPercent(0);
+            setNewTreatmentRecallDays(null);
             await loadTreatmentSettings();
             setSaveMessage({ type: 'success', text: "Tedavi başarıyla eklendi." });
             setTimeout(() => setSaveMessage(null), 3000);
@@ -318,12 +333,18 @@ export function ClinicSettingsTab() {
         setEditingTreatmentId(td.id);
         setEditingTreatmentName(td.name);
         setEditingTreatmentDuration(td.default_duration);
+        setEditingMaterialCost(td.material_cost ?? 0);
+        setEditingPrimPercent(td.doctor_prim_percent ?? 0);
+        setEditingRecallDays(td.recall_interval_days ?? null);
     };
 
     const handleCancelEditTreatment = () => {
         setEditingTreatmentId(null);
         setEditingTreatmentName("");
         setEditingTreatmentDuration(30);
+        setEditingMaterialCost(0);
+        setEditingPrimPercent(0);
+        setEditingRecallDays(null);
     };
 
     const handleUpdateTreatment = async () => {
@@ -334,6 +355,9 @@ export function ClinicSettingsTab() {
                 id: editingTreatmentId,
                 name: editingTreatmentName.trim(),
                 default_duration: editingTreatmentDuration,
+                material_cost: editingMaterialCost,
+                doctor_prim_percent: editingPrimPercent,
+                recall_interval_days: editingRecallDays,
             });
             if (error) throw error;
             handleCancelEditTreatment();
@@ -487,7 +511,13 @@ export function ClinicSettingsTab() {
             if (clinicRoles.length > 0) {
                 await supabase.from("checklist_clinic_roles").insert(clinicRoles.map(r => ({ ...r, clinic_id: clinic.clinicId })));
             }
-            setSaveMessage({ type: 'success', text: "Görev ayarları başarıyla kaydedildi." });
+            // Kasa kapatma yetki rollerini clinic_settings'e kaydet
+            const existingPerms = clinic.clinicSettings?.feature_permissions ?? {};
+            await updateClinicSettings(clinic.clinicId, {
+                ...clinic.clinicSettings!,
+                feature_permissions: { ...existingPerms, day_close_roles: dayCloseRoles },
+            });
+            setSaveMessage({ type: 'success', text: "Görev ve yetki ayarları başarıyla kaydedildi." });
             setTimeout(() => setSaveMessage(null), 3000);
         } catch (err: unknown) {
             setSaveMessage({ type: 'error', text: "Kaydedilirken bir hata oluştu." });
@@ -1040,32 +1070,69 @@ export function ClinicSettingsTab() {
                                 {checklistLoading ? (
                                     <div className="py-20 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /></div>
                                 ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {taskDefs.map((def) => (
-                                            <div key={def.id} className="p-5 rounded-[24px] border border-slate-100 bg-slate-50/30 space-y-4">
+                                    <div className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {taskDefs.map((def) => (
+                                                <div key={def.id} className="p-5 rounded-[24px] border border-slate-100 bg-slate-50/30 space-y-4">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="mt-1 flex h-2 w-2 rounded-full bg-indigo-500 shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                                                        <div>
+                                                            <h3 className="text-sm font-black text-slate-900 leading-tight">{def.title}</h3>
+                                                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed mt-1">{def.description}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1.5 pt-2">
+                                                        {[UserRole.ADMIN, UserRole.DOKTOR, UserRole.SEKRETER, UserRole.FINANS].map((role) => {
+                                                            const selected = isRoleSelected(def.id, role);
+                                                            return (
+                                                                <button
+                                                                    key={role}
+                                                                    onClick={() => handleToggleRole(def.id, role)}
+                                                                    className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-black tracking-widest uppercase transition-all ${selected ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                                                                >
+                                                                    {role}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Modül İzinleri */}
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Modül İzinleri</p>
+                                            <div className="p-5 rounded-[24px] border border-amber-100 bg-amber-50/40 space-y-4">
                                                 <div className="flex items-start gap-3">
-                                                    <div className="mt-1 flex h-2 w-2 rounded-full bg-indigo-500 shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                                                    <div className="mt-1 flex h-2 w-2 rounded-full bg-amber-500 shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
                                                     <div>
-                                                        <h3 className="text-sm font-black text-slate-900 leading-tight">{def.title}</h3>
-                                                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed mt-1">{def.description}</p>
+                                                        <h3 className="text-sm font-black text-slate-900 leading-tight">Gün Sonu Kasa Kapatma</h3>
+                                                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed mt-1">
+                                                            Seçilen roller günü kapatabilir. Hiçbir rol seçilmezse tüm kullanıcılar kapatabilir.
+                                                        </p>
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5 pt-2">
                                                     {[UserRole.ADMIN, UserRole.DOKTOR, UserRole.SEKRETER, UserRole.FINANS].map((role) => {
-                                                        const selected = isRoleSelected(def.id, role);
+                                                        const selected = dayCloseRoles.includes(role);
                                                         return (
                                                             <button
                                                                 key={role}
-                                                                onClick={() => handleToggleRole(def.id, role)}
-                                                                className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-black tracking-widest uppercase transition-all ${selected ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                                                                onClick={() => setDayCloseRoles(prev =>
+                                                                    selected ? prev.filter(r => r !== role) : [...prev, role]
+                                                                )}
+                                                                className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-black tracking-widest uppercase transition-all ${selected ? 'bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-100' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}
                                                             >
                                                                 {role}
                                                             </button>
                                                         );
                                                     })}
                                                 </div>
+                                                {dayCloseRoles.length === 0 && (
+                                                    <p className="text-[10px] font-semibold text-amber-700">⚠ Şu anda tüm kullanıcılar kasa kapatabilir.</p>
+                                                )}
                                             </div>
-                                        ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -1235,7 +1302,7 @@ export function ClinicSettingsTab() {
                                         <span className="w-1.5 h-4 bg-teal-500 rounded-full" />
                                         Yeni Tedavi Ekle
                                     </h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                                         <div className="space-y-1.5">
                                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Tedavi Adı</label>
                                             <input
@@ -1252,6 +1319,40 @@ export function ClinicSettingsTab() {
                                                 type="number"
                                                 value={newTreatmentDuration}
                                                 onChange={(e) => setNewTreatmentDuration(parseInt(e.target.value))}
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Malzeme Maliyeti (₺)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={newTreatmentMaterialCost}
+                                                onChange={(e) => setNewTreatmentMaterialCost(parseFloat(e.target.value) || 0)}
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Hekim Prim (%)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                step="0.1"
+                                                value={newTreatmentPrimPercent}
+                                                onChange={(e) => setNewTreatmentPrimPercent(parseFloat(e.target.value) || 0)}
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Geri Çağırma (Gün)</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                placeholder="Örn: 180"
+                                                value={newTreatmentRecallDays ?? ""}
+                                                onChange={(e) => setNewTreatmentRecallDays(e.target.value ? parseInt(e.target.value) : null)}
                                                 className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
                                             />
                                         </div>
@@ -1294,6 +1395,40 @@ export function ClinicSettingsTab() {
                                                             type="number"
                                                             value={editingTreatmentDuration}
                                                             onChange={e => setEditingTreatmentDuration(parseInt(e.target.value) || 0)}
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Malzeme Maliyeti (₺)</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="0.01"
+                                                            value={editingMaterialCost}
+                                                            onChange={e => setEditingMaterialCost(parseFloat(e.target.value) || 0)}
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hekim Prim (%)</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max="100"
+                                                            step="0.1"
+                                                            value={editingPrimPercent}
+                                                            onChange={e => setEditingPrimPercent(parseFloat(e.target.value) || 0)}
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Geri Çağırma (Gün)</label>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            placeholder="Örn: 180"
+                                                            value={editingRecallDays ?? ""}
+                                                            onChange={e => setEditingRecallDays(e.target.value ? parseInt(e.target.value) : null)}
                                                             className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
                                                         />
                                                     </div>
@@ -1342,13 +1477,28 @@ export function ClinicSettingsTab() {
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-3">
+                                                    <div className="flex flex-wrap items-center gap-2">
                                                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-100">
                                                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                                             </svg>
                                                             <span className="text-[11px] font-black uppercase tracking-tighter">{td.default_duration} Dakika</span>
                                                         </div>
+                                                        {(td.material_cost ?? 0) > 0 && (
+                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-100">
+                                                                <span className="text-[11px] font-black">₺{td.material_cost} Malzeme</span>
+                                                            </div>
+                                                        )}
+                                                        {(td.doctor_prim_percent ?? 0) > 0 && (
+                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                                <span className="text-[11px] font-black">%{td.doctor_prim_percent} Prim</span>
+                                                            </div>
+                                                        )}
+                                                        {(td.recall_interval_days ?? 0) > 0 && (
+                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 text-teal-700 border border-teal-100">
+                                                                <span className="text-[11px] font-black">🔁 {td.recall_interval_days}g Recall</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </>
                                             )}

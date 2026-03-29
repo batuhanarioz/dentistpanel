@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
 
 interface AddPatientModalProps {
     isOpen: boolean;
@@ -97,11 +98,11 @@ export function AddPatientModal({ isOpen, onClose, onSave }: AddPatientModalProp
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Doğum Tarihi</label>
-                            <input
-                                type="date"
+                            <PremiumDatePicker
                                 value={birth_date}
-                                onChange={e => setBirthDate(e.target.value)}
-                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-teal-500 outline-none transition-all"
+                                onChange={setBirthDate}
+                                compact
+                                placeholder="Doğum tarihi seçin"
                             />
                         </div>
                         <div className="space-y-1.5">

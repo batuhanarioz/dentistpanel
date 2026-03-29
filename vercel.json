@@ -2,6 +2,7 @@
   "crons": [
     { "path": "/api/subscription/dunning", "schedule": "0 6 * * *" },
     { "path": "/api/email/trial-sequence", "schedule": "0 9 * * *" },
-    { "path": "/api/email/trial-expired", "schedule": "0 10 * * *" }
+    { "path": "/api/email/trial-expired", "schedule": "0 10 * * *" },
+    { "path": "/api/recall/refresh", "schedule": "0 7 * * *" }
   ]
 }

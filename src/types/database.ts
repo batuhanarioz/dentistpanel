@@ -93,6 +93,11 @@ export interface ClinicSettings {
     payment_due_days: number;
     invoice_footer: string;
   };
+  /** Modül bazlı yetki ayarları — hangi roller hangi modüle erişebilir */
+  feature_permissions?: {
+    /** Gün sonu kasa kapatma yetkisi olan roller. Boş = herkes kapatabilir */
+    day_close_roles?: string[];
+  };
   created_at: string;
   updated_at: string;
 }
@@ -314,8 +319,34 @@ export interface TreatmentDefinition {
   name: string;
   default_duration: number;
   color: string | null;
+  /** Standart malzeme maliyeti (₺) */
+  material_cost: number;
+  /** Hekim prim yüzdesi (0-100) */
+  doctor_prim_percent: number;
+  /** Geri çağırma süresi (gün) — null = recall kapalı */
+  recall_interval_days: number | null;
   created_at: string;
   updated_at: string;
+}
+
+export type RecallStatus = "pending" | "contacted" | "booked" | "dismissed";
+
+export interface RecallQueueItem {
+  id: string;
+  clinic_id: string;
+  patient_id: string;
+  appointment_id: string;
+  treatment_type: string;
+  last_treatment_date: string;
+  recall_due_at: string;
+  status: RecallStatus;
+  contact_attempts: number;
+  contacted_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  // join
+  patients?: { id: string; full_name: string; phone: string | null };
 }
 
 export interface AuditLog {
@@ -527,3 +558,46 @@ export interface DentalChart {
   updated_at: string;
   updated_by: string | null;
 }
+
+// ─── Lab İşleri ───────────────────────────────────────────────────────────────
+
+export type LabJobStatus = "sent" | "in_progress" | "try_in" | "received" | "cancelled";
+
+export interface LabJob {
+  id: string;
+  clinic_id: string;
+  patient_id: string;
+  appointment_id: string | null;
+  lab_name: string;
+  job_type: string;
+  shade: string | null;
+  tooth_numbers: string | null;
+  notes: string | null;
+  sent_at: string;
+  expected_at: string;
+  received_at: string | null;
+  status: LabJobStatus;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // join alanları
+  patients?: { id: string; full_name: string; phone: string | null } | null;
+  appointments?: { id: string; starts_at: string; treatment_type: string | null } | null;
+}
+
+export const LAB_JOB_STATUSES: { value: LabJobStatus; label: string; color: string; bg: string; dot: string }[] = [
+  { value: "sent",        label: "Gönderildi",    color: "text-amber-700",   bg: "bg-amber-50",   dot: "bg-amber-400"  },
+  { value: "in_progress", label: "İşlemde",       color: "text-blue-700",    bg: "bg-blue-50",    dot: "bg-blue-500"   },
+  { value: "try_in",      label: "Prova",         color: "text-purple-700",  bg: "bg-purple-50",  dot: "bg-purple-500" },
+  { value: "received",    label: "Teslim Alındı", color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500"},
+  { value: "cancelled",   label: "İptal",         color: "text-slate-500",   bg: "bg-slate-50",   dot: "bg-slate-400"  },
+];
+
+/** Geçerli durum geçiş kuralları — hangi statüden hangisine geçilebilir */
+export const LAB_JOB_TRANSITIONS: Record<LabJobStatus, LabJobStatus[]> = {
+  sent:        ["in_progress", "cancelled"],
+  in_progress: ["try_in",      "sent",       "cancelled"],
+  try_in:      ["received",    "in_progress","cancelled"],
+  received:    [],             // final state
+  cancelled:   ["sent"],       // sadece admin geri alabiliyor (API tarafında)
+};

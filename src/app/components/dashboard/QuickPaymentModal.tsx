@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
 import { createPayments } from "@/lib/api";
 import { useClinic } from "@/app/context/ClinicContext";
 import { localDateStr } from "@/lib/dateUtils";
@@ -448,11 +449,11 @@ export function QuickPaymentModal({
                                             <div className="flex items-center justify-between">
                                                 <span className="text-[10px] font-bold text-slate-400">#{idx + 1}</span>
                                                 <div className="flex items-center gap-1.5">
-                                                    <input
-                                                        type="date"
+                                                    <PremiumDatePicker
                                                         value={item.dueDate}
-                                                        onChange={(e) => handleUpdateInstallment(idx, "dueDate", e.target.value)}
-                                                        className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                                        onChange={(d) => handleUpdateInstallment(idx, "dueDate", d)}
+                                                        compact
+                                                        align="right"
                                                     />
                                                 </div>
                                             </div>

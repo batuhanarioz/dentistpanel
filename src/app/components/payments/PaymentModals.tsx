@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
+import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
 import { AppointmentOption, PaymentRow, UpdatePaymentExtras } from "@/hooks/usePaymentManagement";
 import { createPayments } from "@/lib/api";
 import { useClinic } from "@/app/context/ClinicContext";
@@ -423,10 +424,11 @@ export function NewPaymentModal({
                                                 <div key={idx} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-2">
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-[10px] font-bold text-slate-400">#{idx + 1}</span>
-                                                        <input
-                                                            type="date" value={item.dueDate}
-                                                            onChange={e => updateInstallment(idx, "dueDate", e.target.value)}
-                                                            className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                                        <PremiumDatePicker
+                                                            value={item.dueDate}
+                                                            onChange={(d) => updateInstallment(idx, "dueDate", d)}
+                                                            compact
+                                                            align="right"
                                                         />
                                                     </div>
                                                     <div className="flex gap-2">
@@ -791,8 +793,7 @@ export function PaymentDetailModal({ isOpen, onClose, payment, status, setStatus
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vade Tarihi</label>
-                            <input type="date" value={localDueDate} onChange={e => setLocalDueDate(e.target.value)}
-                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-teal-500 outline-none transition-all" />
+                            <PremiumDatePicker value={localDueDate} onChange={setLocalDueDate} compact />
                             {localDueDate && payment.due_date && localDueDate !== payment.due_date && (
                                 <p className="text-[9px] font-bold text-amber-500 flex items-center gap-1">
                                     <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>

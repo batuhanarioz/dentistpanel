@@ -23,9 +23,11 @@ type Props = {
   align?: "left" | "right";
   /** Click-outside dışında tutulacak ek ref (trigger button gibi) */
   excludeRef?: React.RefObject<HTMLElement | null>;
+  /** value boşken gösterilecek placeholder */
+  placeholder?: string;
 };
 
-export function PremiumDatePicker({ value, onChange, today: todayProp, className = "", compact, open: openProp, onOpenChange, align = "left", excludeRef }: Props) {
+export function PremiumDatePicker({ value, onChange, today: todayProp, className = "", compact, open: openProp, onOpenChange, align = "left", excludeRef, placeholder = "Tarih seçin" }: Props) {
   const today = todayProp ?? localDateStr();
   const isControlled = openProp !== undefined;
   const [internalOpen, setInternalOpen] = useState(false);
@@ -34,8 +36,9 @@ export function PremiumDatePicker({ value, onChange, today: todayProp, className
     if (isControlled) onOpenChange?.(v);
     else setInternalOpen(v);
   };
+  const isEmpty = !value || value.trim() === "";
   const [view, setView] = useState(() => {
-    const [y, m] = value.split("-").map(Number);
+    const [y, m] = (value || "").split("-").map(Number);
     const safeYear = y > 0 ? y : new Date().getFullYear();
     const safeMonth = m >= 1 && m <= 12 ? m - 1 : new Date().getMonth();
     return { year: safeYear, month: safeMonth };
@@ -61,10 +64,12 @@ export function PremiumDatePicker({ value, onChange, today: todayProp, className
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, excludeRef]);
 
-  const displayLabel = (() => {
-    const [y, m, d] = value.split("-").map(Number);
-    return `${d}.${String(m).padStart(2, "0")}.${y}`;
-  })();
+  const displayLabel = isEmpty
+    ? placeholder
+    : (() => {
+        const [y, m, d] = value.split("-").map(Number);
+        return `${d}.${String(m).padStart(2, "0")}.${y}`;
+      })();
 
   const firstDay = new Date(view.year, view.month, 1);
   const lastDay = new Date(view.year, view.month + 1, 0);
