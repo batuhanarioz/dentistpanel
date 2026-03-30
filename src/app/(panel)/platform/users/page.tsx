@@ -74,8 +74,8 @@ export default function PlatformUsersPage() {
 
       setUsers(data.users || []);
       setClinics(data.clinics || []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -131,8 +131,8 @@ export default function PlatformUsersPage() {
       );
 
       closeModal();
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      alert((err as Error).message);
     } finally {
       setIsSaving(false);
     }

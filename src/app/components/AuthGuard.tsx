@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { ClinicIdentityContext, ClinicDataContext, type ClinicContextValue } from "../context/ClinicContext";
-import { UserRole, type WorkingHours, type Clinic, type ClinicAddon } from "@/types/database";
+import { UserRole, type WorkingHours, type Clinic, type ClinicAddon, type ClinicSettings } from "@/types/database";
 import { DEFAULT_WORKING_HOURS } from "@/constants/days";
 import { SYSTEM_AUTOMATIONS, type ClinicAutomation } from "@/constants/automations";
 import { getAccessibleClinics, getClinicById } from "@/app/actions/getAccessibleClinics";
@@ -225,7 +225,7 @@ export function AuthGuard({ children }: Props) {
         }
 
         let clinicData: Partial<Clinic> | null = null;
-        let clinicSettingsData: any = null;
+        let clinicSettingsData: ClinicSettings | null = null;
         let automationsData: ClinicAutomation[] = [];
         let clinicAddonsData: ClinicAddon[] = [];
 
@@ -259,13 +259,13 @@ export function AuthGuard({ children }: Props) {
           }
 
           if (!autoResError && autoResData) {
-            automationsData = autoResData.map((a: any) => ({
+            automationsData = (autoResData as unknown as Array<{ automation_id: string; is_visible: boolean; is_enabled: boolean; schedule_time: string | null; schedule_day: string | null }>).map((a) => ({
               id: a.automation_id,
               name: SYSTEM_AUTOMATIONS.find(s => s.id === a.automation_id)?.name || a.automation_id,
               visible: a.is_visible,
               enabled: a.is_enabled,
               time: a.schedule_time ? a.schedule_time.substring(0, 5) : "09:00",
-              day: a.schedule_day
+              day: a.schedule_day ?? undefined
             }));
             automationsRef.current = automationsData;
           }
@@ -293,7 +293,7 @@ export function AuthGuard({ children }: Props) {
           n8nWorkflows: automationsRef.current,
           clinicSettings: clinicSettingsData,
           clinicAddons: clinicAddonsData,
-          planId: (clinicData as any)?.planId || "starter",
+          planId: (clinicData as unknown as { planId?: string })?.planId || "starter",
         });
 
         setLoadingStep("ready");

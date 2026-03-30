@@ -228,7 +228,7 @@ function MethodTable({ rows, total }: { rows: MethodRow[]; total: number }) {
 // ─── Ana Sayfa ────────────────────────────────────────────────────────────────
 
 export default function FinancePage() {
-    const { userRole, isAdmin } = useClinic();
+    const { userRole } = useClinic();
     const isDoctor = userRole === UserRole.DOKTOR;
 
     const def = useMemo(() => currentMonth(), []);

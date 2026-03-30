@@ -27,7 +27,7 @@ export async function switchClinic(userId: string, newClinicId: string) {
     
     // Calculate the complete list of authorized clinics 
     // and remember the old primary clinic so it doesn't get lost
-    let updatedAdditional = [...additionalClinics];
+    const updatedAdditional = [...additionalClinics];
     if (profile.clinic_id && !updatedAdditional.includes(profile.clinic_id)) {
         updatedAdditional.push(profile.clinic_id);
     }

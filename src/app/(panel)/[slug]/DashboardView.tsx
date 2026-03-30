@@ -81,7 +81,6 @@ export default function DashboardView() {
     usePageHeader("Klinik Genel Bakış");
 
     // Rol bazlı görünürlük
-    const isDoktor = userRole === UserRole.DOKTOR;
     const isSekreter = userRole === UserRole.SEKRETER;
     const isFinans = userRole === UserRole.FINANS;
     const showFinancial = isAdmin || isFinans;

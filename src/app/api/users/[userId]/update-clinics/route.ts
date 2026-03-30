@@ -36,20 +36,21 @@ export const POST = withAuth(async (req, auth) => {
     // 2. Kullanıcının app_metadata'sını sadece yeni gönderilen dizi ile güncelle.
     // Gönderilen dizi boş [] ise, kullanıcının tüm ek yetkilerini sıfırlamış/almış oluruz.
     const currentMetadata = user.app_metadata || {};
-    const { data: { user: updatedUser }, error: updateUserError } = await supabaseAdmin.auth.admin.updateUserById(
+    const { data: updateData, error: updateUserError } = await supabaseAdmin.auth.admin.updateUserById(
       userId,
       { app_metadata: { ...currentMetadata, additional_clinics: additional_clinics } }
     );
 
-    if (updateUserError) throw updateUserError;
+    if (updateUserError || !updateData?.user) throw updateUserError || new Error("Kullanıcı güncellenemedi.");
+    const updatedUser = updateData.user;
 
     return NextResponse.json({
       success: true,
-      assignedClinics: (updatedUser as any).app_metadata?.additional_clinics || [],
+      assignedClinics: updatedUser.app_metadata?.additional_clinics || [],
       message: "Klinik yetkileri başarıyla güncellendi."
     });
-  } catch (error: any) {
-    console.error("Klinik yetkileri güncellenirken hata:", error);
-    return NextResponse.json({ error: error.message || "Bilinmeyen bir sunucu hatası oluştu." }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("Klinik yetkileri güncellenirken hata:", err);
+    return NextResponse.json({ error: (err as Error).message || "Bilinmeyen bir sunucu hatası oluştu." }, { status: 500 });
   }
 }, { requiredRole: "ADMIN_OR_SUPER" });

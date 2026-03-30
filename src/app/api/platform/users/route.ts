@@ -44,7 +44,7 @@ export const GET = withAuth(
       );
 
       // İki veriyi birleştiriyoruz (Enrich)
-      const enrichedUsers = usersData?.map((u: any) => {
+      const enrichedUsers = (usersData || []).map((u) => {
         const authInfo = authMap.get(u.id);
         return {
           id: u.id,
@@ -56,15 +56,15 @@ export const GET = withAuth(
           additional_clinics: authInfo?.additional_clinics || [], // Bu kullanıcının ekstra yetkili olduğu klinikler
           last_sign_in_at: authInfo?.last_sign_in_at || null,
         };
-      }) || [];
+      });
 
       // 3. Sistemdeki Tüm Aktif Klinikleri çekiyoruz (Modal'daki çoklu seçim alanı için lazım)
       const { data: clinicsData } = await fallbackClinics();
 
       return NextResponse.json({ users: enrichedUsers, clinics: clinicsData });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Platform kullanıcıları getirilirken hata:", err);
-      return NextResponse.json({ error: err.message || "Bilinmeyen bir hata oluştu" }, { status: 500 });
+      return NextResponse.json({ error: (err as Error).message || "Bilinmeyen bir hata oluştu" }, { status: 500 });
     }
   },
   { requiredRole: "ADMIN_OR_SUPER" }

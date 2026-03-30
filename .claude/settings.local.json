@@ -71,5 +71,9 @@
       "/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/(panel)/[slug]",
       "/Users/batuhanarioz/Desktop/Diş Kliniği/dentist-panel/src/app/api/lab-jobs"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "enableAllProjectMcpServers": true
 }

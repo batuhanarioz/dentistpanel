@@ -52,8 +52,8 @@ export const POST = withAuth(async (req, ctx) => {
     if (updateUserError) throw updateUserError;
 
     return NextResponse.json({ success: true, assignedClinics: updatedUser.user.app_metadata.additional_clinics });
-  } catch (error: any) {
-    console.error("Klinik atama hatası:", error);
-    return NextResponse.json({ error: error.message || "Bilinmeyen bir sunucu hatası oluştu." }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("Klinik atama hatası:", err);
+    return NextResponse.json({ error: (err as Error).message || "Bilinmeyen bir sunucu hatası oluştu." }, { status: 500 });
   }
 }, { requiredRole: [UserRole.SUPER_ADMIN] });

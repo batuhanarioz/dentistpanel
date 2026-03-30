@@ -175,7 +175,7 @@ export default function SelectClinicPage() {
                 })
               ) : (
                 <div className="py-12 text-center text-slate-500 font-medium">
-                  "{searchQuery}" aramasına uygun klinik bulunamadı.
+                  &quot;{searchQuery}&quot; aramasına uygun klinik bulunamadı.
                 </div>
               )
             ) : (

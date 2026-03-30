@@ -9,7 +9,7 @@ export type AuthContext = {
     role: UserRole;
     isSuperAdmin: boolean;
     isAdmin: boolean;
-    params: any;
+    params: Record<string, string>;
 };
 
 type ApiHandler = (req: NextRequest, context: AuthContext) => Promise<NextResponse>;
@@ -18,7 +18,7 @@ export function withAuth(
     handler: ApiHandler,
     options?: { requiredRole?: UserRole[] | "ADMIN_OR_SUPER" | UserRole }
 ) {
-    return async (req: NextRequest, { params }: { params: Promise<any> }): Promise<NextResponse> => {
+    return async (req: NextRequest, { params }: { params: Promise<Record<string, string>> }): Promise<NextResponse> => {
         try {
             const authHeader = req.headers.get("authorization");
             if (!authHeader?.startsWith("Bearer ")) {
