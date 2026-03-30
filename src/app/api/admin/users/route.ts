@@ -12,7 +12,7 @@ export const GET = withAuth(
 
     const { data: users, error } = await supabaseAdmin
       .from("users")
-      .select("id, full_name, email, role, created_at, is_active, specialty_code, working_hours")
+      .select("id, full_name, email, role, created_at, is_active, is_clinical_provider, specialty_code, working_hours")
       .eq("clinic_id", auth.clinicId)
       .neq("role", UserRole.SUPER_ADMIN)
       .order("created_at", { ascending: true });
@@ -31,8 +31,7 @@ export const GET = withAuth(
     }));
 
     return NextResponse.json({ users: enriched });
-  },
-  { requiredRole: "ADMIN_OR_SUPER" }
+  }
 );
 
 export const POST = withAuth(
@@ -47,7 +46,7 @@ export const POST = withAuth(
       );
     }
 
-    const { email, password, fullName, role, clinicId: bodyClinicId, invite } = validation.data;
+    const { email, password, fullName, role, clinicId: bodyClinicId, invite, isClinicalProvider } = validation.data;
 
     const clinicId = auth.isSuperAdmin
       ? bodyClinicId ?? auth.clinicId
@@ -108,8 +107,9 @@ export const POST = withAuth(
         full_name: fullName,
         email,
         role,
+        is_clinical_provider: isClinicalProvider,
       }, { onConflict: "id" })
-      .select("id, full_name, email, role, clinic_id, created_at, is_active, specialty_code")
+      .select("id, full_name, email, role, clinic_id, created_at, is_active, is_clinical_provider, specialty_code")
       .maybeSingle();
 
     if (insertError || !appUser) {
@@ -136,7 +136,7 @@ export const PATCH = withAuth(
       );
     }
 
-    const { id, fullName, role, isActive, specialtyCode, workingHours } = validation.data;
+    const { id, fullName, role, isActive, isClinicalProvider, specialtyCode, workingHours } = validation.data;
 
     if (!auth.isSuperAdmin) {
       const { data: target } = await supabaseAdmin
@@ -165,6 +165,7 @@ export const PATCH = withAuth(
       updateData.role = role;
     }
     if (typeof isActive === "boolean") updateData.is_active = isActive;
+    if (typeof isClinicalProvider === "boolean") updateData.is_clinical_provider = isClinicalProvider;
     if (specialtyCode !== undefined) updateData.specialty_code = specialtyCode;
     if (workingHours !== undefined) updateData.working_hours = workingHours;
 
@@ -176,7 +177,7 @@ export const PATCH = withAuth(
       .from("users")
       .update(updateData)
       .eq("id", id)
-      .select("id, full_name, email, role, clinic_id, created_at, is_active, specialty_code, working_hours")
+      .select("id, full_name, email, role, clinic_id, created_at, is_active, is_clinical_provider, specialty_code, working_hours")
       .maybeSingle();
 
     if (error || !data) {

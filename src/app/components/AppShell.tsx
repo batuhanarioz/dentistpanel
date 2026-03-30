@@ -73,6 +73,10 @@ function SuperAdminNav({
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125-1.125V21" /></svg>
         <span>Klinik Yönetimi</span>
       </button>
+      <button type="button" onClick={() => handleNav("/platform/users")} className={linkClass("/platform/users")}>
+        <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125-1.125V21" /></svg>
+        <span>Kullanıcı Yönetimi</span>
+      </button>
       <button type="button" onClick={() => handleNav("/platform/clinics/addons")} className={linkClass("/platform/clinics/addons")}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V19.5m0 2.25l-2.25-1.313m0-16.875L12 2.25l2.25 1.313M21 14.25v2.25l-2.25 1.313m-13.5 0L3 16.5v-2.25" /></svg>
         <span>Eklentiler</span>
@@ -100,7 +104,7 @@ function ClinicNav({
   userRole?: string;
 }) {
   const base = `/${slug}`;
-  const canSeeFinance = isAdmin || userRole === "FINANS";
+  const canSeeFinance = isAdmin || userRole === "FINANS" || userRole === "DOKTOR";
 
   const handleClick = () => {
     if (onNav) onNav();
@@ -136,7 +140,7 @@ function ClinicNav({
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 3.75v4.5m0-4.5h-4.5m4.5 0-6 6m3 12c-8.284 0-15-6.716-15-15V4.5A2.25 2.25 0 0 1 4.5 2.25h1.372c.516 0 .966.351 1.091.852l1.106 4.423c.11.44-.054.902-.417 1.173l-1.293.97a1.062 1.062 0 0 0-.38 1.21 12.035 12.035 0 0 0 7.143 7.143c.441.162.928-.004 1.21-.38l.97-1.293a1.125 1.125 0 0 1 1.173-.417l4.423 1.106c.5.125.852.575.852 1.091V19.5a2.25 2.25 0 0 1-2.25 2.25h-2.25Z" /></svg>
         <span>Recall Listesi</span>
       </a>
-      <a href={`${base}/rehber`} className={linkClass(`${base}/rehber`)} onClick={handleClick}>
+      <a href={`${base}/guide`} className={linkClass(`${base}/guide`)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
         <span>Asistan Rehberi</span>
       </a>
@@ -168,6 +172,22 @@ function ShellInner({ children }: Props) {
   const clinic = useClinic();
   const pathname = usePathname();
   const router = useRouter();
+  const [canSwitchClinics, setCanSwitchClinics] = useState(false);
+
+  useEffect(() => {
+    // Bu kod sadece client'da çalışır
+    const clinicsRaw = localStorage.getItem("userAccessibleClinics");
+    if (clinicsRaw) {
+      try {
+        const clinics = JSON.parse(clinicsRaw);
+        if (Array.isArray(clinics) && clinics.length > 1) {
+          setCanSwitchClinics(true);
+        }
+      } catch (e) {
+        console.error("Klinik listesi parse edilemedi:", e);
+      }
+    }
+  }, []);
   const [headerTitle, setHeaderTitle] = useState<string>("Klinik Paneli");
   const [headerSubtitle, setHeaderSubtitle] = useState<string | undefined>(undefined);
   const [headerIconPath, setHeaderIconPath] = useState<string>(
@@ -261,6 +281,11 @@ function ShellInner({ children }: Props) {
   const homeHref = clinic.isSuperAdmin ? "/platform/clinics/activity" : `/${clinic.clinicSlug || ""}`;
   const isOnHome = pathname === homeHref || pathname === homeHref + "/";
 
+  const handleSwitchClinic = () => {
+    localStorage.removeItem("activeClinicId");
+    router.push("/select-clinic");
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace("/login");
@@ -312,7 +337,7 @@ function ShellInner({ children }: Props) {
         setHeaderTitle("Tedavi Planları");
         setHeaderIconPath("M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z");
         break;
-      case subPath === "/rehber":
+      case subPath === "/guide":
         setHeaderTitle("Asistan Rehberi");
         setHeaderIconPath("M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25");
         break;
@@ -436,7 +461,17 @@ function ShellInner({ children }: Props) {
                 <ClinicNav linkClass={linkClass} slug={clinic.clinicSlug || ""} isAdmin={clinic.isAdmin || clinic.isSuperAdmin} userRole={clinic.userRole ?? undefined} />
               )}
             </div>
-            <div className="mt-auto pt-4 pb-2 flex-shrink-0">
+            <div className="mt-auto pt-4 pb-2 flex-shrink-0 space-y-2">
+              {canSwitchClinics && (
+                <button
+                  type="button"
+                  onClick={handleSwitchClinic}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-slate-600 px-3.5 py-2.5 text-[13px] font-semibold hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all duration-200 active:scale-[0.98]"
+                >
+                  <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
+                  <span>Klinik Değiştir</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleLogout}
@@ -566,6 +601,18 @@ function ShellInner({ children }: Props) {
                           )}
                         </div>
                       </div>
+
+                      {canSwitchClinics && (
+                        <button
+                          type="button"
+                          onClick={() => { handleSwitchClinic(); closeMobileNav(); }}
+                          className="mb-2 w-full flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-slate-600 px-3.5 py-2.5 text-xs font-semibold hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all duration-200 active:scale-[0.98]"
+                        >
+                          <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
+                          <span>Klinik Değiştir</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={async () => { await handleLogout(); closeMobileNav(); }}

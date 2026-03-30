@@ -393,7 +393,7 @@ export default function AppointmentCalendarPage() {
       });
       setConflictWarning(
         hasConflict
-          ? "Bu zaman aralığında seçilen doktor için başka bir randevu bulunuyor."
+          ? "Bu zaman aralığında seçilen hekim için başka bir randevu bulunuyor."
           : null
       );
     } else {
@@ -717,7 +717,7 @@ export default function AppointmentCalendarPage() {
                             </span>{" "}
                             {a.patientName}
                           </span>
-                          <span>{a.doctor || "Doktor atanmadı"}</span>
+                          <span>{a.doctor || "Hekim atanmadı"}</span>
                         </div>
                         <div className="flex justify-between text-[9px] text-slate-700">
                           <span>{a.channel}</span>
@@ -986,7 +986,7 @@ export default function AppointmentCalendarPage() {
               </div>
               <div className="space-y-1">
                 <label className="block text-[11px] font-medium text-slate-800">
-                  Doktor
+                  Hekim
                 </label>
                 <select
                   value={form.doctor}
@@ -998,7 +998,7 @@ export default function AppointmentCalendarPage() {
                 >
                   {doctors.map((d) => (
                     <option key={d} value={d}>
-                      {d || "Doktor atanmadı"}
+                      {d || "Hekim atanmadı"}
                     </option>
                   ))}
                 </select>
@@ -1131,7 +1131,7 @@ export default function AppointmentCalendarPage() {
               </div>
               <div className="md:col-span-2 space-y-1">
                 <label className="block text-[11px] font-medium text-slate-800">
-                  Doktor Tedavi Notu
+                  Hekim Tedavi Notu
                 </label>
                 <textarea
                   value={form.internalNote}
@@ -1140,7 +1140,7 @@ export default function AppointmentCalendarPage() {
                   }
                   className="w-full rounded-md border px-2 py-1 text-xs"
                   rows={2}
-                  placeholder="Tedavi hakkında doktor notu yazın..."
+                  placeholder="Tedavi hakkında hekim notu yazın..."
                 />
               </div>
               {form.channel === "WhatsApp" && (

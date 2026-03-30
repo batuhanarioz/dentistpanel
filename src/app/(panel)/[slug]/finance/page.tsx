@@ -4,6 +4,8 @@ import { useState, useMemo } from "react";
 import { useFinanceDashboard, type DoctorRow, type TreatmentRow, type MethodRow } from "@/hooks/useFinanceDashboard";
 import { supabase } from "@/lib/supabaseClient";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
+import { useClinic } from "@/app/context/ClinicContext";
+import { UserRole } from "@/types/database";
 
 interface ClosingRecord {
     id: string;
@@ -226,6 +228,9 @@ function MethodTable({ rows, total }: { rows: MethodRow[]; total: number }) {
 // ─── Ana Sayfa ────────────────────────────────────────────────────────────────
 
 export default function FinancePage() {
+    const { userRole, isAdmin } = useClinic();
+    const isDoctor = userRole === UserRole.DOKTOR;
+
     const def = useMemo(() => currentMonth(), []);
     const [from, setFrom] = useState(def.from);
     const [to, setTo] = useState(def.to);
@@ -334,30 +339,30 @@ export default function FinancePage() {
                     {/* KPI kartları — 5 sütun */}
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                         <KpiCard
-                            label="Toplam Tahsilat"
+                            label={isDoctor ? "Toplam Tahsilatım" : "Toplam Tahsilat"}
                             value={fmt(data.kpi.revenue)}
                             color="bg-white border-slate-100 text-slate-900"
                         />
                         <KpiCard
-                            label="Malzeme Maliyeti"
+                            label={isDoctor ? "Kullanılan Malzeme" : "Malzeme Maliyeti"}
                             value={fmt(data.kpi.materialCost)}
                             sub="Tedavi tanımından"
                             color="bg-amber-50 border-amber-100 text-amber-900"
                         />
                         <KpiCard
-                            label="Hekim Primleri"
+                            label={isDoctor ? "Hak Ettiğim Prim" : "Hekim Primleri"}
                             value={fmt(data.kpi.doctorPrim)}
                             sub="Prim % × Tahsilat"
                             color="bg-indigo-50 border-indigo-100 text-indigo-900"
                         />
                         <KpiCard
-                            label="Klinik Net Kârı"
+                            label={isDoctor ? "Benim Net Kârım" : "Klinik Net Kârı"}
                             value={fmt(data.kpi.netProfit)}
                             sub={marginPct ? `%${marginPct} marj` : undefined}
                             color={data.kpi.netProfit >= 0 ? "bg-emerald-50 border-emerald-100 text-emerald-900" : "bg-rose-50 border-rose-100 text-rose-900"}
                         />
                         <KpiCard
-                            label="Açık Alacak"
+                            label={isDoctor ? "Kalan Alacağım" : "Açık Alacak"}
                             value={fmt(data.kpi.openReceivables)}
                             sub="Bekleyen / kısmi"
                             color={data.kpi.openReceivables > 0 ? "bg-orange-50 border-orange-100 text-orange-900" : "bg-white border-slate-100 text-slate-400"}
@@ -398,7 +403,7 @@ export default function FinancePage() {
                     {/* Hekim bazında tablo */}
                     <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
                         <div className="px-6 py-5 border-b border-slate-50">
-                            <h2 className="text-base font-black text-slate-900">Hekim Bazında Hak Ediş</h2>
+                            <h2 className="text-base font-black text-slate-900">{isDoctor ? "Benim Hak Edişim" : "Hekim Bazında Hak Ediş"}</h2>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                                 Sadece randevuya bağlı ödemeler hesaba katılır
                             </p>
@@ -423,13 +428,14 @@ export default function FinancePage() {
                 </>
             )}
 
-            {/* Gün Sonu Geçmişi */}
-            <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-                <button
-                    type="button"
-                    onClick={handleToggleHistory}
-                    className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50 transition-colors"
-                >
+            {/* Gün Sonu Geçmişi Sadece Admin ve Finans İçin Gösterilir */}
+            {!isDoctor && (
+                <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+                    <button
+                        type="button"
+                        onClick={handleToggleHistory}
+                        className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50 transition-colors"
+                    >
                     <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded-xl bg-slate-100 flex items-center justify-center">
                             <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -527,7 +533,8 @@ export default function FinancePage() {
                         )}
                     </div>
                 )}
-            </div>
+                </div>
+            )}
         </div>
     );
 }

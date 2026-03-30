@@ -7,6 +7,8 @@ import { ClinicIdentityContext, ClinicDataContext, type ClinicContextValue } fro
 import { UserRole, type WorkingHours, type Clinic, type ClinicAddon } from "@/types/database";
 import { DEFAULT_WORKING_HOURS } from "@/constants/days";
 import { SYSTEM_AUTOMATIONS, type ClinicAutomation } from "@/constants/automations";
+import { getAccessibleClinics, getClinicById } from "@/app/actions/getAccessibleClinics";
+import { switchClinic } from "@/app/actions/switchClinic";
 
 type Props = {
   children: React.ReactNode;
@@ -155,19 +157,13 @@ export function AuthGuard({ children }: Props) {
 
       try {
         setLoadingStep("profile");
-        // Waterfall fix: users + clinics tek sorguda JOIN ile çekiliyor
-        // Böylece 3 katmanlı waterfall → 2 katmana düşüyor
+
+        // 1. Kullanıcı profilini ve ana kliniğini çek (JOIN'siz)
         const { data: appUser, error: userError } = await supabase
           .from("users")
-          .select(`
-            id, full_name, email, role, clinic_id,
-            clinic:clinics!clinic_id(
-              id, name, slug, is_active, working_hours, working_hours_overrides,
-              subscription_status, billing_cycle, current_period_end, last_payment_date
-            )
-          `)
+          .select("id, full_name, email, role, clinic_id")
           .eq("id", user.id)
-          .maybeSingle();
+          .single();
 
         if (userError || !appUser) {
           await supabase.auth.signOut();
@@ -179,51 +175,90 @@ export function AuthGuard({ children }: Props) {
         const isSuperAdmin = role === UserRole.SUPER_ADMIN;
         const isAdmin = role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
 
+        // 2. Ek klinikleri metadata'dan al ve birleştir
+        const additionalClinicIds = user.app_metadata?.additional_clinics as string[] || [];
+        const allClinicIds = [...new Set([appUser.clinic_id, ...additionalClinicIds].filter(Boolean))];
+
+        // 3. Klinik seçimi mantığı
+        let targetClinicId: string | null = null;
+        if (isSuperAdmin) {
+            // Super adminler belirli bir klinik context'inde başlamaz, slug'a göre çalışırlar
+        } else if (allClinicIds.length > 1) {
+          // Birden fazla kliniği varsa her halükarda klinik listesini çekip kaydet (AppShell "Klinik Değiştir" butonu için)
+          // RLS (Güvenlik Kuralı) engellemesini aşmak için Server Action kullanıyoruz.
+          const accessibleClinics = await getAccessibleClinics(allClinicIds);
+            
+          if (accessibleClinics && accessibleClinics.length > 0) {
+            localStorage.setItem("userAccessibleClinics", JSON.stringify(accessibleClinics));
+          }
+
+          const activeClinicId = localStorage.getItem("activeClinicId");
+          if (activeClinicId && allClinicIds.includes(activeClinicId)) {
+            targetClinicId = activeClinicId;
+          } else {
+            // Klinik seçimi yapılmamışsa, seçim sayfasına yönlendir.
+            router.replace("/select-clinic");
+            return; // Yönlendirme sonrası bu render'ı durdur
+          }
+        } else if (allClinicIds.length === 1) {
+          targetClinicId = allClinicIds[0];
+          // Tek klinik varsa da kaydet ki sonradan 2. klinik eklenince temiz bi array olsun (opsiyonel)
+          const accessibleClinics = await getAccessibleClinics(allClinicIds);
+          if (accessibleClinics && accessibleClinics.length > 0) {
+            localStorage.setItem("userAccessibleClinics", JSON.stringify(accessibleClinics));
+          }
+        }
+
+        // 4. Aktif kliniğe ait verileri çek
         setLoadingStep("clinic");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const joinedClinic = (appUser as any).clinic as Partial<Clinic> | null;
-        const clinicData: Partial<Clinic> | null = Array.isArray(joinedClinic) ? joinedClinic[0] ?? null : joinedClinic;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+        // RLS ve JWT katmanlarını eşitlemek için Klinik Değişikliğini veritabanına ve Auth Metadatasına kaydet.
+        // Bunu yapmazsak RLS eski (birincil) kliniğin verilerini getirmeye çalışıyor ve kullanıcı geçiş yapsa bile veriler boş geliyor!
+        if (targetClinicId && appUser.clinic_id !== targetClinicId) {
+          console.log("Klinik geçişi tespit edildi. Yetkiler ve session güncelleniyor...");
+          const res = await switchClinic(user.id, targetClinicId);
+          if (res.success) {
+            await supabase.auth.refreshSession(); // Yeni session bilgilerini (JWT) istemciye yükle.
+          } else {
+            console.error("Klinik geçiş yetkilendirmesi başarısız:", res.error);
+          }
+        }
+
+        let clinicData: Partial<Clinic> | null = null;
         let clinicSettingsData: any = null;
         let automationsData: ClinicAutomation[] = [];
         let clinicAddonsData: ClinicAddon[] = [];
 
-        if (!isSuperAdmin && appUser.clinic_id) {
-          if (!clinicData || !(clinicData as unknown as Clinic).is_active) {
-            await supabase.auth.signOut();
-            router.replace(
-              (clinicData as unknown as Clinic)?.is_active === false
-                ? "/login?error=inactive"
-                : "/login?error=unauthorized"
-            );
-            return;
-          }
-
-          // Klinik verisi JOIN'dan geldi — artık sadece automations/settings/addons paralel çekiliyor
+        if (targetClinicId) {
+          // Paralel sorgularla hedef kliniğin tüm verilerini çek
+          // RLS (Güvenlik Kuralı) hatasını (invalid_clinic) aşmak için kliniğin ana verisini Server Action üzerinden çekiyoruz.
           const [
+            cData,
             { data: autoResData, error: autoResError },
             { data: settingsResData, error: settingsResError },
             { data: addonsResData, error: addonsResError }
           ] = await Promise.all([
-            supabase
-              .from("clinic_automations")
-              .select("automation_id, is_visible, is_enabled, schedule_time, schedule_day")
-              .eq("clinic_id", appUser.clinic_id),
-            supabase
-              .from("clinic_settings")
-              .select("id, clinic_id, message_templates, notification_settings, assistant_timings, appointment_channels, created_at, updated_at")
-              .eq("clinic_id", appUser.clinic_id)
-              .maybeSingle(),
-            supabase
-              .from("clinic_addons")
-              .select("*, addon_products(*)")
-              .eq("clinic_id", appUser.clinic_id)
-              .eq("is_visible", true)
-              .order("created_at", { ascending: true })
+            getClinicById(targetClinicId),
+            supabase.from("clinic_automations").select("automation_id, is_visible, is_enabled, schedule_time, schedule_day").eq("clinic_id", targetClinicId),
+            supabase.from("clinic_settings").select("*").eq("clinic_id", targetClinicId).maybeSingle(),
+            supabase.from("clinic_addons").select("*, addon_products(*)").eq("clinic_id", targetClinicId).eq("is_visible", true).order("created_at", { ascending: true })
           ]);
 
+          if (!cData) {
+            // Seçilen klinik bulunamazsa veya inaktifse, seçimi temizle ve başa dön
+            localStorage.removeItem("activeClinicId");
+            router.replace("/select-clinic?error=invalid_clinic");
+            return;
+          }
+          clinicData = cData;
+
+          if (!cData.is_active) {
+            await supabase.auth.signOut();
+            router.replace("/login?error=inactive");
+            return;
+          }
+
           if (!autoResError && autoResData) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             automationsData = autoResData.map((a: any) => ({
               id: a.automation_id,
               name: SYSTEM_AUTOMATIONS.find(s => s.id === a.automation_id)?.name || a.automation_id,
@@ -234,16 +269,11 @@ export function AuthGuard({ children }: Props) {
             }));
             automationsRef.current = automationsData;
           }
-
-          if (!settingsResError && settingsResData) {
-            clinicSettingsData = settingsResData;
-          }
-
-          if (!addonsResError && addonsResData) {
-            clinicAddonsData = addonsResData as ClinicAddon[];
-          }
+          if (!settingsResError && settingsResData) clinicSettingsData = settingsResData;
+          if (!addonsResError && addonsResData) clinicAddonsData = addonsResData as ClinicAddon[];
         }
 
+        // 5. ClinicContext'i doldur
         setClinicCtx({
           clinicId: clinicData?.id || null,
           clinicName: clinicData?.name || null,
@@ -263,7 +293,6 @@ export function AuthGuard({ children }: Props) {
           n8nWorkflows: automationsRef.current,
           clinicSettings: clinicSettingsData,
           clinicAddons: clinicAddonsData,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           planId: (clinicData as any)?.planId || "starter",
         });
 
@@ -271,6 +300,9 @@ export function AuthGuard({ children }: Props) {
         setAllowed(true);
       } catch (err) {
         console.error("AuthGuard initialization error:", err);
+        // Hata durumunda kullanıcıyı güvenli bir şekilde dışarı at
+        await supabase.auth.signOut();
+        router.replace("/login?error=auth_error");
       } finally {
         setChecking(false);
       }

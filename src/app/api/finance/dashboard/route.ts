@@ -53,10 +53,13 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
             .gte("created_at", rangeStart)
             .lte("created_at", rangeEnd),
 
-        // 2. Bekleyen / kısmi — açık alacak hesabı için
+        // 2. Bekleyen / kısmi — açık alacak hesabı için (doktor filtresi için appointments ekliyoruz)
         supabaseAdmin
             .from("payments")
-            .select("id, amount, status")
+            .select(`
+                id, amount, status,
+                appointments ( doctor_id )
+            `)
             .eq("clinic_id", ctx.clinicId)
             .in("status", ["pending", "partial"])
             .gte("created_at", rangeStart)
@@ -81,8 +84,15 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
     );
 
     // Açık alacak — pending + partial ödemelerin toplam tutarı
+    const isDoctor = ctx.role === UserRole.DOKTOR;
     const openReceivables = round(
-        (pendingRes.data ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0)
+        (pendingRes.data ?? []).reduce((s, p) => {
+            if (isDoctor) {
+                const appt = Array.isArray(p.appointments) ? p.appointments[0] : p.appointments;
+                if (appt?.doctor_id !== ctx.user.id) return s;
+            }
+            return s + Number(p.amount ?? 0);
+        }, 0)
     );
 
     // ─── Ana hesaplama ────────────────────────────────────────────────────────
@@ -121,6 +131,11 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
             : (users as { full_name?: string } | null)?.full_name ?? null;
 
         const def = treatmentType ? treatmentMap.get(treatmentType) : undefined;
+
+        // Doktor sadece kendi kayıtlarını görsün
+        if (isDoctor && doctorId !== ctx.user.id) {
+            continue;
+        }
         if (treatmentType && !def) unmatchedCount++;
         const materialCost = def ? def.material_cost : 0;
         const primPercent  = def ? def.doctor_prim_percent : 0;
@@ -190,7 +205,7 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
             count:   m.count,
         })).sort((a, b) => b.revenue - a.revenue),
     });
-}, { requiredRole: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANS] });
+}, { requiredRole: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FINANS, UserRole.DOKTOR] });
 
 function round(n: number) {
     return Math.round(n * 100) / 100;

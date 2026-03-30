@@ -116,10 +116,8 @@ export function useDashboard() {
 
     // Filter and sort appointments for the list
     const appointments = useMemo(() => {
-        // Doktor rolü: sadece kendi randevularını görsün
-        const base = clinic.userRole === UserRole.DOKTOR && clinic.userId
-            ? rawAppointments.filter(a => a.doctorId === clinic.userId)
-            : rawAppointments;
+        // Remove filtering by doctor ID, let all clinic members view all appointments
+        const base = rawAppointments;
 
         const sorted = [...base].sort((a, b) => {
             const dateA = new Date(a.startsAt).getTime();

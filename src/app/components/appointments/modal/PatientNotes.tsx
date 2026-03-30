@@ -25,14 +25,14 @@ export function PatientNotes({ form, setForm }: PatientNotesProps) {
             </div>
             <div className="md:col-span-2 space-y-1">
                 <label className="block text-xs font-medium text-slate-700">
-                    Tedavi sonrası not (doktor)
+                    Tedavi sonrası not (hekim)
                 </label>
                 <textarea
                     value={form.treatmentNote}
                     onChange={(e) => setForm((f) => ({ ...f, treatmentNote: e.target.value }))}
                     className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                     rows={2}
-                    placeholder="Randevu sonrası doktor tarafından doldurulur..."
+                    placeholder="Randevu sonrası hekim tarafından doldurulur..."
                 />
             </div>
             {form.channel === "whatsapp" && (

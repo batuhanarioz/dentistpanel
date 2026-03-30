@@ -66,7 +66,7 @@ export function AppointmentDetails({
 
             <div className="space-y-1">
                 <label className="block text-xs font-medium text-slate-700">
-                    Doktor
+                    Hekim
                 </label>
                 <select
                     value={form.doctor}
@@ -74,7 +74,7 @@ export function AppointmentDetails({
                     className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                 >
                     {doctors.map((d) => (
-                        <option key={d} value={d}>{d || "Doktor atanmadı"}</option>
+                        <option key={d} value={d}>{d || "Hekim atanmadı"}</option>
                     ))}
                 </select>
                 {conflictWarning && (

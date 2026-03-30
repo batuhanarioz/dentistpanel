@@ -586,20 +586,20 @@ export interface LabJob {
 }
 
 export const LAB_JOB_STATUSES: { value: LabJobStatus; label: string; color: string; bg: string; dot: string }[] = [
-  { value: "sent",        label: "Gönderildi",    color: "text-amber-700",   bg: "bg-amber-50",   dot: "bg-amber-400"  },
-  { value: "in_progress", label: "İşlemde",       color: "text-blue-700",    bg: "bg-blue-50",    dot: "bg-blue-500"   },
-  { value: "try_in",      label: "Prova",         color: "text-purple-700",  bg: "bg-purple-50",  dot: "bg-purple-500" },
-  { value: "received",    label: "Teslim Alındı", color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500"},
-  { value: "cancelled",   label: "İptal",         color: "text-slate-500",   bg: "bg-slate-50",   dot: "bg-slate-400"  },
+  { value: "sent", label: "Gönderildi", color: "text-amber-700", bg: "bg-amber-50", dot: "bg-amber-400" },
+  { value: "in_progress", label: "İşlemde", color: "text-blue-700", bg: "bg-blue-50", dot: "bg-blue-500" },
+  { value: "try_in", label: "Prova", color: "text-purple-700", bg: "bg-purple-50", dot: "bg-purple-500" },
+  { value: "received", label: "Teslim Alındı", color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500" },
+  { value: "cancelled", label: "İptal", color: "text-slate-500", bg: "bg-slate-50", dot: "bg-slate-400" },
 ];
 
 /** Geçerli durum geçiş kuralları — hangi statüden hangisine geçilebilir */
 export const LAB_JOB_TRANSITIONS: Record<LabJobStatus, LabJobStatus[]> = {
-  sent:        ["in_progress", "cancelled"],
-  in_progress: ["try_in",      "sent",       "cancelled"],
-  try_in:      ["received",    "in_progress","cancelled"],
-  received:    [],             // final state
-  cancelled:   ["sent"],       // sadece admin geri alabiliyor (API tarafında)
+  sent: ["in_progress", "cancelled"],
+  in_progress: ["try_in", "sent", "cancelled"],
+  try_in: ["received", "in_progress", "cancelled"],
+  received: [],             // final state
+  cancelled: ["sent"],       // sadece admin geri alabiliyor (API tarafında)
 };
 
 // ─── Asistan Rehberi (Treatment Library) ─────────────────────────────────────

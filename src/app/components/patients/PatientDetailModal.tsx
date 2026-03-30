@@ -82,7 +82,7 @@ export function PatientDetailModal({
     const [labModalOpen, setLabModalOpen] = useState(false);
 
     // Hastanın lab işleri
-    const { data: patientLabJobs = [], isLoading: labJobsLoading } = useLabJobs("all", isOpen ? patient?.id : undefined);
+    const { data: patientLabJobs = [], isLoading: labJobsLoading } = useLabJobs("all", isOpen ? patient?.id : undefined, isOpen);
 
     // Hastanın recall geçmişi
     const { data: patientRecalls = [] } = usePatientRecallHistory(isOpen ? patient?.id : undefined);

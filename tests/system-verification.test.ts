@@ -56,7 +56,7 @@ describe('Sistem İş Akışı Testleri', () => {
             .eq('appointment_id', testAppointmentId);
 
         const hasDoctorTask = items?.some(i => (i.checklist_definitions as { code: string }).code === 'MISSING_DOCTOR');
-        console.log('Randevu oluştu, Doktor görevi:', hasDoctorTask ? 'VAR ✅' : 'YOK ❌');
+        console.log('Randevu oluştu, Hekim görevi:', hasDoctorTask ? 'VAR ✅' : 'YOK ❌');
 
         // 3. Doktor ata
         await adminClient.from('appointments').update({ doctor_id: testDoctorId }).eq('id', testAppointmentId);
@@ -68,7 +68,7 @@ describe('Sistem İş Akışı Testleri', () => {
             .eq('status', 'pending');
 
         const doctorTaskGone = !itemsAfterDoctor?.some(i => (i.checklist_definitions as { code: string }).code === 'MISSING_DOCTOR');
-        console.log('Doktor atandı, Doktor görevi kapandı mı:', doctorTaskGone ? 'EVET ✅' : 'HAYIR ❌');
+        console.log('Hekim atandı, Hekim görevi kapandı mı:', doctorTaskGone ? 'EVET ✅' : 'HAYIR ❌');
         expect(doctorTaskGone).toBe(true);
     });
 

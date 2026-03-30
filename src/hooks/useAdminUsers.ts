@@ -26,6 +26,7 @@ export type UserRow = {
     role: string;
     created_at: string;
     is_active: boolean;
+    is_clinical_provider: boolean;
     specialty_code: string | null;
     working_hours: WorkingHours | null;
     last_sign_in_at: string | null;
@@ -77,11 +78,13 @@ export function useAdminUsers() {
     const [newRole, setNewRole] = useState<string>(UserRole.SEKRETER);
     const [newClinicId, setNewClinicId] = useState("");
     const [newInvite, setNewInvite] = useState(false);
+    const [newIsClinicalProvider, setNewIsClinicalProvider] = useState(false);
 
     // Edit form states
     const [editFullName, setEditFullName] = useState("");
     const [editRole, setEditRole] = useState<string>(UserRole.SEKRETER);
     const [editIsActive, setEditIsActive] = useState(true);
+    const [editIsClinicalProvider, setEditIsClinicalProvider] = useState(false);
     const [editSpecialtyCode, setEditSpecialtyCode] = useState<string>("");
     const [editWorkingHours, setEditWorkingHours] = useState<WorkingHours | null>(null);
     const [editSaving, setEditSaving] = useState(false);
@@ -159,13 +162,14 @@ export function useAdminUsers() {
                 role: newRole,
                 clinicId: newClinicId || clinic.clinicId,
                 invite: newInvite,
+                isClinicalProvider: newRole === UserRole.DOKTOR ? true : newIsClinicalProvider,
             })
         });
         const data = await res.json();
         if (data.error) setError(data.error);
         else {
             setShowCreateModal(false);
-            setNewEmail(""); setNewFullName(""); setNewPassword(""); setNewInvite(false);
+            setNewEmail(""); setNewFullName(""); setNewPassword(""); setNewInvite(false); setNewIsClinicalProvider(false);
             await refreshUsers();
         }
         setSaving(false);
@@ -185,6 +189,7 @@ export function useAdminUsers() {
                 fullName: editFullName,
                 role: editRole,
                 isActive: editIsActive,
+                isClinicalProvider: editRole === UserRole.DOKTOR ? true : editIsClinicalProvider,
                 specialtyCode: editSpecialtyCode || null,
                 workingHours: editWorkingHours,
             })
@@ -255,6 +260,7 @@ export function useAdminUsers() {
         setEditFullName(user.full_name || "");
         setEditRole(user.role);
         setEditIsActive(user.is_active);
+        setEditIsClinicalProvider(user.is_clinical_provider || false);
         setEditSpecialtyCode(user.specialty_code || "");
         setEditWorkingHours(user.working_hours);
         setShowEditModal(true);
@@ -271,8 +277,8 @@ export function useAdminUsers() {
         showPasswordModal, setShowPasswordModal, deleteTarget, setDeleteTarget, deleteProtected,
         showResetModal, setShowResetModal, resetUserId, setResetUserId, showChecklistModal, setShowChecklistModal,
         saving, newEmail, setNewEmail, newFullName, setNewFullName, newPassword, setNewPassword,
-        newRole, setNewRole, newClinicId, setNewClinicId, newInvite, setNewInvite,
-        editFullName, setEditFullName, editRole, setEditRole, editIsActive, setEditIsActive,
+        newRole, setNewRole, newClinicId, setNewClinicId, newInvite, setNewInvite, newIsClinicalProvider, setNewIsClinicalProvider,
+        editFullName, setEditFullName, editRole, setEditRole, editIsActive, setEditIsActive, editIsClinicalProvider, setEditIsClinicalProvider,
         editSpecialtyCode, setEditSpecialtyCode, editWorkingHours, setEditWorkingHours, editSaving,
         resetPassword, setResetPassword, resetSaving, resetError, resetSuccess, setResetSuccess,
         selfNewEmail, setSelfNewEmail, selfOldPassword, setSelfOldPassword, selfNewPassword, setSelfNewPassword,

@@ -8,6 +8,7 @@ interface ClinicListProps {
     loading: boolean;
     onEditClinic: (clinic: Clinic) => void;
     onViewClinic: (clinic: Clinic) => void;
+    onAssignAdmin: (clinic: Clinic) => void;
 }
 
 function getDaysUntilExpiry(clinic: Clinic): number | null {
@@ -15,7 +16,7 @@ function getDaysUntilExpiry(clinic: Clinic): number | null {
     return Math.ceil((new Date(clinic.current_period_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
-export function ClinicList({ clinics, loading, onEditClinic, onViewClinic }: ClinicListProps) {
+export function ClinicList({ clinics, loading, onEditClinic, onViewClinic, onAssignAdmin }: ClinicListProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
     const [currentPage, setCurrentPage] = useState(1);
@@ -226,6 +227,15 @@ export function ClinicList({ clinics, loading, onEditClinic, onViewClinic }: Cli
                                             <span className="text-[10px] font-bold text-slate-700">{new Date(c.created_at).toLocaleDateString("tr-TR")}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => onAssignAdmin(c)}
+                                                className="h-9 w-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-violet-600 hover:text-white transition-all shadow-sm"
+                                                title="Yönetici Ata"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+                                                </svg>
+                                            </button>
                                             <button
                                                 onClick={() => onViewClinic(c)}
                                                 className="h-9 w-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-teal-600 hover:text-white transition-all shadow-sm"

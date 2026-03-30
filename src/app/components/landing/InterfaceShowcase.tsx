@@ -181,7 +181,7 @@ export function InterfaceShowcase() {
                                 <div className="mt-8">
                                     <h4 className="font-black text-slate-900 uppercase tracking-widest text-[10px] mb-2">Bütünleşik Hasta Kartı</h4>
                                     <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                                        {activePatientCard === "ozet" ? "Ad-soyad, telefon ve ödeme istatistikleri." : "Tıbbi geçmiş, doktor notları ve röntgenler."}
+                                        {activePatientCard === "ozet" ? "Ad-soyad, telefon ve ödeme istatistikleri." : "Tıbbi geçmiş, hekim notları ve röntgenler."}
                                     </p>
                                 </div>
                             </div>

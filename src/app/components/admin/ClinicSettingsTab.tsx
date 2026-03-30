@@ -210,7 +210,7 @@ export function ClinicSettingsTab() {
                 supabase.from("users")
                     .select("id, full_name, role")
                     .eq("clinic_id", clinic.clinicId)
-                    .in("role", ["DOKTOR"]),
+                    .in("role", ["HEKİM"]),
                 supabase.from("doctor_schedules")
                     .select("user_id, working_hours")
                     .eq("clinic_id", clinic.clinicId),
@@ -238,7 +238,7 @@ export function ClinicSettingsTab() {
                 .from("doctor_schedules")
                 .upsert({ clinic_id: clinic.clinicId, user_id: doctorId, working_hours: hours }, { onConflict: "clinic_id,user_id" });
             if (error) throw error;
-            setSaveMessage({ type: "success", text: "Doktor çalışma saatleri kaydedildi." });
+            setSaveMessage({ type: "success", text: "Hekim çalışma saatleri kaydedildi." });
             setTimeout(() => setSaveMessage(null), 3000);
         } catch {
             setSaveMessage({ type: "error", text: "Kaydedilemedi." });
@@ -717,7 +717,7 @@ export function ClinicSettingsTab() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                             </svg>
                         </div>
-                        <span>Doktor Müsaitliği</span>
+                        <span>Hekim Müsaitliği</span>
                     </button>
 
                     <button
@@ -1522,8 +1522,8 @@ export function ClinicSettingsTab() {
                 {activeSub === "doctor-hours" && (
                     <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden">
                         <div className="p-8 border-b border-slate-50">
-                            <h3 className="text-xl font-black text-slate-900">Doktor Bazlı Müsaitlik</h3>
-                            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Her doktor için ayrı çalışma saati tanımlayın.</p>
+                            <h3 className="text-xl font-black text-slate-900">Hekim Bazlı Müsaitlik</h3>
+                            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Her hekim için ayrı çalışma saati tanımlayın.</p>
                         </div>
 
                         {saveMessage && (
@@ -1533,7 +1533,7 @@ export function ClinicSettingsTab() {
                         {doctorHoursLoading ? (
                             <div className="p-12 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /></div>
                         ) : doctorList.length === 0 ? (
-                            <div className="p-12 text-center text-slate-400 text-sm font-medium italic">Klinikte kayıtlı doktor bulunamadı.</div>
+                            <div className="p-12 text-center text-slate-400 text-sm font-medium italic">Klinikte kayıtlı hekim bulunamadı.</div>
                         ) : (
                             <div className="p-8 space-y-6">
                                 {/* Doktor seçici */}
@@ -1608,8 +1608,8 @@ export function ClinicSettingsTab() {
                             {/* Doktora yeni randevu bildirimi */}
                             <div className="flex items-center justify-between p-5 rounded-2xl border border-slate-100 bg-slate-50/30">
                                 <div>
-                                    <h4 className="text-sm font-black text-slate-900">Doktora Yeni Randevu Bildirimi</h4>
-                                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Bir randevu oluşturulduğunda atanan doktor bildirim alsın</p>
+                                    <h4 className="text-sm font-black text-slate-900">Hekime Yeni Randevu Bildirimi</h4>
+                                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Bir randevu oluşturulduğunda atanan hekim bildirim alsın</p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer shrink-0">
                                     <input type="checkbox" className="sr-only peer" checked={notifRules.notify_doctor_on_new_appointment}
@@ -1638,7 +1638,7 @@ export function ClinicSettingsTab() {
                                         );
                                     })}
                                 </div>
-                                <p className="text-[10px] text-slate-400 font-medium mt-2 italic">Doktor bildirimi yukarıdaki toggle ile ayrıca yönetilir. Bu seçimler ek bildirim alacak rolleri belirler.</p>
+                                <p className="text-[10px] text-slate-400 font-medium mt-2 italic">Hekim bildirimi yukarıdaki toggle ile ayrıca yönetilir. Bu seçimler ek bildirim alacak rolleri belirler.</p>
                             </div>
                         </div>
                     </div>

@@ -2,6 +2,7 @@
 
 import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { UserRole } from "@/types/database";
+import { supabase } from "@/lib/supabaseClient";
 import { UserListTable } from "@/app/components/admin/UserListTable";
 import { CreateUserModal } from "@/app/components/admin/CreateUserModal";
 import { EditUserModal } from "@/app/components/admin/EditUserModal";
@@ -10,7 +11,7 @@ import { ChangePasswordModal } from "@/app/components/ChangePasswordModal";
 import { DeleteUserModal } from "@/app/components/DeleteUserModal";
 import { ClinicSettingsTab } from "@/app/components/admin/ClinicSettingsTab";
 import { AuditLogTab } from "@/app/components/admin/AuditLogTab";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function AdminUsersPage() {
   const {
@@ -19,8 +20,8 @@ export default function AdminUsersPage() {
     showPasswordModal, setShowPasswordModal, deleteTarget, setDeleteTarget, deleteProtected,
     showResetModal, setShowResetModal, setResetUserId,
     saving, newEmail, setNewEmail, newFullName, setNewFullName, newPassword, setNewPassword,
-    newRole, setNewRole, newInvite, setNewInvite,
-    editFullName, setEditFullName, editRole, setEditRole,
+    newRole, setNewRole, newInvite, setNewInvite, newIsClinicalProvider, setNewIsClinicalProvider,
+    editFullName, setEditFullName, editRole, setEditRole, editIsClinicalProvider, setEditIsClinicalProvider,
     editIsActive, setEditIsActive, editSpecialtyCode, setEditSpecialtyCode,
     editWorkingHours, setEditWorkingHours, editSaving,
     resetPassword, setResetPassword, resetSaving, resetError, resetSuccess, setResetSuccess,
@@ -29,6 +30,32 @@ export default function AdminUsersPage() {
 
   const [activeTab, setActiveTab] = useState<"members" | "settings" | "audit" | "enabiz">("members");
   const [showEnabizModal, setShowEnabizModal] = useState(false);
+  const [showNewClinicModal, setShowNewClinicModal] = useState(false);
+  const [whatsappMessage, setWhatsappMessage] = useState("Merhaba,%20panelim%20üzerinden%20hesabıma%20yeni%20bir%20şube%2Fklinik%20eklemek%20istiyorum.%20Neler%20yapabiliriz%3F");
+
+  // Load user information for the WhatsApp message
+  useEffect(() => {
+    async function loadWhatsappInfo() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase.from("users").select("full_name, clinic_id").eq("id", user.id).single();
+        if (!profile) return;
+
+        const activeClinicId = localStorage.getItem("activeClinicId") || profile.clinic_id;
+        const { data: clinic } = await supabase.from("clinics").select("name").eq("id", activeClinicId).single();
+
+        const text = `Merhaba, ben ${profile.full_name} (${clinic?.name || "Klinik"}). Sistem üzerinden hesabıma yeni bir şube/klinik eklemek istiyorum. Bilgi alabilir miyim?`;
+        setWhatsappMessage(encodeURIComponent(text));
+      } catch (e) {
+        console.error("WhatsApp info error", e);
+      }
+    }
+    if (showNewClinicModal) {
+      loadWhatsappInfo();
+    }
+  }, [showNewClinicModal]);
 
   // Calculate statistics
   const adminCount = users.filter(u => u.role === UserRole.ADMIN || u.role === UserRole.SUPER_ADMIN).length;
@@ -73,6 +100,16 @@ export default function AdminUsersPage() {
             >
               <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-amber-100 text-amber-600 text-[9px] font-black leading-none">!</span>
               E-Nabız &amp; USS
+            </button>
+            <div className="w-px h-6 bg-slate-200/60 self-center mx-1" />
+            <button
+              onClick={() => setShowNewClinicModal(true)}
+              className="px-6 py-2.5 rounded-xl text-xs font-black transition-all text-indigo-600 bg-indigo-50 border border-indigo-100/50 hover:bg-indigo-100 hover:text-indigo-700 flex items-center gap-2 group shadow-sm hover:shadow-indigo-100/50"
+            >
+              <svg className="h-4 w-4 text-indigo-500 group-hover:text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v2.25A2.25 2.25 0 0 0 6 10.5Zm0 9.75h2.25A2.25 2.25 0 0 0 10.5 18v-2.25a2.25 2.25 0 0 0-2.25-2.25H6a2.25 2.25 0 0 0-2.25 2.25V18A2.25 2.25 0 0 0 6 20.25Zm9.75-9.75H18a2.25 2.25 0 0 0 2.25-2.25V6A2.25 2.25 0 0 0 18 3.75h-2.25A2.25 2.25 0 0 0 13.5 6v2.25a2.25 2.25 0 0 0 2.25 2.25Z" />
+              </svg>
+              Yeni Şube Aç
             </button>
           </>
         )}
@@ -166,6 +203,8 @@ export default function AdminUsersPage() {
         setRole={setNewRole}
         invite={newInvite}
         setInvite={setNewInvite}
+        isClinicalProvider={newIsClinicalProvider}
+        setIsClinicalProvider={setNewIsClinicalProvider}
         isSuperAdmin={isAdmin}
       />
 
@@ -180,6 +219,8 @@ export default function AdminUsersPage() {
         setFullName={setEditFullName}
         role={editRole}
         setRole={setEditRole}
+        isClinicalProvider={editIsClinicalProvider}
+        setIsClinicalProvider={setEditIsClinicalProvider}
         isActive={editIsActive}
         setIsActive={setEditIsActive}
         specialtyCode={editSpecialtyCode}
@@ -276,6 +317,62 @@ export default function AdminUsersPage() {
               >
                 Anladım
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Yeni Şube / Klinik Aç Modeli */}
+      {showNewClinicModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header / Banner */}
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-8 text-center relative overflow-hidden">
+              <div className="absolute top-[-20%] left-[-10%] w-[150px] h-[150px] rounded-full bg-white/10 blur-[30px]" />
+              <div className="absolute bottom-[-10%] right-[-10%] w-[150px] h-[150px] rounded-full bg-indigo-400/20 blur-[30px]" />
+
+              <div className="mx-auto w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 mb-5 shadow-xl">
+                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-black text-white tracking-tight mb-2">Yeni Bir Şube mi Açıyorsunuz?</h3>
+              <p className="text-indigo-100 text-sm font-medium opacity-90 leading-relaxed">Yeni kliniğinizi tebrik ederiz! Süreci hızlıca tamamlayalım.</p>
+            </div>
+
+            {/* Content */}
+            <div className="p-8">
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start gap-4 p-4 rounded-2xl bg-amber-50 text-amber-900 border border-amber-100/60">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  </div>
+                  <div>
+                    <h4 className="text-[13px] font-black mb-1.5 uppercase tracking-wide">Güvenlik ve Kurumsal İşlem</h4>
+                    <p className="text-sm font-medium text-amber-800/80 leading-relaxed">
+                      Aynı hesap altında birden fazla klinik ve şube yönetimi <b>Gelişmiş Kurumsal Plana</b> dahildir. KVKK standartları ve veri izolasyonu gereği, ikinci bir şubenin entegrasyon işlemi uzman satış & destek ekibimiz tarafından dakikalar içinde gerçekleştirilmektedir.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  onClick={() => setShowNewClinicModal(false)}
+                  className="w-full sm:w-1/3 px-6 py-3.5 rounded-2xl bg-slate-50 text-slate-600 font-black text-xs uppercase tracking-widest hover:bg-slate-100 hover:text-slate-800 transition-colors"
+                >
+                  Vazgeç
+                </button>
+                <a
+                  href={`https://wa.me/905444412180?text=${whatsappMessage}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-2/3 px-6 py-3.5 rounded-2xl bg-[#25D366] text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2.5 hover:bg-[#20bd5a] hover:shadow-xl hover:shadow-[#25D366]/30 transition-all active:scale-95"
+                >
+                  <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 1.928 6.556L.516 23.32a.667.667 0 0 0 .809.831l4.98-1.385A11.972 11.972 0 0 0 12 24a12 12 0 0 0 12-12A12 12 0 0 0 11.944 0zM12 22.08a10.05 10.05 0 0 1-5.06-1.37l-.546-.353-3.084.858.74-2.887-.333-.513A10.083 10.083 0 1 1 12 22.08zm5.558-7.514c-.29-.144-1.745-.859-2.015-.957-.27-.099-.467-.144-.664.144-.197.288-.756.958-.925 1.155-.17.197-.339.222-.629.078-2.046-1.02-3.111-2.22-4.322-4.22-.17-.282.164-.265.733-1.386.084-.167.042-.315-.03-.456-.073-.146-.665-1.603-.91-2.195-.24-.576-.484-.499-.664-.508-.17-.008-.367-.01-.564-.01a1.082 1.082 0 0 0-.786.368c-.27.288-1.031 1.008-1.031 2.457s1.056 2.85 1.203 3.047c.147.197 2.052 3.235 5.034 4.453.71.291 1.264.464 1.693.593.713.216 1.363.185 1.879.112.576-.081 1.745-.713 1.991-1.401.246-.688.246-1.278.172-1.402-.073-.124-.27-.198-.56-.342z" /></svg>
+                  WhatsApp Destek Hattı
+                </a>
+              </div>
             </div>
           </div>
         </div>

@@ -546,7 +546,7 @@ export default function AdminUsersPage() {
                   className="w-full rounded-md border px-2 py-1 text-xs"
                 >
                   <option value={UserRole.ADMIN}>ADMIN</option>
-                  <option value={UserRole.DOKTOR}>DOKTOR</option>
+                  <option value={UserRole.DOKTOR}>HEKİM</option>
                   <option value={UserRole.SEKRETER}>SEKRETER</option>
                   <option value={UserRole.FINANS}>FINANS</option>
                 </select>
@@ -637,7 +637,7 @@ export default function AdminUsersPage() {
                   className="w-full rounded-md border px-2 py-1 text-xs"
                 >
                   <option value={UserRole.ADMIN}>ADMIN</option>
-                  <option value={UserRole.DOKTOR}>DOKTOR</option>
+                  <option value={UserRole.DOKTOR}>HEKİM</option>
                   <option value={UserRole.SEKRETER}>SEKRETER</option>
                   <option value={UserRole.FINANS}>FINANS</option>
                 </select>

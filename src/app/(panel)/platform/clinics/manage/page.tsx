@@ -27,6 +27,8 @@ export default function PlatformClinicsManagePage() {
   const [deleting, setDeleting] = useState(false);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
   const [detailClinic, setDetailClinic] = useState<Clinic | null>(null);
+  const [showAssignAdminModal, setShowAssignAdminModal] = useState(false);
+  const [clinicToAssign, setClinicToAssign] = useState<Clinic | null>(null);
 
   // Form alanları
   const [formName, setFormName] = useState("");
@@ -228,6 +230,11 @@ export default function PlatformClinicsManagePage() {
     setShowCreateModal(true);
   };
 
+  const openAssignAdminModal = (clinicItem: Clinic) => {
+    setClinicToAssign(clinicItem);
+    setShowAssignAdminModal(true);
+  };
+
   if (!clinic.isSuperAdmin) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-slate-600">
@@ -278,6 +285,7 @@ export default function PlatformClinicsManagePage() {
             loading={loading}
             onEditClinic={openEditModal}
             onViewClinic={(c) => { setDetailClinic(c); setShowDetailPanel(true); }}
+            onAssignAdmin={openAssignAdminModal}
           />
         </div>
       </div>

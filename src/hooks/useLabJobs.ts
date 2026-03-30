@@ -42,7 +42,7 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
 /** Tüm lab işlerini listele */
-export function useLabJobs(statusFilter: string = "all", patientId?: string) {
+export function useLabJobs(statusFilter: string = "all", patientId?: string, enabledOverride?: boolean) {
     const { clinicId } = useClinic();
     const params = new URLSearchParams();
     if (statusFilter !== "all") params.set("status", statusFilter);
@@ -51,7 +51,7 @@ export function useLabJobs(statusFilter: string = "all", patientId?: string) {
     return useQuery({
         queryKey: ["labJobs", clinicId, statusFilter, patientId],
         queryFn: () => apiFetch<{ jobs: LabJob[] }>(`/api/lab-jobs?${params.toString()}`),
-        enabled: !!clinicId,
+        enabled: (enabledOverride !== undefined ? enabledOverride : true) && !!clinicId,
         staleTime: 30_000,
         select: d => d.jobs,
     });

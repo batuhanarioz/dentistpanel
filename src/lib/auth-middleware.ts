@@ -9,15 +9,16 @@ export type AuthContext = {
     role: UserRole;
     isSuperAdmin: boolean;
     isAdmin: boolean;
+    params: any;
 };
 
 type ApiHandler = (req: NextRequest, context: AuthContext) => Promise<NextResponse>;
 
 export function withAuth(
     handler: ApiHandler,
-    options?: { requiredRole?: UserRole[] | "ADMIN_OR_SUPER" }
+    options?: { requiredRole?: UserRole[] | "ADMIN_OR_SUPER" | UserRole }
 ) {
-    return async (req: NextRequest): Promise<NextResponse> => {
+    return async (req: NextRequest, { params }: { params: Promise<any> }): Promise<NextResponse> => {
         try {
             const authHeader = req.headers.get("authorization");
             if (!authHeader?.startsWith("Bearer ")) {
@@ -62,6 +63,8 @@ export function withAuth(
                     if (!options.requiredRole.includes(role)) {
                         return NextResponse.json({ error: "forbidden" }, { status: 403 });
                     }
+                } else if (options.requiredRole !== role) {
+                    return NextResponse.json({ error: "forbidden" }, { status: 403 });
                 }
             }
 
@@ -71,6 +74,7 @@ export function withAuth(
                 role,
                 isSuperAdmin,
                 isAdmin,
+                params: await params,
             };
 
             return await handler(req, context);

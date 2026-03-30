@@ -3,7 +3,7 @@ import { UserRole } from "@/types/database";
 export const ROLE_LABELS: Record<string, string> = {
     [UserRole.SUPER_ADMIN]: "Süper Yönetici",
     [UserRole.ADMIN]: "Yönetici",
-    [UserRole.DOKTOR]: "Doktor",
+    [UserRole.DOKTOR]: "Hekim",
     [UserRole.SEKRETER]: "Sekreter",
     [UserRole.FINANS]: "Finans",
 };

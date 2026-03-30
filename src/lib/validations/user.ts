@@ -8,6 +8,7 @@ export const createUserSchema = z.object({
     role: z.nativeEnum(UserRole).default(UserRole.SEKRETER),
     clinicId: z.string().optional().nullable(),
     invite: z.boolean().optional().default(false),
+    isClinicalProvider: z.boolean().optional().default(false),
 });
 
 export const updateUserSchema = z.object({
@@ -15,6 +16,7 @@ export const updateUserSchema = z.object({
     fullName: z.string().optional(),
     role: z.nativeEnum(UserRole).optional(),
     isActive: z.boolean().optional(),
+    isClinicalProvider: z.boolean().optional(),
     specialtyCode: z.string().optional().nullable(),
     workingHours: z.record(z.string(), z.any()).optional().nullable(),
 });

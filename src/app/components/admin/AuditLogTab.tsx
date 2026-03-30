@@ -25,7 +25,7 @@ const FIELD_LABELS: Record<string, Record<string, string>> = {
         treatment_type: "Tedavi Türü", tags: "Etiketler",
         estimated_amount: "Tahmini Ücret", patient_note: "Hasta Notu",
         internal_note: "İç Not", treatment_note: "Tedavi Notu",
-        patient_id: "Hasta", doctor_id: "Doktor",
+        patient_id: "Hasta", doctor_id: "Hekim",
     },
     payments: {
         amount: "Tutar", status: "Durum", method: "Ödeme Yöntemi",

@@ -13,7 +13,7 @@ interface UserListTableProps {
 const ROLE_FILTER_OPTIONS = [
     { value: "", label: "Tüm Roller" },
     { value: UserRole.ADMIN, label: "Yönetici" },
-    { value: UserRole.DOKTOR, label: "Doktor" },
+    { value: UserRole.DOKTOR, label: "Hekim" },
     { value: UserRole.SEKRETER, label: "Sekreter" },
     { value: UserRole.FINANS, label: "Finans" },
 ];
@@ -90,11 +90,10 @@ export function UserListTable({ users, loading, isAdmin, onEditUser }: UserListT
                 {inactiveCount > 0 && (
                     <button
                         onClick={() => setShowInactive(v => !v)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
-                            showInactive
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${showInactive
                                 ? "bg-slate-700 text-white border-slate-700"
                                 : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
-                        }`}
+                            }`}
                     >
                         <span>Pasif</span>
                         <span className={`inline-flex items-center justify-center h-4 w-4 rounded-full text-[10px] font-bold ${showInactive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}>
@@ -127,11 +126,10 @@ export function UserListTable({ users, loading, isAdmin, onEditUser }: UserListT
                                 <td className="whitespace-nowrap px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
-                                            <div className={`flex h-9 w-9 items-center justify-center rounded-lg font-bold uppercase transition-transform group-hover:scale-110 shadow-sm border ${
-                                                u.is_active
+                                            <div className={`flex h-9 w-9 items-center justify-center rounded-lg font-bold uppercase transition-transform group-hover:scale-110 shadow-sm border ${u.is_active
                                                     ? "bg-teal-50 text-teal-600 border-teal-100"
                                                     : "bg-slate-100 text-slate-400 border-slate-200"
-                                            }`}>
+                                                }`}>
                                                 {u.full_name?.[0] || u.email?.[0] || "?"}
                                             </div>
                                             {!u.is_active && (
@@ -159,14 +157,18 @@ export function UserListTable({ users, loading, isAdmin, onEditUser }: UserListT
                                     </div>
                                 </td>
                                 <td className="whitespace-nowrap px-6 py-4">
-                                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${
-                                        u.role === UserRole.ADMIN ? "bg-indigo-50 text-indigo-700 border-indigo-100" :
-                                        u.role === UserRole.DOKTOR ? "bg-teal-50 text-teal-700 border-teal-100" :
-                                        u.role === UserRole.SEKRETER ? "bg-amber-50 text-amber-700 border-amber-100" :
-                                        "bg-slate-50 text-slate-600 border-slate-100"
-                                    }`}>
+                                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border ${u.role === UserRole.ADMIN ? "bg-indigo-50 text-indigo-700 border-indigo-100" :
+                                            u.role === UserRole.DOKTOR ? "bg-teal-50 text-teal-700 border-teal-100" :
+                                                u.role === UserRole.SEKRETER ? "bg-amber-50 text-amber-700 border-amber-100" :
+                                                    "bg-slate-50 text-slate-600 border-slate-100"
+                                        }`}>
                                         {ROLE_LABELS[u.role] || u.role}
                                     </span>
+                                    {u.role !== UserRole.DOKTOR && u.is_clinical_provider && (
+                                        <span className="ml-2 inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border bg-emerald-50 text-emerald-700 border-emerald-100">
+                                            HEKİM
+                                        </span>
+                                    )}
                                 </td>
                                 <td className="whitespace-nowrap px-6 py-4 hidden md:table-cell">
                                     <span className={`text-[11px] font-medium ${u.last_sign_in_at ? "text-slate-500" : "text-slate-300"}`}>

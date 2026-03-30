@@ -9,7 +9,7 @@ const ROLE_OPTIONS = [
     },
     {
         value: UserRole.DOKTOR,
-        label: "Doktor",
+        label: "Hekim",
         description: "Randevular, hastalar ve tedavi planları",
     },
     {
@@ -40,6 +40,8 @@ interface CreateUserModalProps {
     setRole: (v: string) => void;
     invite: boolean;
     setInvite: (v: boolean) => void;
+    isClinicalProvider: boolean;
+    setIsClinicalProvider: (v: boolean) => void;
     isSuperAdmin: boolean;
 }
 
@@ -47,7 +49,7 @@ export function CreateUserModal({
     isOpen, onClose, onSubmit, saving, error,
     email, setEmail, fullName, setFullName,
     password, setPassword, role, setRole,
-    invite, setInvite, isSuperAdmin
+    invite, setInvite, isClinicalProvider, setIsClinicalProvider, isSuperAdmin
 }: CreateUserModalProps) {
     if (!isOpen) return null;
 
@@ -79,11 +81,10 @@ export function CreateUserModal({
                         <button
                             type="button"
                             onClick={() => setInvite(false)}
-                            className={`flex flex-col items-center rounded-xl border px-3 py-3 text-center transition-all ${
-                                !invite
+                            className={`flex flex-col items-center rounded-xl border px-3 py-3 text-center transition-all ${!invite
                                     ? "border-teal-500 bg-teal-50 text-teal-700"
                                     : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
-                            }`}
+                                }`}
                         >
                             <svg className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
@@ -94,11 +95,10 @@ export function CreateUserModal({
                         <button
                             type="button"
                             onClick={() => setInvite(true)}
-                            className={`flex flex-col items-center rounded-xl border px-3 py-3 text-center transition-all ${
-                                invite
+                            className={`flex flex-col items-center rounded-xl border px-3 py-3 text-center transition-all ${invite
                                     ? "border-teal-500 bg-teal-50 text-teal-700"
                                     : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
-                            }`}
+                                }`}
                         >
                             <svg className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
@@ -140,11 +140,10 @@ export function CreateUserModal({
                                     key={opt.value}
                                     type="button"
                                     onClick={() => setRole(opt.value)}
-                                    className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-all ${
-                                        role === opt.value
+                                    className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-all ${role === opt.value
                                             ? "border-teal-500 bg-teal-700 text-white shadow-sm"
                                             : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                                    }`}
+                                        }`}
                                 >
                                     <span className="text-xs font-bold">{opt.label}</span>
                                     <span className={`text-[10px] mt-0.5 leading-snug ${role === opt.value ? "text-teal-200" : "text-slate-400"}`}>

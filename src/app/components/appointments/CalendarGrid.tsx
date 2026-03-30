@@ -103,7 +103,7 @@ export function CalendarGrid({
                                                     </div>
                                                 </div>
                                                 <div className="text-right shrink-0">
-                                                    <span className="block text-[8px] md:text-[10px] text-slate-400 font-black uppercase tracking-tighter">Doktor</span>
+                                                    <span className="block text-[8px] md:text-[10px] text-slate-400 font-black uppercase tracking-tighter">Hekim</span>
                                                     <span className="text-[10px] md:text-[11px] text-slate-700 font-bold truncate max-w-[80px] md:max-w-none block">
                                                         {a.doctor || "Atanmadı"}
                                                     </span>

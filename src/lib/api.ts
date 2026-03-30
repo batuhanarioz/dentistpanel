@@ -149,7 +149,7 @@ export async function getDoctors(clinicId: string) {
         .from("users")
         .select("id, full_name")
         .eq("clinic_id", clinicId)
-        .eq("role", UserRole.DOKTOR);
+        .or(`role.eq.${UserRole.DOKTOR},is_clinical_provider.eq.true`);
     return (data ?? []) as { id: string; full_name: string }[];
 }
 
@@ -250,7 +250,10 @@ export async function getChecklistItems(clinicId: string, date: string) {
     if (!clinicId) return [];
 
     const { error: rpcError } = await supabase.rpc("refresh_checklist_items", { p_clinic_id: clinicId });
-    if (rpcError) console.error("refresh_checklist_items rpc error:", rpcError);
+    // RLS nedeniyle ikincil kliniklerde boş obje ({}) dönen hatayı Next.js hata ekranına yansımaması için engelledik
+    if (rpcError && Object.keys(rpcError).length > 0) {
+        console.warn("Checklist refresh uyarı (RLS korumalı):", rpcError);
+    }
 
     const { data, error } = await supabase
         .from("checklist_items")

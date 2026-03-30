@@ -11,7 +11,7 @@ const ROLE_OPTIONS = [
     },
     {
         value: UserRole.DOKTOR,
-        label: "Doktor",
+        label: "Hekim",
         description: "Randevular, hastalar ve tedavi planları",
         color: "teal",
     },
@@ -54,6 +54,8 @@ interface EditUserModalProps {
     setRole: (v: string) => void;
     isActive: boolean;
     setIsActive: (v: boolean) => void;
+    isClinicalProvider: boolean;
+    setIsClinicalProvider: (v: boolean) => void;
     specialtyCode: string;
     setSpecialtyCode: (v: string) => void;
     workingHours: WorkingHours | null;
@@ -68,7 +70,7 @@ interface EditUserModalProps {
 export function EditUserModal({
     isOpen, onClose, onSubmit, saving, error,
     user, fullName, setFullName, role, setRole,
-    isActive, setIsActive, specialtyCode, setSpecialtyCode,
+    isActive, setIsActive, isClinicalProvider, setIsClinicalProvider, specialtyCode, setSpecialtyCode,
     workingHours, setWorkingHours,
     isSuperAdmin, currentUserId, onResetPassword, onDeleteUser, onChangePassword
 }: EditUserModalProps) {
@@ -159,11 +161,10 @@ export function EditUserModal({
                                         key={opt.value}
                                         type="button"
                                         onClick={() => setRole(opt.value)}
-                                        className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-all ${
-                                            role === opt.value
+                                        className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-all ${role === opt.value
                                                 ? "border-slate-500 bg-slate-700 text-white shadow-sm"
                                                 : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                                        }`}
+                                            }`}
                                     >
                                         <span className="text-xs font-bold">{opt.label}</span>
                                         <span className={`text-[10px] mt-0.5 leading-snug ${role === opt.value ? "text-slate-300" : "text-slate-400"}`}>
@@ -174,8 +175,29 @@ export function EditUserModal({
                             </div>
                         </div>
 
-                        {/* Uzmanlık (sadece doktor) */}
-                        {isDoctor && (
+                        {/* Hekimlik Yetkisi - DOKTOR değilse görünür */
+                            !isDoctor && (
+                                <div className="pt-2">
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                        <div className="relative flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                checked={isClinicalProvider}
+                                                onChange={(e) => setIsClinicalProvider(e.target.checked)}
+                                            />
+                                            <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-700"></div>
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-semibold text-slate-800">Hekimlik Yetkisi</div>
+                                            <div className="text-[10px] text-slate-500 mt-0.5">Bu kişi randevu listelerinde ve işlemlerde hekim olarak listelenir.</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            )}
+
+                        {/* Uzmanlık (sadece doktor veya hekim yetkisi) */}
+                        {(isDoctor || isClinicalProvider) && (
                             <div className="space-y-1.5">
                                 <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">Uzmanlık Alanı</label>
                                 <input
@@ -188,8 +210,8 @@ export function EditUserModal({
                             </div>
                         )}
 
-                        {/* Çalışma saatleri (sadece doktor) */}
-                        {isDoctor && (
+                        {/* Çalışma saatleri (sadece doktor veya hekim yetkisi) */}
+                        {(isDoctor || isClinicalProvider) && (
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">Çalışma Saatleri</label>

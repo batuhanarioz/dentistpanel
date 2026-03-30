@@ -247,7 +247,7 @@ export default function LandingPage() {
               <ul className="space-y-3">
                 {[
                   "Kapsamlı hasta profili (tıbbi geçmiş, alerjiler, KVKK)",
-                  "Tedavi geçmişi ve doktor notları",
+                  "Tedavi geçmişi ve hekim notları",
                   "Finansal özet ve ödeme durumu",
                   "Hızlı arama ve filtreleme",
                 ].map((item) => (

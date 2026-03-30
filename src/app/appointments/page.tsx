@@ -205,7 +205,7 @@ export default function AppointmentsPage() {
               value={selectedDoctor}
               onChange={(e) => setSelectedDoctor(e.target.value)}
             >
-              <option value="ALL">Tüm doktorlar</option>
+              <option value="ALL">Tüm hekimler</option>
               {/* Doktor filtrelemesi için ileride dinamik liste eklenebilir */}
             </select>
             <select
@@ -236,7 +236,7 @@ export default function AppointmentsPage() {
           <div className="min-w-[560px] grid grid-cols-4 text-[11px] font-medium text-slate-800 border-b pb-2">
             <span>Saat</span>
             <span>Hasta</span>
-            <span>Doktor</span>
+            <span>Hekim</span>
             <span>Durum / Kanal</span>
           </div>
 
@@ -299,7 +299,7 @@ export default function AppointmentsPage() {
                       {appt.patientName}
                     </span>
                     <span className="text-slate-800">
-                      {appt.doctorName || "Doktor atanmadı"}
+                      {appt.doctorName || "Hekim atanmadı"}
                     </span>
                     <span className="flex flex-col gap-0.5 text-slate-800">
                       <span>

@@ -311,7 +311,7 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
                             value={selectedDoctorId}
                             onChange={(e) => setSelectedDoctorId(e.target.value)}
                         >
-                            <option value="all">Tüm Doktorlar</option>
+                            <option value="all">Tüm Hekimler</option>
                             {doctors.map(d => (
                                 <option key={d.id} value={d.id}>{d.full_name}</option>
                             ))}
@@ -377,7 +377,7 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
                             value={selectedDoctorId}
                             onChange={(e) => setSelectedDoctorId(e.target.value)}
                         >
-                            <option value="all">Tüm Doktorlar</option>
+                            <option value="all">Tüm Hekimler</option>
                             {doctors.map(d => (
                                 <option key={d.id} value={d.id}>{d.full_name}</option>
                             ))}
@@ -489,7 +489,7 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-semibold text-slate-900">Doktor</h4>
+                                    <h4 className="text-sm font-semibold text-slate-900">Hekim</h4>
                                     <p className="text-sm text-slate-600 mt-0.5">
                                         {selectedEvent.doctorName || "Hekim Atanmadı"}
                                     </p>
@@ -603,7 +603,7 @@ export default function CalendarView({ clinicId, initialView = 'week', initialDi
                             <div className="grid grid-cols-[1fr_1.2fr_1fr_1.2fr] gap-4 items-center px-5 py-3 bg-gradient-to-r from-slate-50 to-slate-100/50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider sticky top-0 z-[5]">
                                 <span>Saat</span>
                                 <span>Hasta</span>
-                                <span>Doktor</span>
+                                <span>Hekim</span>
                                 <span>Durum & Kanal</span>
                             </div>
 
