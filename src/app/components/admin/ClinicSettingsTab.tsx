@@ -448,7 +448,7 @@ export function ClinicSettingsTab() {
         setLocalSettings({
             ...localSettings,
             message_templates: {
-                ...((localSettings.message_templates || {}) as any),
+                ...((localSettings.message_templates || {}) as Record<string, string>),
                 [type]: text
             }
         });
@@ -457,7 +457,7 @@ export function ClinicSettingsTab() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateTiming = (type: MessageType, field: string, value: any) => {
         if (!localSettings) return;
-        const currentTimings = (localSettings.assistant_timings as any) || {};
+        const currentTimings = (localSettings.assistant_timings as Record<string, any>) || {};
         const currentTypeTiming = currentTimings[type] || { value: 1, unit: 'hours' };
 
         setLocalSettings({
@@ -477,9 +477,9 @@ export function ClinicSettingsTab() {
         setLocalSettings({
             ...localSettings,
             notification_settings: {
-                ...((localSettings.notification_settings || {}) as any),
+                ...((localSettings.notification_settings || {}) as Record<string, boolean>),
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                [(field as any)]: !((localSettings.notification_settings as any)?.[field])
+                [(field as string)]: !((localSettings.notification_settings as Record<string, boolean>)?.[field])
             }
         });
     };

@@ -157,7 +157,7 @@ export default function CommunicationHubPage() {
                             {['ALL', 'REMINDER', 'BIRTHDAY', 'DELAY', 'FOLLOWUP', 'PAYMENT'].map((f) => (
                                 <button
                                     key={f}
-                                    onClick={() => setAssistantFilter(f as any)}
+                                    onClick={() => setAssistantFilter(f as AssistantItemType | "ALL")}
                                     className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all ${
                                         assistantFilter === f ? "bg-white text-teal-600 shadow-md ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
                                     }`}
@@ -189,7 +189,7 @@ export default function CommunicationHubPage() {
                                     <h3 className="font-black text-slate-800 text-base mb-1">{item.patientName}</h3>
                                     <p className="text-[11px] font-bold text-teal-600 uppercase tracking-tighter mb-4">{item.title}</p>
                                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 italic text-[11px] text-slate-500 leading-relaxed border-l-4 border-teal-500">
-                                        "{item.message}"
+                                        `{`"{item.message}"`}`
                                     </div>
                                     <button 
                                         onClick={() => handleSendWhatsApp(item.patientPhone || "", item.message)}
@@ -217,7 +217,7 @@ export default function CommunicationHubPage() {
                             {['pending', 'contacted', 'booked', 'dismissed'].map((t) => (
                                 <button
                                     key={t}
-                                    onClick={() => setRecallTab(t as any)}
+                                    onClick={() => setRecallTab(t as RecallStatus)}
                                     className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all ${
                                         recallTab === t ? "bg-white text-amber-600 shadow-md ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
                                     }`}
