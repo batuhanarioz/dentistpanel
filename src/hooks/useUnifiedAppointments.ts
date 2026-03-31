@@ -26,6 +26,8 @@ function appEventToCalendarAppt(event: AppEvent): CalendarAppointment {
         patientNote: event.patientNote,
         treatmentNote: event.treatmentNote,
         patientId: event.patientId,
+        birthDate: "",
+        tags: [],
     };
 }
 
