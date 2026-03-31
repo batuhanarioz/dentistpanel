@@ -31,6 +31,7 @@ import {
     type PaytrWebhookPayload,
     type BillingCycle,
 } from "@/lib/paytr";
+import { sendReferralRewardEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
     // ── 1. Form-encoded body'yi parse et ─────────────────────────────────────
@@ -136,6 +137,16 @@ export async function POST(req: NextRequest) {
                 (discount_code_id ? ` (indirim kodu: ${discount_code_id})` : "")
             );
         }
+
+        // ── Referral: ilk ödemede kod üret + ödül kontrol ────────────────────
+        if (!isRecurring) {
+            activateReferralCode(clinic_id).catch((e) =>
+                console.error("[Referral] Kod aktivasyonu başarısız:", e)
+            );
+            applyReferralRewardIfEligible(clinic_id).catch((e) =>
+                console.error("[Referral] Ödül işlemi başarısız:", e)
+            );
+        }
     } else {
         // ── 4b. Başarısız ödeme ───────────────────────────────────────────────
         await Promise.all([
@@ -224,4 +235,148 @@ export async function GET(req: NextRequest) {
             : `${basePath}?status=failed`;
 
     return NextResponse.redirect(new URL(redirectUrl, req.url));
+}
+
+/**
+ * İlk ödeme sonrası referral kodu üret + aktif et.
+ * Kod zaten varsa (legacy trial klinik) sadece active = true yap.
+ */
+async function activateReferralCode(clinicId: string) {
+    const { data: clinic } = await supabaseAdmin
+        .from("clinics")
+        .select("name, referral_code, referral_code_active")
+        .eq("id", clinicId)
+        .maybeSingle();
+
+    if (!clinic) return;
+    if (clinic.referral_code_active) return; // zaten aktif
+
+    let code = clinic.referral_code;
+
+    // Kod yoksa benzersiz üret
+    if (!code) {
+        for (let i = 0; i < 5; i++) {
+            const candidate =
+                clinic.name.replace(/[^a-zA-Z0-9]/g, "").substring(0, 4).toUpperCase() +
+                "-" +
+                Math.random().toString(36).substring(2, 7).toUpperCase();
+            const { data: existing } = await supabaseAdmin
+                .from("clinics")
+                .select("id")
+                .eq("referral_code", candidate)
+                .maybeSingle();
+            if (!existing) { code = candidate; break; }
+        }
+        if (!code) code = Math.random().toString(36).substring(2, 10).toUpperCase();
+    }
+
+    await supabaseAdmin
+        .from("clinics")
+        .update({ referral_code: code, referral_code_active: true })
+        .eq("id", clinicId);
+
+    console.log(`[Referral] Kod aktif edildi — clinic: ${clinicId}, kod: ${code}`);
+}
+
+/**
+ * İlk başarılı ödeme sonrası referral ödül mantığı:
+ * 1. Klinikten referred_by + referral_reward_given kontrolü
+ * 2. Ödül verilmediyse: referrer'ın current_period_end +30 gün uzat
+ * 3. referral_conversions → "rewarded", clinics.referral_reward_given = true
+ * 4. Referrer'a e-posta gönder
+ */
+async function applyReferralRewardIfEligible(referredClinicId: string) {
+    // 1. Davet edilen kliniği çek
+    const { data: referred } = await supabaseAdmin
+        .from("clinics")
+        .select("id, name, referred_by, referral_reward_given, email")
+        .eq("id", referredClinicId)
+        .maybeSingle();
+
+    if (!referred?.referred_by || referred.referral_reward_given) return;
+
+    // 2. Referrer kliniği + ADMIN kullanıcısının e-postasını çek
+    const { data: referrer } = await supabaseAdmin
+        .from("clinics")
+        .select("id, name, current_period_end")
+        .eq("id", referred.referred_by)
+        .maybeSingle();
+
+    if (!referrer) return;
+
+    const { data: referrerAdmin } = await supabaseAdmin
+        .from("users")
+        .select("email")
+        .eq("clinic_id", referrer.id)
+        .eq("role", "ADMIN")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+    const referrerEmail = referrerAdmin?.email;
+    if (!referrerEmail) return;
+
+    // 3. Max 12 ay limiti kontrol et
+    const { count: rewardedCount } = await supabaseAdmin
+        .from("referral_conversions")
+        .select("id", { count: "exact", head: true })
+        .eq("referrer_clinic_id", referrer.id)
+        .eq("status", "rewarded");
+
+    const MAX_REWARD_MONTHS = 12;
+    if ((rewardedCount ?? 0) >= MAX_REWARD_MONTHS) {
+        // Limiti doldurmuş: conversion'ı converted olarak işaretle ama ödül verme
+        await Promise.all([
+            supabaseAdmin
+                .from("referral_conversions")
+                .update({ status: "converted", converted_at: new Date().toISOString() })
+                .eq("referrer_clinic_id", referrer.id)
+                .eq("referred_clinic_id", referredClinicId),
+            supabaseAdmin
+                .from("clinics")
+                .update({ referral_reward_given: true })
+                .eq("id", referredClinicId),
+        ]);
+        console.log(`[Referral] Limit dolu (${MAX_REWARD_MONTHS} ay) — referrer: ${referrer.id}, ödül verilmedi`);
+        return;
+    }
+
+    // 4. Referrer'ın süresini +30 gün uzat
+    const currentEnd = referrer.current_period_end
+        ? new Date(referrer.current_period_end)
+        : new Date();
+    // Eğer süre geçmişse bugünden başlat
+    const base = currentEnd > new Date() ? currentEnd : new Date();
+    base.setDate(base.getDate() + 30);
+    const newPeriodEnd = base.toISOString();
+
+    await Promise.all([
+        // Referrer aboneliğini uzat
+        supabaseAdmin
+            .from("clinics")
+            .update({ current_period_end: newPeriodEnd })
+            .eq("id", referrer.id),
+
+        // Conversion kaydını rewarded yap
+        supabaseAdmin
+            .from("referral_conversions")
+            .update({
+                status: "rewarded",
+                converted_at: new Date().toISOString(),
+            })
+            .eq("referrer_clinic_id", referrer.id)
+            .eq("referred_clinic_id", referredClinicId),
+
+        // Referred kliniği işaretle (tekrar ödül verilmesin)
+        supabaseAdmin
+            .from("clinics")
+            .update({ referral_reward_given: true })
+            .eq("id", referredClinicId),
+    ]);
+
+    // 5. Referrer ADMIN'ine e-posta gönder (fire-and-forget)
+    sendReferralRewardEmail(referrerEmail, referrer.name, referred.name).catch(() => {});
+
+    console.log(`[Referral] Ödül uygulandı — referrer: ${referrer.id}, referred: ${referredClinicId}, yeni dönem sonu: ${newPeriodEnd}`);
 }

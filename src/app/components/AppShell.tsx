@@ -136,9 +136,9 @@ function ClinicNav({
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg>
         <span>Tedavi Planları</span>
       </a>
-      <a href={`${base}/recall`} className={linkClass(`${base}/recall`)} onClick={handleClick}>
-        <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 3.75v4.5m0-4.5h-4.5m4.5 0-6 6m3 12c-8.284 0-15-6.716-15-15V4.5A2.25 2.25 0 0 1 4.5 2.25h1.372c.516 0 .966.351 1.091.852l1.106 4.423c.11.44-.054.902-.417 1.173l-1.293.97a1.062 1.062 0 0 0-.38 1.21 12.035 12.035 0 0 0 7.143 7.143c.441.162.928-.004 1.21-.38l.97-1.293a1.125 1.125 0 0 1 1.173-.417l4.423 1.106c.5.125.852.575.852 1.091V19.5a2.25 2.25 0 0 1-2.25 2.25h-2.25Z" /></svg>
-        <span>Recall Listesi</span>
+      <a href={`${base}/communication`} className={linkClass(`${base}/communication`)} onClick={handleClick}>
+        <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.213c-.079-.335.215-.632.557-.59 1.094.135 2.212.217 3.34.246Zm0-9.18c.253-.962.584-1.892.985-2.783.247-.55.06-1.21-.463-1.511l-.657-.38c-.551-.318-1.26-.117-1.527.461a20.845 20.845 0 0 0-1.44 4.213c-.079.335.215.632.557.59 1.094-.135 2.212-.217 3.34-.246Zm0 9.18c.954.025 1.914.037 2.88.037 1.477 0 2.927-.03 4.35-.088m-7.23-.013V6.66m7.23 9.18c.551.021 1.103.03 1.656.028a.75.75 0 0 0 .736-.827 45.046 45.046 0 0 0-1.123-7.514.75.75 0 0 0-.736-.827c-.553-.002-1.105.007-1.656.028m0 9.18V6.674" /></svg>
+        <span>Hasta İletişimi</span>
       </a>
       <a href={`${base}/guide`} className={linkClass(`${base}/guide`)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
@@ -272,9 +272,9 @@ function ShellInner({ children }: Props) {
   const ROLE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
     SUPER_ADMIN: { bg: "bg-gradient-to-r from-violet-500 to-purple-500", text: "text-white", label: "Super Admin" },
     ADMIN: { bg: "bg-gradient-to-r from-indigo-500 to-blue-500", text: "text-white", label: "Yönetici" },
-    DOCTOR: { bg: "bg-gradient-to-r from-sky-500 to-cyan-500", text: "text-white", label: "Hekim" },
-    RECEPTION: { bg: "bg-gradient-to-r from-amber-400 to-orange-400", text: "text-white", label: "Sekreter" },
-    FINANCE: { bg: "bg-gradient-to-r from-emerald-400 to-green-400", text: "text-white", label: "Finans" },
+    DOKTOR: { bg: "bg-gradient-to-r from-sky-500 to-cyan-500", text: "text-white", label: "Hekim" },
+    SEKRETER: { bg: "bg-gradient-to-r from-amber-400 to-orange-400", text: "text-white", label: "Sekreter" },
+    FINANS: { bg: "bg-gradient-to-r from-emerald-400 to-green-400", text: "text-white", label: "Finans" },
   };
   const roleStyle = displayRole ? ROLE_STYLES[displayRole] || { bg: "bg-slate-100", text: "text-slate-600", label: displayRole } : null;
 
@@ -324,6 +324,10 @@ function ShellInner({ children }: Props) {
       case subPath === "/finance":
         setHeaderTitle("Karlılık ve Hak Ediş");
         setHeaderIconPath("M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z");
+        break;
+      case subPath === "/communication":
+        setHeaderTitle("Hasta İletişim Merkezi");
+        setHeaderIconPath("M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.213c-.079-.335.215-.632.557-.59 1.094.135 2.212.217 3.34.246Zm0-9.18c.253-.962.584-1.892.985-2.783.247-.55.06-1.21-.463-1.511l-.657-.38c-.551-.318-1.26-.117-1.527.461a20.845 20.845 0 0 0-1.44 4.213c-.079.335.215.632.557.59 1.094-.135 2.212-.217 3.34-.246Zm0 9.18c.954.025 1.914.037 2.88.037 1.477 0 2.927-.03 4.35-.088m-7.23-.013V6.66m7.23 9.18c.551.021 1.103.03 1.656.028a.75.75 0 0 0 .736-.827 45.046 45.046 0 0 0-1.123-7.514.75.75 0 0 0-.736-.827c-.553-.002-1.105.007-1.656.028m0 9.18V6.674");
         break;
       case subPath === "/recall":
         setHeaderTitle("Recall Çağrı Listesi");

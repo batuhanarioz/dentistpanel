@@ -13,7 +13,7 @@ interface UserListTableProps {
 const ROLE_FILTER_OPTIONS = [
     { value: "", label: "Tüm Roller" },
     { value: UserRole.ADMIN, label: "Yönetici" },
-    { value: UserRole.DOKTOR, label: "Hekim" },
+    { value: UserRole.DOKTOR, label: "HEKİM" },
     { value: UserRole.SEKRETER, label: "Sekreter" },
     { value: UserRole.FINANS, label: "Finans" },
 ];

@@ -178,18 +178,21 @@ export async function POST(req: Request) {
             }
         });
 
-        // Generate referral code + apply referral if provided
-        const refCode = name.replace(/[^a-zA-Z0-9]/g, "").substring(0, 6).toUpperCase() + "-" + Math.random().toString(36).substring(2, 6).toUpperCase();
-        const referralCodeFromBody = body.referral_code as string | undefined;
+        // Referral kodu kullanıldıysa kontrol et (aktif + self-referral engeli)
+        const referralCodeFromBody = (body.referral_code as string | undefined)?.toUpperCase().trim();
+        const clinicUpdate: Record<string, unknown> = {};
 
-        const clinicUpdate: Record<string, unknown> = { referral_code: refCode };
         if (referralCodeFromBody) {
             const { data: referrer } = await supabaseAdmin
                 .from("clinics")
-                .select("id")
-                .eq("referral_code", referralCodeFromBody.toUpperCase())
+                .select("id, email, referral_code_active")
+                .eq("referral_code", referralCodeFromBody)
                 .maybeSingle();
-            if (referrer) {
+
+            const isSelfReferral = referrer?.id === clinic.id || referrer?.email === email;
+            const isActive = referrer?.referral_code_active === true;
+
+            if (referrer && isActive && !isSelfReferral) {
                 clinicUpdate.referred_by = referrer.id;
                 await supabaseAdmin.from("referral_conversions").insert({
                     referrer_clinic_id: referrer.id,
@@ -198,7 +201,10 @@ export async function POST(req: Request) {
                 });
             }
         }
-        await supabaseAdmin.from("clinics").update(clinicUpdate).eq("id", clinic.id);
+
+        if (Object.keys(clinicUpdate).length > 0) {
+            await supabaseAdmin.from("clinics").update(clinicUpdate).eq("id", clinic.id);
+        }
 
         // Fire-and-forget welcome email
         sendWelcomeEmail(email, name, 7).catch(() => {});

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 import { withAuth } from "@/lib/auth-middleware";
+import { UserRole } from "@/types/database";
 
 export const GET = withAuth(
   async (_req, auth) => {
@@ -67,7 +68,7 @@ export const GET = withAuth(
       return NextResponse.json({ error: (err as Error).message || "Bilinmeyen bir hata oluştu" }, { status: 500 });
     }
   },
-  { requiredRole: "ADMIN_OR_SUPER" }
+  { requiredRole: [UserRole.SUPER_ADMIN] }
 );
 
 // Fallback clinics checker

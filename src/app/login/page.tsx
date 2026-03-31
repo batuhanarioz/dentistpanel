@@ -117,12 +117,24 @@ function LoginForm() {
     setLoading(false);
 
     if (signInError) {
-      const msg = signInError.message ?? "";
-      if (msg.toLowerCase().includes("email not confirmed") || msg.toLowerCase().includes("email_not_confirmed")) {
+      const msg = (signInError.message ?? "").toLowerCase();
+      if (msg.includes("email not confirmed") || msg.includes("email_not_confirmed")) {
         setUnconfirmedEmail(email);
         setError(null);
+      } else if (msg.includes("invalid login credentials") || msg.includes("invalid_credentials") || msg.includes("invalid email or password")) {
+        setError("E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.");
+      } else if (msg.includes("user not found") || msg.includes("no user found")) {
+        setError("Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.");
+      } else if (msg.includes("password should be at least") || msg.includes("password is too short")) {
+        setError("Şifreniz en az 6 karakter olmalıdır.");
+      } else if (msg.includes("too many requests") || msg.includes("rate limit")) {
+        setError("Çok fazla başarısız deneme yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin.");
+      } else if (msg.includes("network") || msg.includes("fetch")) {
+        setError("Bağlantı hatası oluştu. İnternet bağlantınızı kontrol edin ve tekrar deneyin.");
+      } else if (msg.includes("user banned") || msg.includes("user_banned")) {
+        setError("Bu hesap erişime kapatılmıştır. Lütfen yöneticinizle iletişime geçin.");
       } else {
-        setError(msg || "Giriş yapılamadı.");
+        setError("Giriş yapılamadı. Lütfen bilgilerinizi kontrol edip tekrar deneyin.");
       }
       return;
     }

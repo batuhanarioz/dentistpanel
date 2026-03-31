@@ -18,7 +18,7 @@ export type CalendarAppointment = {
     patientName: string;
     phone: string;
     email: string;
-    birthDate?: string;
+    birthDate: string;
     doctor: string;
     doctorId: string | null;
     channel: string;
@@ -28,14 +28,15 @@ export type CalendarAppointment = {
     patientNote?: string;
     internalNote?: string;
     treatmentNote?: string;
-    patientAllergies?: string | null;
-    patientMedicalAlerts?: string | null;
+    patientAllergies?: string;
+    patientMedicalAlerts?: string;
 
-    tags?: string[];
+    tags: string[];
     sourceConversationId?: string;
     sourceMessageId?: string;
     estimatedAmount?: string;
     patientId: string;
+    patientMood?: string;
 };
 
 export interface AppointmentFormState {
@@ -57,6 +58,7 @@ export interface AppointmentFormState {
     conversationId: string;
     messageId: string;
     estimatedAmount: string;
+    patientMood: string;
 }
 
 export interface PatientSearchResult {
@@ -156,6 +158,7 @@ export function useAppointmentManagement(initialData?: {
         conversationId: "",
         messageId: "",
         estimatedAmount: "",
+        patientMood: "",
     });
 
     const [patientMatchInfo, setPatientMatchInfo] = useState<string | null>(null);
@@ -174,7 +177,7 @@ export function useAppointmentManagement(initialData?: {
             doctor: doctors.length > 1 ? doctors[1] : "", channel: "", durationMinutes: 30,
             treatmentType: "", status: "confirmed", patientNote: "", treatmentNote: "",
             allergies: "", medicalAlerts: "", tags: "", conversationId: "", messageId: "",
-            estimatedAmount: "",
+            estimatedAmount: "", patientMood: "",
         });
         setPhoneNumber("");
         setPatientSearch("");
@@ -280,7 +283,7 @@ export function useAppointmentManagement(initialData?: {
             doctor: doctorName || (doctors.length > 1 ? doctors[1] : ""), channel: "", durationMinutes: 30,
             treatmentType: "", status: "confirmed", patientNote: "", treatmentNote: "",
             allergies: "", medicalAlerts: "", tags: "", conversationId: "", messageId: "",
-            estimatedAmount: "",
+            estimatedAmount: "", patientMood: "",
         });
         setPhoneNumber("");
         setSelectedPatientId("");
@@ -314,6 +317,7 @@ export function useAppointmentManagement(initialData?: {
             conversationId: appt.sourceConversationId || "",
             messageId: appt.sourceMessageId || "",
             estimatedAmount: appt.estimatedAmount?.toString() || "",
+            patientMood: appt.patientMood || "",
         });
         const fullPhone = appt.phone || "";
         let cleanPhone = fullPhone.replace(/\D/g, "");
@@ -402,6 +406,7 @@ export function useAppointmentManagement(initialData?: {
                 treatment_note: form.treatmentNote || null,
                 tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
                 estimated_amount: form.estimatedAmount ? parseFloat(form.estimatedAmount) : null,
+                patient_mood: form.patientMood || null,
             };
 
             const apptValidation = internalAppointmentSchema.safeParse(apptData);

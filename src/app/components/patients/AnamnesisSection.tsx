@@ -131,19 +131,25 @@ export function AnamnesisSection({ patientId, data, isLoading, onSave, editMode:
             setInternalEditMode(v);
         }
     };
+    interface PatientAnamnesisWithMetadata extends PatientAnamnesis {
+        id: string;
+        clinic_id: string;
+        patient_id: string;
+        updated_at: string;
+        updated_by: string;
+    }
     const [saving, setSaving] = useState(false);
-    const [draft, setDraft] = useState<Draft>({ ...EMPTY_ANAMNESIS });
+    const [draft, setDraft] = useState<Draft>(JSON.parse(JSON.stringify(EMPTY_ANAMNESIS)));
 
     // data yüklendiğinde draft'ı güncelle
     useEffect(() => {
         if (data) {
-            const { id: _id, clinic_id: _c, patient_id: _p, updated_at: _u, updated_by: _ub, ...rest } = data;
+            const { id: __, clinic_id: __c, patient_id: __p, updated_at: __u, updated_by: __ub, ...rest } = data as PatientAnamnesisWithMetadata;
             setDraft(rest as Draft);
         } else {
-            setDraft({ ...EMPTY_ANAMNESIS });
+            setDraft(JSON.parse(JSON.stringify(EMPTY_ANAMNESIS)));
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data, patientId]);
+    }, [data, patientId, onSave]);
 
     const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
         setDraft(prev => ({ ...prev, [key]: value }));
@@ -167,10 +173,10 @@ export function AnamnesisSection({ patientId, data, isLoading, onSave, editMode:
 
     const handleCancel = () => {
         if (data) {
-            const { id: _id, clinic_id: _c, patient_id: _p, updated_at: _u, updated_by: _ub, ...rest } = data;
+            const { id: __, clinic_id: __c, patient_id: __p, updated_at: __u, updated_by: __ub, ...rest } = data as PatientAnamnesisWithMetadata;
             setDraft(rest as Draft);
         } else {
-            setDraft({ ...EMPTY_ANAMNESIS });
+            setDraft(JSON.parse(JSON.stringify(EMPTY_ANAMNESIS)));
         }
         setEditMode(false);
     };

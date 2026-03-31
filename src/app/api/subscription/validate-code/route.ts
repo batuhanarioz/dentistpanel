@@ -1,24 +1,17 @@
 /**
  * POST /api/subscription/validate-code
  *
- * İndirim kodunu doğrular ve indirimli fiyat önizlemesi döndürür.
- * Checkout öncesi kullanıcıya anlık feedback vermek için çağrılır.
+ * İndirim veya referans kodunu doğrular.
+ * Önce discount_codes tablosunu, bulamazsa clinics.referral_code'u kontrol eder.
  *
  * Body: { code: string, billingCycle: "monthly" | "annual" }
  *
- * Response (başarılı):
- * {
- *   valid: true,
- *   codeId: string,
- *   code: string,
- *   discountType: "percent" | "fixed",
- *   discountValue: number,
- *   isRecurring: boolean,
- *   originalAmount: number,   // TL
- *   discountAmount: number,   // TL (düşülecek miktar)
- *   finalAmount: number,      // TL (ödenecek miktar)
- *   message: string           // UI'da gösterilecek açıklama
- * }
+ * Response — indirim kodu (başarılı):
+ * { valid: true, type: "discount", codeId, code, discountType, discountValue,
+ *   isRecurring, originalAmount, discountAmount, finalAmount, message }
+ *
+ * Response — referans kodu (başarılı):
+ * { valid: true, type: "referral", referrerClinicId, referrerClinicName, message }
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -47,7 +40,41 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
         .maybeSingle();
 
     if (!discount) {
-        return NextResponse.json({ valid: false, error: "Geçersiz indirim kodu" });
+        // ── İndirim kodu bulunamadı → referans kodu kontrol et ───────────────
+        const { data: referrer } = await supabaseAdmin
+            .from("clinics")
+            .select("id, name")
+            .eq("referral_code", code)
+            .eq("referral_code_active", true)
+            .maybeSingle();
+
+        if (!referrer) {
+            return NextResponse.json({ valid: false, error: "Geçersiz kod" });
+        }
+
+        // Kendi kodunu kullanıyor mu?
+        if (referrer.id === ctx.clinicId) {
+            return NextResponse.json({ valid: false, error: "Kendi referans kodunuzu kullanamazsınız" });
+        }
+
+        // Bu klinik zaten bir referans koduyla ilişkilendirilmiş mi?
+        const { data: thisClinic } = await supabaseAdmin
+            .from("clinics")
+            .select("referred_by")
+            .eq("id", ctx.clinicId)
+            .single();
+
+        if (thisClinic?.referred_by) {
+            return NextResponse.json({ valid: false, error: "Hesabınız zaten bir referans koduyla ilişkilendirilmiş" });
+        }
+
+        return NextResponse.json({
+            valid: true,
+            type: "referral",
+            referrerClinicId: referrer.id,
+            referrerClinicName: referrer.name,
+            message: `${referrer.name} tarafından davet edildiniz`,
+        });
     }
 
     // ── 2. Aktif mi? ─────────────────────────────────────────────────────────
@@ -121,6 +148,7 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
 
     return NextResponse.json({
         valid: true,
+        type: "discount",
         codeId: discount.id,
         code: discount.code,
         discountType: discount.discount_type,

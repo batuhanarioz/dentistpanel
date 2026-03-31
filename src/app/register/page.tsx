@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import nextgencyLogo from "../nextgency-logo-yatay.png";
@@ -9,8 +9,10 @@ import { Loader2, Hospital, User, Mail, Lock, Phone, MapPin, CheckCircle2, Arrow
 import { TURKEY_CITIES } from "@/constants/locations";
 import { trackSignup } from "@/lib/analytics";
 
-export default function RegisterPage() {
+function RegisterForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const [referralCode] = useState<string>(() => searchParams.get("ref") ?? "");
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -190,7 +192,8 @@ export default function RegisterPage() {
                     email: formData.email,
                     phone: formData.phone,
                     address: fullAddress,
-                    adminPassword: formData.adminPassword
+                    adminPassword: formData.adminPassword,
+                    ...(referralCode ? { referral_code: referralCode } : {}),
                 })
             });
 
@@ -315,6 +318,14 @@ export default function RegisterPage() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
+                            {referralCode && (
+                                <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3">
+                                    <span className="text-emerald-600 text-base">🎁</span>
+                                    <p className="text-xs font-bold text-emerald-700">
+                                        Davet kodu uygulandı: <span className="font-black">{referralCode}</span>
+                                    </p>
+                                </div>
+                            )}
                             {/* Section: Clinic Info */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-1.5 col-span-1 sm:col-span-2">
@@ -564,5 +575,13 @@ export default function RegisterPage() {
                 }
             `}</style>
         </div>
+    );
+}
+
+export default function RegisterPage() {
+    return (
+        <Suspense>
+            <RegisterForm />
+        </Suspense>
     );
 }

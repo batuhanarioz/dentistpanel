@@ -6,6 +6,7 @@ import { useClinic } from "@/app/context/ClinicContext";
 import { supabase } from "@/lib/supabaseClient";
 import { AddonCard } from "@/app/components/subscription/AddonCard";
 import { PayTRCheckoutModal } from "@/app/components/subscription/PayTRCheckoutModal";
+import { ReferralSection } from "@/app/components/subscription/ReferralSection";
 import type { PaymentHistory } from "@/types/database";
 import {
     Check,
@@ -35,28 +36,393 @@ const billingPeriodTR: Record<string, string> = {
 function openReceipt(payment: PaymentHistory, clinicName: string) {
     const period = billingPeriodTR[payment.billing_period] ?? payment.billing_period;
     const date = new Date(payment.created_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
-    const html = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Makbuz</title>
-<style>body{font-family:sans-serif;max-width:520px;margin:40px auto;color:#1e293b}
-h1{font-size:20px;font-weight:900;margin-bottom:4px}
-.sub{color:#64748b;font-size:13px;margin-bottom:32px}
-table{width:100%;border-collapse:collapse}
-td{padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
-td:last-child{text-align:right;font-weight:700}
-.total td{font-weight:900;font-size:15px;border-bottom:none;padding-top:16px}
-.badge{background:#dcfce7;color:#16a34a;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
-@media print{button{display:none}}</style></head>
+    const receiptNo = `RCP-${payment.id.slice(0, 8).toUpperCase()}`;
+    const amountFormatted = `${payment.amount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ${payment.currency}`;
+
+    const html = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Makbuz ${receiptNo} — NextGency OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 640px;
+    }
+
+    /* ── Kart ── */
+    .card {
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,.06), 0 10px 15px -3px rgba(0,0,0,.05);
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+      padding: 36px 40px 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: rgba(20,184,166,.12);
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; left: 40px;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      background: rgba(20,184,166,.08);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      position: relative;
+      z-index: 1;
+    }
+    .brand-icon {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #14b8a6, #0d9488);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .brand-name {
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .brand-sub {
+      color: rgba(255,255,255,0.5);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .header-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+    .header-title {
+      color: rgba(255,255,255,0.6);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .header-receipt {
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(20,184,166,.2);
+      border: 1px solid rgba(20,184,166,.35);
+      color: #5eead4;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 100px;
+      letter-spacing: 0.5px;
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #2dd4bf;
+    }
+
+    /* ── Body ── */
+    .body {
+      padding: 36px 40px;
+    }
+
+    /* ── Billing info strip ── */
+    .billing-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      padding: 20px 24px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      margin-bottom: 32px;
+    }
+    .billing-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .billing-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* ── Line items ── */
+    .section-label {
+      font-size: 9px;
+      font-weight: 800;
+      color: #94a3b8;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 0;
+    }
+    .items-table thead tr {
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .items-table thead th {
+      font-size: 9px;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 0 0 10px;
+      text-align: left;
+    }
+    .items-table thead th:last-child {
+      text-align: right;
+    }
+    .items-table tbody tr {
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .items-table tbody tr:last-child {
+      border-bottom: none;
+    }
+    .items-table td {
+      padding: 14px 0;
+      font-size: 13px;
+      color: #334155;
+    }
+    .items-table td:last-child {
+      text-align: right;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .item-name {
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .item-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 24px 0;
+    }
+
+    /* ── Total ── */
+    .total-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      background: #0f172a;
+      border-radius: 16px;
+      margin-top: 20px;
+    }
+    .total-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .total-amount {
+      color: #ffffff;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 20px 40px 28px;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .footer-note {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+    .footer-note strong {
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    /* ── Print button ── */
+    .print-wrap {
+      margin-top: 24px;
+      text-align: center;
+    }
+    .print-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #0f172a;
+      color: #ffffff;
+      border: none;
+      border-radius: 14px;
+      padding: 13px 28px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: background 0.15s;
+    }
+    .print-btn:hover { background: #1e293b; }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .card { box-shadow: none; border-radius: 0; }
+      .print-wrap { display: none; }
+    }
+  </style>
+</head>
 <body>
-<h1>NextGency OS — Makbuz</h1>
-<p class="sub">${clinicName}</p>
-<table>
-<tr><td>Tarih</td><td>${date}</td></tr>
-<tr><td>Paket</td><td>${payment.package_name}</td></tr>
-<tr><td>Dönem</td><td>${period}</td></tr>
-<tr><td>Durum</td><td><span class="badge">Başarılı</span></td></tr>
-<tr class="total"><td>Toplam</td><td>${payment.amount.toLocaleString("tr-TR")} ${payment.currency}</td></tr>
-</table>
-<br><button onclick="window.print()" style="margin-top:24px;padding:10px 24px;background:#0f172a;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Yazdır / PDF Kaydet</button>
-</body></html>`;
+  <div class="page">
+    <div class="card">
+
+      <!-- Header -->
+      <div class="header">
+        <div class="brand">
+          <div class="brand-icon">🦷</div>
+          <div>
+            <div class="brand-name">NextGency OS</div>
+            <div class="brand-sub">Diş Kliniği Yönetim Sistemi</div>
+          </div>
+        </div>
+        <div class="header-row">
+          <div>
+            <div class="header-title">Ödeme Makbuzu</div>
+            <div class="header-receipt">${receiptNo}</div>
+          </div>
+          <div class="status-badge">
+            <div class="status-dot"></div>
+            Ödeme Başarılı
+          </div>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="body">
+
+        <!-- Billing strip -->
+        <div class="billing-strip">
+          <div>
+            <div class="billing-label">Fatura Kesilen</div>
+            <div class="billing-value">${clinicName}</div>
+          </div>
+          <div>
+            <div class="billing-label">Ödeme Tarihi</div>
+            <div class="billing-value">${date}</div>
+          </div>
+        </div>
+
+        <!-- Line items -->
+        <div class="section-label">Ödeme Detayı</div>
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Ürün / Hizmet</th>
+              <th style="text-align:right">Tutar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="item-name">${payment.package_name}</div>
+                <div class="item-desc">${period} Plan · Bulut tabanlı klinik yönetim yazılımı</div>
+              </td>
+              <td>${amountFormatted}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Total -->
+        <div class="total-row">
+          <div class="total-label">Toplam Ödenen</div>
+          <div class="total-amount">${amountFormatted}</div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <div class="footer-note">
+          <strong>NextGency Yapay Zeka Ajansı</strong><br>
+          Bu makbuz elektronik olarak oluşturulmuştur.<br>
+          Makbuz No: ${receiptNo}
+        </div>
+        <div class="footer-note" style="text-align:right">
+          Destek: <strong>hello@nextgency360.com</strong>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Print button -->
+    <div class="print-wrap">
+      <button class="print-btn" onclick="window.print()">
+        ⬇ Yazdır / PDF Olarak Kaydet
+      </button>
+    </div>
+  </div>
+</body>
+</html>`;
+
     const w = window.open("", "_blank");
     w?.document.write(html);
     w?.document.close();
@@ -648,6 +1014,13 @@ export default function SubscriptionPage() {
                         </div>
                     </div>
                 </div>}
+
+                {/* ── 5. Arkadaşına Öner — yalnızca admin ─────────────────── */}
+                {clinic.isAdmin && clinic.clinicId && (
+                    <div className="pt-4">
+                        <ReferralSection clinicId={clinic.clinicId} />
+                    </div>
+                )}
             </div>
         </>
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import { usePathname } from "next/navigation";
 import { useSmartAssistant, AssistantItem, AssistantItemType } from "@/hooks/useSmartAssistant";
 import toast from "react-hot-toast";
 import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
@@ -8,6 +9,7 @@ import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
 type FilterType = 'ALL' | AssistantItemType;
 
 export function SmartAssistantSection() {
+    const pathname = usePathname();
     const { assistantItems, isLoading } = useSmartAssistant();
     const [highlightedId, setHighlightedId] = useState<string | null>(null);
     const [filter, setFilter] = useState<FilterType>('ALL');
@@ -19,67 +21,31 @@ export function SmartAssistantSection() {
             return [];
         }
     });
-    const [showDismissed, setShowDismissed] = useState(false);
 
     const handleDismiss = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        let newDismissed;
-        if (dismissedIds.includes(id)) {
-            // If already dismissed and in "Sent" view, restore it
-            newDismissed = dismissedIds.filter(d => d !== id);
-        } else {
-            // Dismiss it
-            newDismissed = [...dismissedIds, id];
-        }
+        const newDismissed = [...dismissedIds, id];
         setDismissedIds(newDismissed);
         sessionStorage.setItem('dismissedAssistantItems', JSON.stringify(newDismissed));
         window.dispatchEvent(new CustomEvent('assistant-updated'));
+        toast.success("Mesaj atıldı olarak işaretlendi");
     };
 
     const activeItems = useMemo(() => {
-        if (showDismissed) {
-            return assistantItems.filter(item => dismissedIds.includes(item.id));
-        }
         return assistantItems.filter(item => !dismissedIds.includes(item.id));
-    }, [assistantItems, dismissedIds, showDismissed]);
-
-    useEffect(() => {
-        const pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
-
-        const handleHashChange = () => {
-            const hash = window.location.hash;
-            if (hash.startsWith('#assist-')) {
-                const id = hash.replace('#assist-', '');
-                setHighlightedId(id);
-
-                pendingTimeouts.push(setTimeout(() => {
-                    document.getElementById(`assist-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 100));
-
-                pendingTimeouts.push(setTimeout(() => setHighlightedId(null), 5000));
-            }
-        };
-
-        handleHashChange();
-        window.addEventListener('hashchange', handleHashChange);
-        return () => {
-            window.removeEventListener('hashchange', handleHashChange);
-            pendingTimeouts.forEach(clearTimeout);
-        };
-    }, []);
+    }, [assistantItems, dismissedIds]);
 
     const filteredItems = useMemo(() => {
         if (filter === 'ALL') return activeItems;
         return activeItems.filter(item => item.type === filter);
     }, [activeItems, filter]);
 
-    const handleSendMessage = (item: AssistantItem, isDismissed: boolean = false) => {
+    const handleSendMessage = (item: AssistantItem) => {
         if (!item.patientPhone) {
             toast.error("Hasta telefonu kayıtlı değil");
             return;
         }
-        const message = isDismissed ? "" : item.message;
-        const url = `https://wa.me/${formatPhoneForWhatsApp(item.patientPhone)}?text=${encodeURIComponent(message)}`;
+        const url = `https://wa.me/${formatPhoneForWhatsApp(item.patientPhone)}?text=${encodeURIComponent(item.message)}`;
         window.open(url, '_blank');
     };
 
@@ -133,132 +99,116 @@ export function SmartAssistantSection() {
                         </svg>
                     )
                 };
+            case 'DELAY':
+                return {
+                    bg: 'bg-rose-50/50',
+                    border: 'border-rose-100',
+                    text: 'text-rose-700',
+                    iconBg: 'bg-rose-100',
+                    badge: 'bg-rose-600',
+                    button: 'bg-rose-600 hover:bg-rose-700 shadow-rose-200',
+                    dismiss: 'text-rose-400 hover:bg-rose-100 hover:text-rose-600',
+                    gradient: 'from-rose-50/20 to-transparent',
+                    icon: (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    )
+                };
+            case 'BIRTHDAY':
+                return {
+                    bg: 'bg-fuchsia-50/50',
+                    border: 'border-fuchsia-100',
+                    text: 'text-fuchsia-700',
+                    iconBg: 'bg-fuchsia-100',
+                    badge: 'bg-fuchsia-600',
+                    button: 'bg-fuchsia-600 hover:bg-fuchsia-700 shadow-fuchsia-200',
+                    dismiss: 'text-fuchsia-400 hover:bg-fuchsia-100 hover:text-fuchsia-600',
+                    gradient: 'from-fuchsia-50/20 to-transparent',
+                    icon: (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 15.75V3H14.85l-3-3H6.15l-3 3H0v12.75h21zm-10.5 1.5c-3.17 0-5.75-2.58-5.75-5.75s2.58-5.75 5.75-5.75 5.75 2.58 5.75 5.75-2.58 5.75-5.75 5.75z" />
+                        </svg>
+                    )
+                };
+            case 'FOLLOWUP':
+                return {
+                    bg: 'bg-teal-50/50',
+                    border: 'border-teal-100',
+                    text: 'text-teal-700',
+                    iconBg: 'bg-teal-100',
+                    badge: 'bg-teal-600',
+                    button: 'bg-teal-600 hover:bg-teal-700 shadow-teal-200',
+                    dismiss: 'text-teal-400 hover:bg-teal-100 hover:text-teal-600',
+                    gradient: 'from-teal-50/20 to-transparent',
+                    icon: (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    )
+                };
             default:
                 return { bg: '', border: '', text: '', iconBg: '', badge: '', button: '', dismiss: '', gradient: '', icon: null };
         }
     };
 
-    const counts = useMemo(() => {
-        return {
-            pending: assistantItems.filter(item => !dismissedIds.includes(item.id)).length,
-            sent: assistantItems.filter(item => dismissedIds.includes(item.id)).length
-        };
-    }, [assistantItems, dismissedIds]);
-
     if (!isLoading && activeItems.length === 0) {
         return (
             <section id="smart-assistant" className="group/card rounded-[28px] border border-slate-100 bg-white shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col relative" style={{ height: '416px' }}>
                 <div className="absolute -top-20 -right-20 w-40 h-40 bg-teal-50 rounded-full blur-3xl opacity-50 group-hover/card:bg-teal-100 transition-colors pointer-events-none" />
-                <div className="flex flex-wrap items-center gap-2 px-4 pt-4 pb-3 shrink-0 border-b border-slate-50 relative z-10">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-cyan-600 shadow-md shadow-teal-200/60">
-                            <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                            </svg>
-                        </div>
-                        <div className="min-w-0">
-                            <h2 className="text-sm font-bold text-slate-900 truncate">Akıllı Mesaj Asistanı</h2>
-                            <p className="text-[11px] text-slate-400 truncate">
-                                {showDismissed ? "Gönderilen mesajlarınız" : "Bekleyen mesajınız yok"}
-                            </p>
-                        </div>
+                <div className="flex items-center gap-2 px-5 py-5 shrink-0 border-b border-slate-50">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-cyan-600 shadow-md shadow-teal-200/60">
+                        <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <button
-                            onClick={() => setShowDismissed(!showDismissed)}
-                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all shadow-sm active:scale-95 text-white whitespace-nowrap ${showDismissed
-                                ? "bg-rose-600 hover:bg-rose-700"
-                                : "bg-emerald-600 hover:bg-emerald-700"
-                                }`}
-                        >
-                            {showDismissed ? `Bekleyenler (${counts.pending})` : `Gönderilenler (${counts.sent})`}
-                        </button>
-                        <div className="relative">
-                            <select
-                                value={filter}
-                                onChange={(e) => setFilter(e.target.value as FilterType)}
-                                className="appearance-none bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 pr-7 text-[11px] font-bold text-slate-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all hover:bg-white"
-                            >
-                                <option value="ALL">Tümü ({activeItems.length})</option>
-                                <option value="REMINDER">Randevu ({activeItems.filter(i => i.type === 'REMINDER').length})</option>
-                                <option value="SATISFACTION">Memnuniyet ({activeItems.filter(i => i.type === 'SATISFACTION').length})</option>
-                                <option value="PAYMENT">Ödeme ({activeItems.filter(i => i.type === 'PAYMENT').length})</option>
-                            </select>
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
-                        </div>
+                    <div className="flex-1">
+                        <h2 className="text-sm font-bold text-slate-900">Akıllı Asistan</h2>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Günlük Görev Paneli</p>
                     </div>
+                    <a href={`/${pathname.split('/')[1]}/communication`} className="text-[10px] font-black text-teal-600 bg-teal-50 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition-colors uppercase tracking-widest">Merkezi Aç &rarr;</a>
                 </div>
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/30">
-                    <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 text-emerald-300">
-                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/20">
+                    <div className="w-20 h-20 bg-emerald-50 rounded-[2rem] flex items-center justify-center mb-5 text-emerald-400 shadow-inner group-hover/card:scale-110 transition-transform">
+                        <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                     </div>
-                    <h3 className="text-slate-900 font-bold mb-1 font-outfit">
-                        {showDismissed ? "Henüz Gönderilen Yok" : "Bekleyen Mesaj Yok"}
-                    </h3>
-                    <p className="text-slate-500 text-xs">
-                        {showDismissed
-                            ? "Henüz gönderildi olarak işaretlediğiniz bir mesaj bulunmuyor."
-                            : "Şu an gönderilmesi gereken otomatik bir hatırlatma bulunmuyor."
-                        }
-                    </p>
+                    <h3 className="text-slate-900 font-black text-base mb-1 tracking-tight">Harika! Tüm İşler Tamam</h3>
+                    <p className="text-slate-500 text-xs font-semibold max-w-[200px] leading-relaxed">Şu an atılması gereken bekleyen bir bildirim kalmadı.</p>
                 </div>
             </section>
         );
     }
 
     return (
-        <section id="smart-assistant" className="rounded-2xl border bg-white shadow-sm overflow-hidden flex flex-col" style={{ height: '416px' }}>
-            <div className="flex flex-wrap items-center gap-2 px-4 pt-4 pb-3 shrink-0 border-b border-slate-50 relative z-10">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-cyan-600 shadow-md shadow-teal-200/60">
-                        <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                        </svg>
-                    </div>
-                    <div className="min-w-0">
-                        <h2 className="text-sm font-bold text-slate-900 truncate">Akıllı Mesaj Asistanı</h2>
-                        <p className="text-[11px] text-slate-400 truncate">
-                            {isLoading ? "Hesaplanıyor..." : (
-                                showDismissed
-                                    ? `${activeItems.length} gönderilen mesaj`
-                                    : `${activeItems.length} gönderilecek mesaj var`
-                            )}
-                        </p>
-                    </div>
+        <section id="smart-assistant" className="rounded-[28px] border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col group/card" style={{ height: '416px' }}>
+            <div className="flex items-center gap-2 px-5 py-5 shrink-0 border-b border-slate-50 bg-gradient-to-r from-white to-slate-50/50">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-cyan-600 shadow-md shadow-teal-200/60">
+                    <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                    <button
-                        onClick={() => setShowDismissed(!showDismissed)}
-                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all shadow-sm active:scale-95 text-white whitespace-nowrap ${showDismissed
-                            ? "bg-rose-600 hover:bg-rose-700"
-                            : "bg-emerald-600 hover:bg-emerald-700"
-                            }`}
-                    >
-                        {showDismissed ? `Bekleyenler (${counts.pending})` : `Gönderilenler (${counts.sent})`}
-                    </button>
+                <div className="flex-1">
+                    <h2 className="text-sm font-bold text-slate-900 tracking-tight">Akıllı Asistan</h2>
+                    <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest">{activeItems.length} BEKLEYEN GÖREV</p>
+                </div>
+                <div className="flex items-center gap-2">
                     <div className="relative">
                         <select
                             value={filter}
                             onChange={(e) => setFilter(e.target.value as FilterType)}
-                            className="appearance-none bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 pr-7 text-[11px] font-bold text-slate-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all hover:bg-white"
+                            className="appearance-none bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 pr-8 text-[10px] font-black text-slate-600 cursor-pointer focus:outline-none focus:ring-4 focus:ring-teal-500/10 transition-all hover:bg-white"
                         >
-                            <option value="ALL">Tümü ({activeItems.length})</option>
-                            <option value="REMINDER">Randevu ({activeItems.filter(i => i.type === 'REMINDER').length})</option>
-                            <option value="SATISFACTION">Memnuniyet ({activeItems.filter(i => i.type === 'SATISFACTION').length})</option>
-                            <option value="PAYMENT">Ödeme ({activeItems.filter(i => i.type === 'PAYMENT').length})</option>
+                            <option value="ALL">TÜMÜ</option>
+                            <option value="REMINDER">RANDEVULAR</option>
+                            <option value="SATISFACTION">MEMNUNİYET</option>
+                            <option value="PAYMENT">ÖDEMELER</option>
+                            <option value="DELAY">GECİKMELER</option>
+                            <option value="BIRTHDAY">DOĞUM GÜNLERİ</option>
+                            <option value="FOLLOWUP">TAKİPLER</option>
                         </select>
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                         </div>
                     </div>
+                    <a href={`/${pathname.split('/')[1]}/communication`} className="text-[10px] font-black bg-slate-900 text-white px-3 py-1.5 rounded-xl hover:bg-black transition-all shadow-lg shadow-slate-200">MERKEZ &rarr;</a>
                 </div>
             </div>
 
@@ -289,7 +239,11 @@ export function SmartAssistantSection() {
                                 <div className="flex items-center justify-between mb-4 relative z-10">
                                     <div className={`flex items-center gap-2 px-2.5 py-1 rounded-xl text-[9px] font-black tracking-[0.15em] uppercase border ${styles.bg} ${styles.text} ${styles.border}`}>
                                         {styles.icon}
-                                        {item.type === 'REMINDER' ? 'RANDEVU' : item.type === 'SATISFACTION' ? 'MEMNUNİYET' : 'ÖDEME'}
+                                        {item.type === 'REMINDER' ? 'RANDEVU' : 
+                                         item.type === 'SATISFACTION' ? 'MEMNUNİYET' : 
+                                         item.type === 'PAYMENT' ? 'ÖDEME' :
+                                         item.type === 'DELAY' ? 'GECİKME' :
+                                         item.type === 'BIRTHDAY' ? 'DOĞUM GÜNÜ' : 'TAKİP'}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button
@@ -351,10 +305,8 @@ export function SmartAssistantSection() {
                                     </div>
                                     {item.patientPhone && (
                                         <button
-                                            onClick={() => handleSendMessage(item, isDismissed)}
-                                            className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-[11px] font-black text-white transition-all active:scale-[0.97] shadow-lg ${isDismissed
-                                                ? "bg-slate-700 hover:bg-slate-800 shadow-slate-200"
-                                                : styles.button} hover:scale-[1.02]`}
+                                            onClick={() => handleSendMessage(item)}
+                                            className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-[11px] font-black text-white transition-all active:scale-[0.97] shadow-lg ${styles.button} hover:scale-[1.02]`}
                                         >
                                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                                 <path d="M17.472 14.382c-.3.149-1.777.877-2.045.976-.269.1-.463.149-.657.437-.194.288-.748.941-.917 1.134-.169.194-.338.219-.636.07-.3-.149-1.264-.467-2.41-1.488-.891-.795-1.492-1.777-1.667-2.075-.173-.301-.019-.463.13-.612.134-.133.298-.348.448-.522.152-.174.202-.298.301-.497.1-.199.049-.373-.024-.522-.074-.15-.657-1.583-.902-2.172-.239-.574-.482-.497-.657-.506-.169-.009-.364-.01-.559-.01-.194 0-.51.074-.777.369-.269.299-1.025 1.002-1.025 2.441 0 1.439 1.045 2.829 1.191 3.028.146.199 2.056 3.139 4.979 4.398.694.3 1.237.479 1.661.613.697.221 1.332.189 1.833.114.559-.084 1.717-.7 1.956-1.378.239-.679.239-1.264.168-1.378-.069-.115-.261-.189-.558-.337zM12 2.03c-5.522 0-10 4.477-10 10 0 1.769.463 3.428 1.266 4.87L2.05 22l5.247-1.376c1.118.608 2.396.955 3.703.955 5.518 0 10-4.477 10-10 0-5.522-4.482-10-10-10zM12 20.3c-1.611 0-3.18-.426-4.555-1.233l-.326-.194-3.042.797.81-2.964-.213-.339A8.257 8.257 0 013.75 12.03c0-4.549 3.701-8.25 8.25-8.25s8.25 3.701 8.25 8.25c0 4.551-3.701 8.25-8.25 8.25z" />

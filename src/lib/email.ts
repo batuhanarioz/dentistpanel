@@ -94,6 +94,40 @@ export async function sendTrialEndingSoonEmail(to: string, clinicName: string, d
   });
 }
 
+// ─── Referral Reward ───────────────────────────────────────────────────────
+export async function sendReferralRewardEmail(to: string, referrerClinicName: string, referredClinicName: string) {
+  return getResend().emails.send({
+    from: FROM,
+    to,
+    subject: `Tebrikler! ${referredClinicName} aboneliğe geçti — 1 ay ücretsiz kazandınız 🎉`,
+    html: `<!DOCTYPE html><html lang="tr"><body style="font-family:sans-serif;background:#f8fafc;margin:0;padding:24px;">
+<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:16px;padding:32px;border:1px solid #e2e8f0;">
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="display:inline-block;background:#0f172a;border-radius:12px;padding:10px 20px;">
+      <span style="color:#fff;font-weight:900;font-size:18px;letter-spacing:-0.5px;">NextGency OS</span>
+    </div>
+  </div>
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin-bottom:24px;text-align:center;">
+    <p style="margin:0 0 4px;font-size:28px;">🎁</p>
+    <p style="margin:0;font-size:15px;font-weight:900;color:#166534;">1 Aylık Ücretsiz Kullanım Kazandınız!</p>
+  </div>
+  <h1 style="font-size:20px;font-weight:900;color:#0f172a;margin:0 0 12px;">Davetiniz meyvesini verdi</h1>
+  <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px;">
+    Davet ettiğiniz <strong>${referredClinicName}</strong> kliniği ücretli aboneliğe geçti.
+    <strong>${referrerClinicName}</strong> hesabınıza otomatik olarak <strong>1 aylık ücretsiz kullanım</strong> eklendi.
+  </p>
+  <a href="${BASE_URL}/login" style="display:inline-block;background:#0d9488;color:#fff;text-decoration:none;font-weight:800;font-size:14px;padding:12px 28px;border-radius:10px;margin-bottom:24px;">
+    Hesabımı Görüntüle →
+  </a>
+  <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;" />
+  <p style="color:#64748b;font-size:12px;margin:0 0 8px;">
+    Referans programı ile daha fazla klinik davet ederek ek aylar kazanmaya devam edebilirsiniz.
+  </p>
+  <p style="color:#94a3b8;font-size:11px;margin:0;">Sorunuz mu var? <a href="mailto:clinic@nextgency360.com" style="color:#0d9488;">clinic@nextgency360.com</a></p>
+</div></body></html>`,
+  });
+}
+
 // ─── Trial Expired ─────────────────────────────────────────────────────────
 export async function sendTrialExpiredEmail(to: string, clinicName: string) {
   return getResend().emails.send({

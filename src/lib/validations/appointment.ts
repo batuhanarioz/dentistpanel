@@ -20,4 +20,5 @@ export const internalAppointmentSchema = z.object({
     treatment_note: z.string().optional().nullable(),
     tags: z.array(z.string()).optional(),
     estimated_amount: z.number().nonnegative().nullable().optional(),
+    patient_mood: z.string().optional().nullable(),
 });

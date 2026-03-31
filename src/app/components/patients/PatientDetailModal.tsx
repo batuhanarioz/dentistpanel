@@ -124,6 +124,37 @@ export function PatientDetailModal({
         return { totalVisits, completed, cancelled, totalPaid, totalPending, lastVisit };
     }, [appointments, payments]);
 
+    // Birthday Check & Confetti
+    const isBirthday = useMemo(() => {
+        if (!patient?.birth_date) return false;
+        const today = new Date();
+        const birthDate = new Date(patient.birth_date);
+        return today.getDate() === birthDate.getDate() && today.getMonth() === birthDate.getMonth();
+    }, [patient?.birth_date]);
+
+    useEffect(() => {
+        if (isOpen && isBirthday) {
+            // Dynamically load confetti if not present
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
+            script.onload = () => {
+                const confetti = (window as unknown as { confetti: (options: object) => void }).confetti;
+                const duration = 3 * 1000;
+                const animationEnd = Date.now() + duration;
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+                const interval: ReturnType<typeof setInterval> = setInterval(function() {
+                    const timeLeft = animationEnd - Date.now();
+                    if (timeLeft <= 0) return clearInterval(interval);
+                    const particleCount = 50 * (timeLeft / duration);
+                    confetti({ ...defaults, particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } });
+                }, 250);
+            };
+            document.head.appendChild(script);
+            return () => { document.head.removeChild(script); };
+        }
+    }, [isOpen, isBirthday]);
+
     if (!isOpen || !patient) return null;
 
     const age = patient.birth_date
@@ -266,14 +297,19 @@ export function PatientDetailModal({
                                             </p>
                                         )}
                                     </div>
+                                    {isBirthday && (
+                                        <div className="flex items-center gap-1 mt-1 bg-amber-400/20 border border-amber-400/30 px-2 py-0.5 rounded-lg w-fit animate-bounce shadow-sm">
+                                            <span className="text-[10px] font-black text-amber-200">🎂 BUGÜN DOĞUM GÜNÜ!</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
                                 <button onClick={() => downloadData('csv')} className="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors border border-white/20">CSV</button>
                                 <button onClick={() => downloadData('txt')} className="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors border border-white/20">TXT</button>
                                 <button onClick={onClose} className="bg-white/15 hover:bg-white/25 p-2 rounded-xl transition-colors border border-white/20 ml-1">
-                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    <svg  className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                        <path  strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
@@ -287,28 +323,28 @@ export function PatientDetailModal({
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                             <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
                                 <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500 mb-2">
-                                    <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+                                    <svg  className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
                                 </div>
                                 <p className="text-lg sm:text-xl font-black text-slate-800 tracking-tighter">{stats.totalVisits}</p>
                                 <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">Toplam Ziyaret</p>
                             </div>
                             <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
                                 <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500 mb-2">
-                                    <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <svg  className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 </div>
                                 <p className="text-lg sm:text-xl font-black text-emerald-600 tracking-tighter">{stats.completed}</p>
                                 <p className="text-[9px] sm:text-[10px] font-bold text-emerald-400 uppercase text-center">Tamamlanan</p>
                             </div>
                             <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
                                 <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500 mb-2">
-                                    <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    <svg  className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </div>
                                 <p className="text-lg sm:text-xl font-black text-rose-600 tracking-tighter">{stats.cancelled}</p>
                                 <p className="text-[9px] sm:text-[10px] font-bold text-rose-400 uppercase text-center">İptal</p>
                             </div>
                             <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
                                 <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 mb-2">
-                                    <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <svg  className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 </div>
                                 <p className="text-lg sm:text-xl font-black text-slate-800 tracking-tighter">{stats.totalPaid.toLocaleString('tr-TR')} ₺</p>
                                 <p className="text-[9px] sm:text-[10px] font-bold text-teal-600 uppercase text-center">Ödenen</p>
@@ -324,7 +360,7 @@ export function PatientDetailModal({
                             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
                                 <div className="flex items-center gap-2">
                                     <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shadow-sm">
-                                        <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.824-1.281-5.117-3.573-6.398-6.398l1.293-.97c.362-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+                                        <svg  className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.824-1.281-5.117-3.573-6.398-6.398l1.293-.97c.362-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
                                     </div>
                                     <h3 className="text-xs font-black uppercase tracking-tight text-teal-600">İletişim</h3>
                                 </div>
@@ -343,7 +379,7 @@ export function PatientDetailModal({
                                                     <p className="text-sm font-bold text-slate-700">{patient.phone || "-"}</p>
                                                     {whatsappLink && (
                                                         <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="h-6 w-6 bg-emerald-500 rounded-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm" title="WhatsApp Mesaj Gönder">
-                                                            <svg className="h-3.5 w-3.5 text-white fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.94 3.659 1.437 5.634 1.437h.005c6.558 0 11.898-5.335 11.9-11.894a11.83 11.83 0 00-3.486-8.412z" /></svg>
+                                                            <svg  className="h-3.5 w-3.5 text-white fill-current" viewBox="0 0 24 24"><path  d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.94 3.659 1.437 5.634 1.437h.005c6.558 0 11.898-5.335 11.9-11.894a11.83 11.83 0 00-3.486-8.412z" /></svg>
                                                         </a>
                                                     )}
                                                 </>
@@ -369,7 +405,7 @@ export function PatientDetailModal({
                             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
                                 <div className="flex items-center gap-2">
                                     <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shadow-sm">
-                                        <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                                        <svg  className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
                                     </div>
                                     <h3 className="text-xs font-black uppercase tracking-tight text-indigo-500">Kişisel Bilgiler</h3>
                                 </div>
@@ -502,8 +538,8 @@ export function PatientDetailModal({
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
                                     <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shadow-sm">
-                                        <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                                        <svg  className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                            <path  strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                                         </svg>
                                     </div>
                                     <h3 className="text-xs font-black uppercase tracking-tight text-teal-600">Randevu Geçmişi</h3>
@@ -529,8 +565,8 @@ export function PatientDetailModal({
                                         }}
                                         className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-colors"
                                     >
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                        <svg  className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path  strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} id="fixed-svg-4" d="M12 4v16m8-8H4" />
                                         </svg>
                                         Yeni Randevu
                                     </button>
@@ -560,7 +596,7 @@ export function PatientDetailModal({
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2 text-slate-500">
-                                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                                            <svg  className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
                                             <p className="text-[10px] font-bold truncate">{appt.doctor_name || "Atanmadı"}</p>
                                         </div>
                                         {appt.treatment_note && (
@@ -579,8 +615,8 @@ export function PatientDetailModal({
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2 text-teal-600">
                                     <div className="h-6 w-6 rounded-lg bg-teal-50 flex items-center justify-center">
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        <svg  className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                            <path  strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                     </div>
                                     <h3 className="text-xs font-black uppercase tracking-tight">Ödeme Geçmişi ve Taksitler</h3>
@@ -588,7 +624,7 @@ export function PatientDetailModal({
                                 <div className="flex items-center gap-2">
                                     {stats.totalPending > 0 && (
                                         <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-black text-amber-700">
-                                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                                            <svg  className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                                             {stats.totalPending.toLocaleString('tr-TR')} ₺ bekleyen
                                         </span>
                                     )}
@@ -601,8 +637,8 @@ export function PatientDetailModal({
                                         })}
                                         className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl transition-colors"
                                     >
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                        <svg  className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path  strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} id="fixed-svg-4" d="M12 4v16m8-8H4" />
                                         </svg>
                                         Yeni Ödeme
                                     </button>
@@ -643,13 +679,13 @@ export function PatientDetailModal({
 
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                                 <div className="flex items-center gap-2 text-slate-500">
-                                                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75m0 3v.75m0 3v.75m0 3v.75m11.1-1.3l2.58 2.58a1.5 1.5 0 102.12-2.12l-2.58-2.58m0 0l-3.3-3.3a1.5 1.5 0 00-2.12 2.12l3.3 3.3z" /></svg>
+                                                    <svg  className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75m0 3v.75m0 3v.75m0 3v.75m11.1-1.3l2.58 2.58a1.5 1.5 0 102.12-2.12l-2.58-2.58m0 0l-3.3-3.3a1.5 1.5 0 00-2.12 2.12l3.3 3.3z" /></svg>
                                                     <p className="text-[10px] font-bold">Yöntem: {normalizePaymentMethod(pay.method)}</p>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     {linkedAppt && (
                                                         <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100">
-                                                            <svg className="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+                                                            <svg  className="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
                                                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">
                                                                 {new Date(linkedAppt.starts_at).toLocaleDateString("tr-TR")} – {linkedAppt.treatment_type}
                                                             </p>
@@ -674,8 +710,8 @@ export function PatientDetailModal({
                                                         })}
                                                         className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-slate-700 transition-colors"
                                                     >
-                                                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
+                                                        <svg  className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                                            <path  strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
                                                         </svg>
                                                         Makbuz
                                                     </button>
@@ -692,8 +728,8 @@ export function PatientDetailModal({
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-teal-700">
                                     <div className="h-6 w-6 rounded-lg bg-teal-50 flex items-center justify-center">
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+                                        <svg  className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                            <path  strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
                                         </svg>
                                     </div>
                                     <h3 className="text-xs font-black uppercase tracking-tight">Tedavi Planları</h3>
@@ -705,8 +741,8 @@ export function PatientDetailModal({
                                     onClick={() => setShowCreatePlan(true)}
                                     className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl transition-colors"
                                 >
-                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                    <svg  className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path  strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} id="fixed-svg-4" d="M12 4v16m8-8H4" />
                                     </svg>
                                     Yeni Plan
                                 </button>
@@ -742,7 +778,16 @@ export function PatientDetailModal({
                                                         <p className="text-xs font-bold text-slate-800 truncate">{plan.title || "İsimsiz Plan"}</p>
                                                         <p className="text-[10px] text-slate-400">
                                                             {new Date(plan.created_at).toLocaleDateString("tr-TR")} · {plan.items.length} işlem
-                                                            {plan.items.length > 0 && ` · ${completedItems}/${plan.items.length} tamamlandı`}
+                                                        </p>
+                                                        {/* Milestone Tracker / Progress Bar */}
+                                                        <div className="mt-1.5 w-full bg-slate-100 rounded-full h-1 relative overflow-hidden group/progress">
+                                                            <div 
+                                                                className="h-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(20,184,166,0.5)]"
+                                                                style={{ width: `${plan.items.length > 0 ? (completedItems / plan.items.length) * 100 : 0}%` }}
+                                                            />
+                                                        </div>
+                                                        <p className="text-[9px] font-bold text-teal-600 mt-1 uppercase tracking-tighter">
+                                                            {plan.items.length > 0 ? Math.round((completedItems / plan.items.length) * 100) : 0}% TAMAMLANDI ({completedItems}/{plan.items.length})
                                                         </p>
                                                     </div>
                                                 </div>
@@ -750,8 +795,8 @@ export function PatientDetailModal({
                                                     {plan.total_estimated_amount != null && (
                                                         <span className="text-xs font-black text-teal-700">{plan.total_estimated_amount.toLocaleString("tr-TR")} ₺</span>
                                                     )}
-                                                    <svg className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    <svg  className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path  strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                                     </svg>
                                                 </div>
                                             </button>
@@ -796,8 +841,8 @@ export function PatientDetailModal({
                                                     {/* Sonraki randevu */}
                                                     {plan.next_appointment_id && (
                                                         <div className="flex items-center gap-2 bg-teal-50 rounded-xl px-3 py-2 border border-teal-100">
-                                                            <svg className="w-3.5 h-3.5 text-teal-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                            <svg  className="w-3.5 h-3.5 text-teal-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path  strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                             </svg>
                                                             <span className="text-[10px] font-bold text-teal-700">Sonraki randevu otomatik oluşturuldu</span>
                                                         </div>
@@ -834,8 +879,8 @@ export function PatientDetailModal({
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-amber-600">
                                     <div className="h-6 w-6 rounded-lg bg-amber-50 flex items-center justify-center">
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+                                        <svg  className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                            <path  strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
                                         </svg>
                                     </div>
                                     <h3 className="text-xs font-black uppercase tracking-tight">Anamnez</h3>
@@ -872,8 +917,8 @@ export function PatientDetailModal({
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-emerald-700">
                                     <div className="h-6 w-6 rounded-lg bg-emerald-50 flex items-center justify-center">
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H7a2 2 0 00-2 2v1a4 4 0 004 4h2a4 4 0 004-4V5a2 2 0 00-2-2h-2zM9 3v2m6-2v2M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6M9 21h6" />
+                                        <svg  className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path  strokeLinecap="round" strokeLinejoin="round" d="M9 3H7a2 2 0 00-2 2v1a4 4 0 004 4h2a4 4 0 004-4V5a2 2 0 00-2-2h-2zM9 3v2m6-2v2M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6M9 21h6" />
                                         </svg>
                                     </div>
                                     <h3 className="text-xs font-black uppercase tracking-tight">Diş Şeması</h3>
@@ -917,8 +962,8 @@ export function PatientDetailModal({
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-violet-700">
                                     <div className="h-6 w-6 rounded-lg bg-violet-50 flex items-center justify-center">
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1 1 .03 2.798-1.414 2.798H4.212c-1.444 0-2.414-1.798-1.414-2.798L4.2 15.3" />
+                                        <svg  className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                            <path  strokeLinecap="round" strokeLinejoin="round" id="ignore-svg-any-1" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1 1 .03 2.798-1.414 2.798H4.212c-1.444 0-2.414-1.798-1.414-2.798L4.2 15.3" />
                                         </svg>
                                     </div>
                                     <h3 className="text-xs font-black uppercase tracking-tight">Lab İşleri</h3>
@@ -930,8 +975,8 @@ export function PatientDetailModal({
                                     onClick={() => setLabModalOpen(true)}
                                     className="flex items-center gap-1.5 h-8 px-4 rounded-xl bg-violet-50 text-violet-700 text-[10px] font-black uppercase tracking-widest border border-violet-100 hover:bg-violet-100 transition-colors"
                                 >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                    <svg  className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path  strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} id="fixed-svg-4" d="M12 4v16m8-8H4" />
                                     </svg>
                                     Yeni
                                 </button>
@@ -984,8 +1029,8 @@ export function PatientDetailModal({
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2 text-amber-700">
                                     <div className="h-6 w-6 rounded-lg bg-amber-50 flex items-center justify-center">
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+                                        <svg  className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                            <path  strokeLinecap="round" strokeLinejoin="round" id="ignore-svg-any-2" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
                                         </svg>
                                     </div>
                                     <h3 className="text-xs font-black uppercase tracking-tight">Recall Geçmişi</h3>
@@ -1039,8 +1084,8 @@ export function PatientDetailModal({
                                     onClick={() => setShowDeleteConfirm(true)}
                                     className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black text-rose-500 hover:bg-rose-50 transition-all flex items-center justify-center gap-2 uppercase tracking-tight order-3 sm:order-1"
                                 >
-                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.78 0-.34-9m9.27 1.5h-15.5m1.5-3v14m12.5-3V5.25a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75V11.25" />
+                                    <svg  className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                        <path  strokeLinecap="round" strokeLinejoin="round" id="ignore-svg-any-3" d="m14.74 9-.34 9m-4.78 0-.34-9m9.27 1.5h-15.5m1.5-3v14m12.5-3V5.25a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75V11.25" />
                                     </svg>
                                     Kaydı Sil
                                 </button>

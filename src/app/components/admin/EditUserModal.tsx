@@ -11,7 +11,7 @@ const ROLE_OPTIONS = [
     },
     {
         value: UserRole.DOKTOR,
-        label: "Hekim",
+        label: "HEKİM",
         description: "Randevular, hastalar ve tedavi planları",
         color: "teal",
     },

@@ -110,7 +110,7 @@ export default function PlatformUsersPage() {
       const token = await getAccessToken();
       const res = await fetch(`/api/users/${selectedUser.id}/update-clinics`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
@@ -166,7 +166,7 @@ export default function PlatformUsersPage() {
             Tüm kliniklerdeki personelleri görüntüleyin ve ek klinik erişimi (Çoklu Klinik) yetkilerini yönetin.
           </p>
         </div>
-        
+
         {/* Kullanıcı Arama Çubuğu */}
         <div className="w-full sm:w-72">
           <div className="relative">
@@ -287,11 +287,10 @@ export default function PlatformUsersPage() {
                   return (
                     <label
                       key={clinic.id}
-                      className={`flex cursor-pointer items-center justify-between rounded-xl border p-4 transition-all hover:bg-gray-50 dark:hover:bg-gray-900/50 ${
-                        isChecked 
-                          ? "border-indigo-600 bg-indigo-50/50 dark:border-indigo-500 dark:bg-indigo-500/10" 
-                          : "border-gray-200 dark:border-gray-800"
-                      }`}
+                      className={`flex cursor-pointer items-center justify-between rounded-xl border p-4 transition-all hover:bg-gray-50 dark:hover:bg-gray-900/50 ${isChecked
+                        ? "border-indigo-600 bg-indigo-50/50 dark:border-indigo-500 dark:bg-indigo-500/10"
+                        : "border-gray-200 dark:border-gray-800"
+                        }`}
                     >
                       <span className={`font-medium ${isChecked ? 'text-indigo-900 dark:text-indigo-300' : 'text-gray-700 dark:text-gray-300'}`}>
                         {clinic.name}

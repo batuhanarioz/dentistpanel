@@ -19,7 +19,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { X, Loader2, AlertCircle, ShieldCheck, Tag, CheckCircle2, ChevronRight, ChevronDown } from "lucide-react";
+import { X, Loader2, AlertCircle, ShieldCheck, Tag, CheckCircle2, ChevronRight, ChevronDown, Gift } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import type { BillingCycle } from "@/lib/paytr";
 
@@ -33,17 +33,25 @@ interface PayTRCheckoutModalProps {
     onFailure?: (reason?: string) => void;
 }
 
-interface DiscountPreview {
-    codeId: string;
-    code: string;
-    discountType: "percent" | "fixed";
-    discountValue: number;
-    isRecurring: boolean;
-    originalAmount: number;
-    discountAmount: number;
-    finalAmount: number;
-    message: string;
-}
+type CodePreview =
+    | {
+          type: "discount";
+          codeId: string;
+          code: string;
+          discountType: "percent" | "fixed";
+          discountValue: number;
+          isRecurring: boolean;
+          originalAmount: number;
+          discountAmount: number;
+          finalAmount: number;
+          message: string;
+      }
+    | {
+          type: "referral";
+          referrerClinicId: string;
+          referrerClinicName: string;
+          message: string;
+      };
 
 type Phase =
     | { name: "input" }
@@ -63,7 +71,7 @@ export function PayTRCheckoutModal({
     const [codeInput, setCodeInput] = useState("");
     const [codeLoading, setCodeLoading] = useState(false);
     const [codeError, setCodeError] = useState<string | null>(null);
-    const [discount, setDiscount] = useState<DiscountPreview | null>(null);
+    const [codePreview, setCodePreview] = useState<CodePreview | null>(null);
     const [showDiscountInput, setShowDiscountInput] = useState(false);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -73,7 +81,7 @@ export function PayTRCheckoutModal({
             setPhase({ name: "input" });
             setCodeInput("");
             setCodeError(null);
-            setDiscount(null);
+            setCodePreview(null);
             setShowDiscountInput(false);
         }
     }, [isOpen]);
@@ -85,7 +93,7 @@ export function PayTRCheckoutModal({
 
         setCodeLoading(true);
         setCodeError(null);
-        setDiscount(null);
+        setCodePreview(null);
 
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { setCodeLoading(false); return; }
@@ -103,11 +111,11 @@ export function PayTRCheckoutModal({
         setCodeLoading(false);
 
         if (data.valid) {
-            setDiscount(data as DiscountPreview);
+            setCodePreview(data as CodePreview);
             setCodeError(null);
         } else {
             setCodeError(data.error ?? "Geçersiz kod");
-            setDiscount(null);
+            setCodePreview(null);
         }
     }, [codeInput, billingCycle]);
 
@@ -129,7 +137,8 @@ export function PayTRCheckoutModal({
             },
             body: JSON.stringify({
                 billingCycle,
-                discountCode: discount?.code ?? undefined,
+                discountCode: codePreview?.type === "discount" ? codePreview.code : undefined,
+                referralCode: codePreview?.type === "referral" ? codeInput.trim().toUpperCase() : undefined,
             }),
         });
 
@@ -177,8 +186,9 @@ export function PayTRCheckoutModal({
     const annualPerMonth = 999;
     const annualSavings = monthlyPrice * 12 - annualTotal; // 2398
 
-    const baseAmount = discount?.originalAmount ?? amountTL;
-    const finalAmount = discount?.finalAmount ?? amountTL;
+    const discountPreview = codePreview?.type === "discount" ? codePreview : null;
+    const baseAmount = discountPreview?.originalAmount ?? amountTL;
+    const finalAmount = discountPreview?.finalAmount ?? amountTL;
 
     // Yenileme tarihi tahmini
     const renewalDate = new Date();
@@ -247,7 +257,7 @@ export function PayTRCheckoutModal({
                                 <div className="border-t border-slate-200 px-5 py-3 flex items-center justify-between bg-white">
                                     <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Bugün Ödenecek</span>
                                     <div className="text-right">
-                                        {discount ? (
+                                        {discountPreview ? (
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-bold text-slate-400 line-through">
                                                     {baseAmount.toLocaleString("tr-TR")} ₺
@@ -265,14 +275,14 @@ export function PayTRCheckoutModal({
                                 </div>
                             </div>
 
-                            {/* İndirim kodu — collapsible */}
+                            {/* İndirim / Referans kodu — collapsible */}
                             <div>
                                 <button
                                     onClick={() => setShowDiscountInput(v => !v)}
                                     className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
                                 >
                                     <Tag size={13} />
-                                    İndirim kodum var
+                                    İndirim veya referans kodum var
                                     <ChevronDown size={13} className={`transition-transform ${showDiscountInput ? "rotate-180" : ""}`} />
                                 </button>
 
@@ -281,9 +291,9 @@ export function PayTRCheckoutModal({
                                         <div className="flex gap-2">
                                             <input
                                                 type="text"
-                                                placeholder="Kodu girin..."
+                                                placeholder="İndirim veya referans kodu..."
                                                 value={codeInput}
-                                                onChange={e => { setCodeInput(e.target.value.toUpperCase()); setCodeError(null); setDiscount(null); }}
+                                                onChange={e => { setCodeInput(e.target.value.toUpperCase()); setCodeError(null); setCodePreview(null); }}
                                                 onKeyDown={e => e.key === "Enter" && validateCode()}
                                                 className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all tracking-widest uppercase"
                                                 maxLength={32}
@@ -304,16 +314,30 @@ export function PayTRCheckoutModal({
                                             </p>
                                         )}
 
-                                        {discount && (
+                                        {/* İndirim kodu başarı banner'ı */}
+                                        {codePreview?.type === "discount" && (
                                             <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
-                                                    <p className="text-xs font-black text-emerald-800">{discount.message}</p>
+                                                    <p className="text-xs font-black text-emerald-800">{codePreview.message}</p>
                                                 </div>
                                                 <div className="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest shrink-0 ml-2">
-                                                    {discount.discountType === "percent"
-                                                        ? `%${discount.discountValue}`
-                                                        : `-${discount.discountValue.toLocaleString("tr-TR")} ₺`}
+                                                    {codePreview.discountType === "percent"
+                                                        ? `%${codePreview.discountValue}`
+                                                        : `-${codePreview.discountValue.toLocaleString("tr-TR")} ₺`}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Referans kodu başarı banner'ı */}
+                                        {codePreview?.type === "referral" && (
+                                            <div className="rounded-xl bg-teal-50 border border-teal-200 px-4 py-3 flex items-center gap-3">
+                                                <Gift size={15} className="text-teal-600 shrink-0" />
+                                                <div>
+                                                    <p className="text-xs font-black text-teal-800">{codePreview.message}</p>
+                                                    <p className="text-[11px] text-teal-600 font-medium mt-0.5">
+                                                        Aboneliğiniz onaylandığında referans sahibine 1 ay ücretsiz eklenecek.
+                                                    </p>
                                                 </div>
                                             </div>
                                         )}

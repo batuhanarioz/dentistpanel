@@ -34,9 +34,10 @@ export const POST = withAuth(
             return NextResponse.json({ error: "forbidden" }, { status: 403 });
         }
 
-        const body = await req.json() as { billingCycle?: BillingCycle; discountCode?: string };
+        const body = await req.json() as { billingCycle?: BillingCycle; discountCode?: string; referralCode?: string };
         const billingCycle: BillingCycle = body.billingCycle === "monthly" ? "monthly" : "annual";
         const rawCode = (body.discountCode ?? "").trim().toUpperCase();
+        const rawReferralCode = (body.referralCode ?? "").trim().toUpperCase();
 
         // ── 1. Klinik ve kullanıcı bilgilerini çek ───────────────────────────
         const [clinicResult, userResult, settingsResult] = await Promise.all([
@@ -100,6 +101,44 @@ export const POST = withAuth(
                 }
             }
             // Geçersiz kod → sessizce yoksay (güvenlik: client manipülasyonu)
+        }
+
+        // ── 3b. Referans kodu uygula (fiyat değişmez, referred_by atar) ──────
+        if (rawReferralCode) {
+            const { data: referrer } = await supabaseAdmin
+                .from("clinics")
+                .select("id")
+                .eq("referral_code", rawReferralCode)
+                .eq("referral_code_active", true)
+                .maybeSingle();
+
+            if (referrer && referrer.id !== ctx.clinicId) {
+                const { data: thisClinic } = await supabaseAdmin
+                    .from("clinics")
+                    .select("referred_by")
+                    .eq("id", ctx.clinicId)
+                    .single();
+
+                if (!thisClinic?.referred_by) {
+                    await Promise.all([
+                        supabaseAdmin
+                            .from("clinics")
+                            .update({ referred_by: referrer.id })
+                            .eq("id", ctx.clinicId),
+                        supabaseAdmin
+                            .from("referral_conversions")
+                            .upsert(
+                                {
+                                    referrer_clinic_id: referrer.id,
+                                    referred_clinic_id: ctx.clinicId,
+                                    status: "pending",
+                                },
+                                { onConflict: "referrer_clinic_id, referred_clinic_id", ignoreDuplicates: true }
+                            ),
+                    ]);
+                    console.log(`[Referral] Checkout'ta referans bağlandı — referrer: ${referrer.id}, referred: ${ctx.clinicId}`);
+                }
+            }
         }
 
         const amountKurus = tlToKurus(finalAmountTL);

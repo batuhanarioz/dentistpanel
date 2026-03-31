@@ -131,7 +131,7 @@ export function AppointmentListView({ events, onCardClick }: AppointmentListView
                                     [
                                         { key: "time" as SortKey, label: "Saat" },
                                         { key: "patient" as SortKey, label: "Hasta" },
-                                        { key: "doctor" as SortKey, label: "Hekim" },
+                                        { key: "doctor" as SortKey, label: "HEKİM" },
                                         { key: "treatment" as SortKey, label: "Tedavi" },
                                         { key: "status" as SortKey, label: "Durum" },
                                     ] as { key: SortKey; label: string }[]

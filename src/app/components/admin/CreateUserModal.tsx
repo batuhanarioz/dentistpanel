@@ -82,8 +82,8 @@ export function CreateUserModal({
                             type="button"
                             onClick={() => setInvite(false)}
                             className={`flex flex-col items-center rounded-xl border px-3 py-3 text-center transition-all ${!invite
-                                    ? "border-teal-500 bg-teal-50 text-teal-700"
-                                    : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+                                ? "border-teal-500 bg-teal-50 text-teal-700"
+                                : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
                                 }`}
                         >
                             <svg className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -96,8 +96,8 @@ export function CreateUserModal({
                             type="button"
                             onClick={() => setInvite(true)}
                             className={`flex flex-col items-center rounded-xl border px-3 py-3 text-center transition-all ${invite
-                                    ? "border-teal-500 bg-teal-50 text-teal-700"
-                                    : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+                                ? "border-teal-500 bg-teal-50 text-teal-700"
+                                : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
                                 }`}
                         >
                             <svg className="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -141,8 +141,8 @@ export function CreateUserModal({
                                     type="button"
                                     onClick={() => setRole(opt.value)}
                                     className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-all ${role === opt.value
-                                            ? "border-teal-500 bg-teal-700 text-white shadow-sm"
-                                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                                        ? "border-teal-500 bg-teal-700 text-white shadow-sm"
+                                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                                         }`}
                                 >
                                     <span className="text-xs font-bold">{opt.label}</span>

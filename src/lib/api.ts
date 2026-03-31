@@ -29,7 +29,8 @@ export interface CalendarAppointment {
     sourceMessageId?: string;
     estimatedAmount?: string;
     patientId: string;
-}
+    patient_mood?: string | null;
+};
 
 // ─── JOIN-based appointment row (single query) ─────────────────────────────────
 
@@ -49,6 +50,7 @@ interface JoinedAppointmentRow {
     source_conversation_id: string | null;
     source_message_id: string | null;
     estimated_amount: number | null;
+    patient_mood: string | null;
     patient: { full_name: string; phone: string | null; email: string | null; birth_date: string | null; allergies: string | null; medical_alerts: string | null } | { full_name: string; phone: string | null; email: string | null; birth_date: string | null; allergies: string | null; medical_alerts: string | null }[] | null;
     doctor: { full_name: string } | { full_name: string }[] | null;
 }
@@ -69,7 +71,7 @@ export async function getAppointmentsForDate(date: string, clinicId: string): Pr
         .select(`
             id, starts_at, ends_at, patient_id, doctor_id, channel, treatment_type, status,
             patient_note, internal_note, treatment_note, tags, source_conversation_id,
-            source_message_id, estimated_amount,
+            source_message_id, estimated_amount, patient_mood,
             patient:patients!patient_id(
                 full_name, phone, email, birth_date, allergies, medical_alerts
             ),
@@ -139,6 +141,7 @@ export async function getAppointmentsForDate(date: string, clinicId: string): Pr
             sourceMessageId: row.source_message_id ?? undefined,
             estimatedAmount: row.estimated_amount?.toString(),
             patientId: row.patient_id,
+            patient_mood: row.patient_mood,
         };
     });
 }

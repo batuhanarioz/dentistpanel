@@ -1,6 +1,7 @@
 import { withAuth } from "@/lib/auth-middleware";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { UserRole } from "@/types/database";
 
 // Bu endpoint, SUPER_ADMIN'in bir kullanıcının erişebildiği klinikleri tek seferde güncellemesini sağlar.
 // Gönderilen klinik dizisi (additional_clinics), kullanıcının ap_metadata'sındaki mevcut dizinin üzerine yazılır.
@@ -51,6 +52,6 @@ export const POST = withAuth(async (req, auth) => {
     });
   } catch (err: unknown) {
     console.error("Klinik yetkileri güncellenirken hata:", err);
-    return NextResponse.json({ error: (err as Error).message || "Bilinmeyen bir sunucu hatası oluştu." }, { status: 500 });
+    return NextResponse.json({ error: "Klinik yetkileri güncellenirken bir hata oluştu." }, { status: 500 });
   }
-}, { requiredRole: "ADMIN_OR_SUPER" });
+}, { requiredRole: [UserRole.SUPER_ADMIN] });
