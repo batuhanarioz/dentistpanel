@@ -522,6 +522,7 @@ export default function SubscriptionPage() {
                 onClose={() => setShowCheckout(false)}
                 billingCycle={billingCycle === "pilot" ? "monthly" : billingCycle}
                 amountTL={checkoutPrice}
+                prices={{ monthly: monthlyPrice, annual: annualPrice }}
                 onSuccess={() => { setShowCheckout(false); window.location.reload(); }}
             />
 

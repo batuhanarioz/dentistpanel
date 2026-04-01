@@ -60,7 +60,7 @@ export function ReferralSection({ clinicId }: { clinicId: string }) {
 
     const isActive = stats?.referral_code_active === true;
     const referralLink = isActive && stats?.referral_code
-        ? `https://clinic.nextgency360.com/register?ref=${stats.referral_code}`
+        ? `${process.env.NEXT_PUBLIC_APP_URL ?? "https://clinic.nextgency360.com"}/register?ref=${stats.referral_code}`
         : null;
 
     const limitReached = stats ? stats.rewarded >= stats.reward_limit : false;

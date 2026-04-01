@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr } from "@/lib/dateUtils";
 import { UserRole, DayOfWeek } from "@/types/database";
 import { useClinic } from "@/app/context/ClinicContext";
 import { isPaid, isPending, normalizePaymentMethod } from "@/constants/payments";
 import { startOfDay, endOfDay, subDays, format, eachDayOfInterval } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 
 /** Rapor hook'unda kullanılan appointment kolonları */
 interface ReportAppointment {
@@ -54,22 +55,6 @@ export function useReports() {
     const [doctorFilter, setDoctorFilter] = useState<string>("ALL");
     const [treatmentFilter, setTreatmentFilter] = useState<string>("ALL");
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
-
-    // Raw Data — current period
-    const [appointments, setAppointments] = useState<ReportAppointment[]>([]);
-    const [payments, setPayments] = useState<ReportPayment[]>([]);
-    const [patients, setPatients] = useState<PatientRow[]>([]);
-    const [doctors, setDoctors] = useState<{ id: string; full_name: string }[]>([]);
-    const [treatmentTypes, setTreatmentTypes] = useState<{ id: string; name: string }[]>([]);
-    // Patients created BEFORE current period (for retention calc)
-    const [existingPatients, setExistingPatients] = useState<{ id: string }[]>([]);
-
-    // Raw Data — previous period (for trend comparison)
-    const [prevAppointments, setPrevAppointments] = useState<ReportAppointment[]>([]);
-    const [prevPayments, setPrevPayments] = useState<ReportPayment[]>([]);
-    const [prevPatients, setPrevPatients] = useState<PatientRow[]>([]);
-
-    const [loading, setLoading] = useState(true);
 
     const { rangeStart, rangeEnd, rangeLabel, prevRangeStart, prevRangeEnd } = useMemo(() => {
         const now = new Date();
@@ -127,11 +112,9 @@ export function useReports() {
         };
     }, [preset, customStart, customEnd]);
 
-    const loadData = useCallback(async () => {
-        if (!clinicId) return;
-        setLoading(true);
-
-        try {
+    const { data: rawData, isLoading: loading, refetch: loadData } = useQuery({
+        queryKey: ["reports", clinicId, rangeStart, rangeEnd, prevRangeStart, prevRangeEnd],
+        queryFn: async () => {
             const [
                 { data: appts },
                 { data: pmnts },
@@ -143,113 +126,70 @@ export function useReports() {
                 { data: prevPmnts },
                 { data: prevPats },
             ] = await Promise.all([
-                // Current period appointments
                 supabase
                     .from("appointments")
                     .select("id, starts_at, ends_at, patient_id, doctor_id, status, channel, treatment_type, estimated_amount, patient:patient_id(full_name, created_at, birth_date, gender), doctor:doctor_id(full_name)")
-                    .eq("clinic_id", clinicId)
+                    .eq("clinic_id", clinicId!)
                     .gte("starts_at", rangeStart)
                     .lte("starts_at", rangeEnd),
-
-                // Current period payments
                 supabase
                     .from("payments")
                     .select("id, amount, status, method, due_date, created_at, appointment_id")
-                    .eq("clinic_id", clinicId)
+                    .eq("clinic_id", clinicId!)
                     .gte("created_at", rangeStart)
                     .lte("created_at", rangeEnd),
-
-                // Doctors list
-                supabase
-                    .from("users")
-                    .select("id, full_name")
-                    .eq("clinic_id", clinicId)
-                    .in("role", [UserRole.DOKTOR]),
-
-                // Treatment definitions
-                supabase
-                    .from("treatment_definitions")
-                    .select("id, name")
-                    .eq("clinic_id", clinicId),
-
-                // New patients this period
-                supabase
-                    .from("patients")
-                    .select("id, gender, birth_date, created_at")
-                    .eq("clinic_id", clinicId)
-                    .gte("created_at", rangeStart)
-                    .lte("created_at", rangeEnd),
-
-                // All existing patients created BEFORE this period (for retention)
-                supabase
-                    .from("patients")
-                    .select("id")
-                    .eq("clinic_id", clinicId)
-                    .lt("created_at", rangeStart),
-
-                // Previous period appointments (for trend %)
-                supabase
-                    .from("appointments")
-                    .select("id, doctor_id, status, starts_at, patient_id")
-                    .eq("clinic_id", clinicId)
-                    .gte("starts_at", prevRangeStart)
-                    .lte("starts_at", prevRangeEnd),
-
-                // Previous period payments (for trend %)
-                supabase
-                    .from("payments")
-                    .select("id, amount, status, appointment_id")
-                    .eq("clinic_id", clinicId)
-                    .gte("created_at", prevRangeStart)
-                    .lte("created_at", prevRangeEnd),
-
-                // Previous period new patients
-                supabase
-                    .from("patients")
-                    .select("id")
-                    .eq("clinic_id", clinicId)
-                    .gte("created_at", prevRangeStart)
-                    .lte("created_at", prevRangeEnd),
+                supabase.from("users").select("id, full_name").eq("clinic_id", clinicId!).in("role", [UserRole.DOKTOR]),
+                supabase.from("treatment_definitions").select("id, name").eq("clinic_id", clinicId!),
+                supabase.from("patients").select("id, gender, birth_date, created_at").eq("clinic_id", clinicId!).gte("created_at", rangeStart).lte("created_at", rangeEnd),
+                supabase.from("patients").select("id").eq("clinic_id", clinicId!).lt("created_at", rangeStart),
+                supabase.from("appointments").select("id, doctor_id, status, starts_at, patient_id").eq("clinic_id", clinicId!).gte("starts_at", prevRangeStart).lte("starts_at", prevRangeEnd),
+                supabase.from("payments").select("id, amount, status, appointment_id").eq("clinic_id", clinicId!).gte("created_at", prevRangeStart).lte("created_at", prevRangeEnd),
+                supabase.from("patients").select("id").eq("clinic_id", clinicId!).gte("created_at", prevRangeStart).lte("created_at", prevRangeEnd),
             ]);
+            return {
+                appointments: (appts || []) as ReportAppointment[],
+                payments: (pmnts || []) as ReportPayment[],
+                doctors: (docs || []) as { id: string; full_name: string }[],
+                treatmentTypes: (treatments || []) as { id: string; name: string }[],
+                patients: (newPatients || []) as PatientRow[],
+                existingPatients: (existing || []) as { id: string }[],
+                prevAppointments: (prevAppts || []) as ReportAppointment[],
+                prevPayments: (prevPmnts || []) as ReportPayment[],
+                prevPatients: (prevPats || []) as PatientRow[],
+            };
+        },
+        enabled: !!clinicId,
+        staleTime: 2 * 60 * 1000,
+    });
 
-            setAppointments(appts || []);
-            setPayments(pmnts || []);
-            setDoctors(docs || []);
-            setTreatmentTypes(treatments || []);
-            setPatients((newPatients || []) as PatientRow[]);
-            setExistingPatients(existing || []);
-            setPrevAppointments((prevAppts || []) as ReportAppointment[]);
-            setPrevPayments((prevPmnts || []) as ReportPayment[]);
-            setPrevPatients((prevPats || []) as PatientRow[]);
-
-        } catch (error) {
-            console.error("Error loading report data:", error);
-        } finally {
-            setLoading(false);
-        }
-    }, [rangeStart, rangeEnd, prevRangeStart, prevRangeEnd, clinicId]);
-
-    useEffect(() => { loadData(); }, [loadData]);
+    const appointments = rawData?.appointments ?? [];
+    const payments = rawData?.payments ?? [];
+    const doctors = rawData?.doctors ?? [];
+    const treatmentTypes = rawData?.treatmentTypes ?? [];
+    const patients = rawData?.patients ?? [];
+    const existingPatients = rawData?.existingPatients ?? [];
+    const prevAppointments = rawData?.prevAppointments ?? [];
+    const prevPayments = rawData?.prevPayments ?? [];
+    const prevPatients = rawData?.prevPatients ?? [];
 
     const filteredData = useMemo(() => {
         let filtered = appointments;
-        if (doctorFilter !== "ALL") filtered = filtered.filter(a => a.doctor_id === doctorFilter);
-        if (treatmentFilter !== "ALL") filtered = filtered.filter(a => a.treatment_type === treatmentFilter);
-        if (statusFilter !== "ALL") filtered = filtered.filter(a => a.status === statusFilter);
+        if (doctorFilter !== "ALL") filtered = filtered.filter((a: ReportAppointment) => a.doctor_id === doctorFilter);
+        if (treatmentFilter !== "ALL") filtered = filtered.filter((a: ReportAppointment) => a.treatment_type === treatmentFilter);
+        if (statusFilter !== "ALL") filtered = filtered.filter((a: ReportAppointment) => a.status === statusFilter);
         return filtered;
     }, [appointments, doctorFilter, treatmentFilter, statusFilter]);
 
-    // Payments filtered by selected doctor (via appointment lookup)
     const filteredPayments = useMemo(() => {
         if (doctorFilter === "ALL") return payments;
         const doctorApptIds = new Set(
-            appointments.filter(a => a.doctor_id === doctorFilter).map(a => a.id)
+            appointments.filter((a: ReportAppointment) => a.doctor_id === doctorFilter).map((a: ReportAppointment) => a.id)
         );
-        return payments.filter(p => p.appointment_id && doctorApptIds.has(p.appointment_id));
+        return payments.filter((p: ReportPayment) => p.appointment_id && doctorApptIds.has(p.appointment_id));
     }, [payments, appointments, doctorFilter]);
 
     const analytics = useMemo(() => {
-        if (loading) return null;
+        if (!rawData) return null;
 
         const today = new Date().toISOString().slice(0, 10);
 
@@ -512,7 +452,7 @@ export function useReports() {
             overdueStats,
         };
     }, [
-        loading, filteredData, filteredPayments, payments, patients,
+        rawData, filteredData, filteredPayments, payments, patients,
         prevAppointments, prevPayments, prevPatients,
         doctors, treatmentTypes, rangeStart, rangeEnd, appointments,
         workingHours, existingPatients,

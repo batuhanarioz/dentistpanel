@@ -295,7 +295,22 @@ async function applyReferralRewardIfEligible(referredClinicId: string) {
 
     if (!referred?.referred_by || referred.referral_reward_given) return;
 
-    // 2. Referrer kliniği + ADMIN kullanıcısının e-postasını çek
+    // 2a. Atomic guard — race condition koruması
+    // referral_reward_given = true YALNIZCA şu an false ise set edilir.
+    // Eşzamanlı 2 webhook gelirse sadece biri bu UPDATE'i kazanır; diğeri 0 satır döner.
+    const { data: claimed } = await supabaseAdmin
+        .from("clinics")
+        .update({ referral_reward_given: true })
+        .eq("id", referredClinicId)
+        .eq("referral_reward_given", false)
+        .select("id");
+
+    if (!claimed || claimed.length === 0) {
+        console.log(`[Referral] Race condition önlendi — başka process zaten işledi: ${referredClinicId}`);
+        return;
+    }
+
+    // 2b. Referrer kliniği + ADMIN kullanıcısının e-postasını çek
     const { data: referrer } = await supabaseAdmin
         .from("clinics")
         .select("id, name, current_period_end")
@@ -327,17 +342,12 @@ async function applyReferralRewardIfEligible(referredClinicId: string) {
     const MAX_REWARD_MONTHS = 12;
     if ((rewardedCount ?? 0) >= MAX_REWARD_MONTHS) {
         // Limiti doldurmuş: conversion'ı converted olarak işaretle ama ödül verme
-        await Promise.all([
-            supabaseAdmin
-                .from("referral_conversions")
-                .update({ status: "converted", converted_at: new Date().toISOString() })
-                .eq("referrer_clinic_id", referrer.id)
-                .eq("referred_clinic_id", referredClinicId),
-            supabaseAdmin
-                .from("clinics")
-                .update({ referral_reward_given: true })
-                .eq("id", referredClinicId),
-        ]);
+        // referral_reward_given zaten atomic guard'da set edildi, sadece conversion güncelle
+        await supabaseAdmin
+            .from("referral_conversions")
+            .update({ status: "converted", converted_at: new Date().toISOString() })
+            .eq("referrer_clinic_id", referrer.id)
+            .eq("referred_clinic_id", referredClinicId);
         console.log(`[Referral] Limit dolu (${MAX_REWARD_MONTHS} ay) — referrer: ${referrer.id}, ödül verilmedi`);
         return;
     }
@@ -367,12 +377,7 @@ async function applyReferralRewardIfEligible(referredClinicId: string) {
             })
             .eq("referrer_clinic_id", referrer.id)
             .eq("referred_clinic_id", referredClinicId),
-
-        // Referred kliniği işaretle (tekrar ödül verilmesin)
-        supabaseAdmin
-            .from("clinics")
-            .update({ referral_reward_given: true })
-            .eq("id", referredClinicId),
+        // Not: referral_reward_given = true zaten atomic guard'da (satır ~300) set edildi
     ]);
 
     // 5. Referrer ADMIN'ine e-posta gönder (fire-and-forget)

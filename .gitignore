@@ -46,3 +46,10 @@ next-env.d.ts
 # testing
 playwright-report/
 test-results/
+
+# local logs
+*.log
+
+# tool configs
+.claude/
+

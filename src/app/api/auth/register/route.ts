@@ -124,7 +124,8 @@ export async function POST(req: Request) {
 
         // If identities is empty, email already exists in auth
         if (!authUser?.user?.id || (authUser.user.identities && authUser.user.identities.length === 0)) {
-            await supabaseAdmin.from("clinics").delete().eq("id", clinic.id);
+            await supabaseAdmin.from("clinics").delete().eq("id", clinic.id)
+                .then(({ error }) => { if (error) console.error("[Register] Clinic rollback failed (dup email):", error.message); });
             return NextResponse.json(
                 { error: "Bu e-posta adresi zaten kullanımda." },
                 { status: 400 }
@@ -132,8 +133,8 @@ export async function POST(req: Request) {
         }
 
         if (authError) {
-            // Rollback clinic creation
-            await supabaseAdmin.from("clinics").delete().eq("id", clinic.id);
+            await supabaseAdmin.from("clinics").delete().eq("id", clinic.id)
+                .then(({ error }) => { if (error) console.error("[Register] Clinic rollback failed (auth error):", error.message); });
             return NextResponse.json(
                 { error: `Kullanıcı oluşturulamadı: ${authError.message}` },
                 { status: 500 }
@@ -150,22 +151,24 @@ export async function POST(req: Request) {
         });
 
         if (userTableError) {
-            // Rollback Auth and Clinic
-            await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
-            await supabaseAdmin.from("clinics").delete().eq("id", clinic.id);
+            // Rollback: auth user first, then clinic — log each failure independently
+            const [{ error: delAuthErr }, { error: delClinicErr }] = await Promise.all([
+                supabaseAdmin.auth.admin.deleteUser(authUser.user.id),
+                supabaseAdmin.from("clinics").delete().eq("id", clinic.id),
+            ]);
+            if (delAuthErr) console.error("[Register] Auth rollback failed:", delAuthErr.message);
+            if (delClinicErr) console.error("[Register] Clinic rollback failed:", delClinicErr.message);
 
             let message = "Profil oluşturulamadı.";
             if (userTableError.code === "23505") {
-                if (userTableError.message.includes("email")) message = "Bu e-posta adresi zaten kullanımda.";
-                else message = "Bu kayıt zaten mevcut.";
+                message = userTableError.message.includes("email")
+                    ? "Bu e-posta adresi zaten kullanımda."
+                    : "Bu kayıt zaten mevcut.";
             } else {
                 message = `Hata: ${userTableError.message}`;
             }
 
-            return NextResponse.json(
-                { error: message },
-                { status: 500 }
-            );
+            return NextResponse.json({ error: message }, { status: 500 });
         }
 
         // 4. Create default settings for the clinic
@@ -194,11 +197,14 @@ export async function POST(req: Request) {
 
             if (referrer && isActive && !isSelfReferral) {
                 clinicUpdate.referred_by = referrer.id;
-                await supabaseAdmin.from("referral_conversions").insert({
-                    referrer_clinic_id: referrer.id,
-                    referred_clinic_id: clinic.id,
-                    status: "pending",
-                });
+                await supabaseAdmin.from("referral_conversions").upsert(
+                    {
+                        referrer_clinic_id: referrer.id,
+                        referred_clinic_id: clinic.id,
+                        status: "pending",
+                    },
+                    { onConflict: "referrer_clinic_id, referred_clinic_id", ignoreDuplicates: true }
+                );
             }
         }
 

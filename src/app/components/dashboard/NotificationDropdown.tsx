@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useChecklist } from "@/hooks/useChecklist";
-import { useSmartAssistant } from "@/hooks/useSmartAssistant";
 import { useAnnouncements } from "@/hooks/useAnnouncements";
 import { AnnouncementModal } from "./AnnouncementModal";
 import { format } from "date-fns";
@@ -22,12 +21,10 @@ type PanelNotification = {
 
 export function NotificationDropdown() {
     const { controlItems, checklistLoading } = useChecklist(0);
-    const { assistantItems, isLoading: assistantLoading } = useSmartAssistant();
     const { announcements, markAsRead } = useAnnouncements();
     const { userId } = useClinic();
     const [isOpen, setIsOpen] = useState(false);
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
-    const [dismissedIds, setDismissedIds] = useState<string[]>([]);
     const [panelNotifications, setPanelNotifications] = useState<PanelNotification[]>([]);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -64,35 +61,7 @@ export function NotificationDropdown() {
         setPanelNotifications(prev => prev.filter(n => n.id !== id));
     };
 
-    useEffect(() => {
-        const checkDismissed = () => {
-            const saved = sessionStorage.getItem('dismissedAssistantItems');
-            if (saved) {
-                try {
-                    setDismissedIds(JSON.parse(saved));
-                } catch (e) {
-                    console.error("Failed to parse dismissed items", e);
-                }
-            } else {
-                setDismissedIds([]);
-            }
-        };
-
-        checkDismissed();
-        window.addEventListener('storage', checkDismissed);
-        window.addEventListener('assistant-updated', checkDismissed);
-        return () => {
-            window.removeEventListener('storage', checkDismissed);
-            window.removeEventListener('assistant-updated', checkDismissed);
-        };
-    }, []);
-
-    const filteredAssistantItems = useMemo(() => {
-        return assistantItems.filter(item => !dismissedIds.includes(item.id));
-    }, [assistantItems, dismissedIds]);
-
-    const pendingCount = (controlItems?.length || 0) + (filteredAssistantItems.length) + (announcements?.length || 0) + panelNotifications.length;
-    const isLoading = checklistLoading || assistantLoading;
+    const pendingCount = (controlItems?.length || 0) + (announcements?.length || 0) + panelNotifications.length;
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -104,20 +73,7 @@ export function NotificationDropdown() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const getIcon = (code: string, type?: string) => {
-        if (type === 'REMINDER' || type === 'SATISFACTION' || type === 'PAYMENT') {
-            const bgColor = type === 'REMINDER' ? 'bg-indigo-100 text-indigo-600' :
-                type === 'SATISFACTION' ? 'bg-emerald-100 text-emerald-600' :
-                    'bg-orange-100 text-orange-600';
-            return (
-                <div className={`p-2 ${bgColor} rounded-xl`}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
-                </div>
-            );
-        }
-
+    const getIcon = (code: string) => {
         switch (code) {
             case 'STATUS_UPDATE': return (
                 <div className="p-2 bg-rose-100 text-rose-600 rounded-xl">
@@ -154,7 +110,6 @@ export function NotificationDropdown() {
         const colors = type === 'danger' ? 'bg-rose-100 text-rose-600' :
             type === 'warning' ? 'bg-amber-100 text-amber-600' :
                 type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600';
-
         return (
             <div className={`p-2 ${colors} rounded-xl`}>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -162,17 +117,11 @@ export function NotificationDropdown() {
                 </svg>
             </div>
         );
-    }
+    };
 
-    const handleNotificationClick = (id: string, isAssistant: boolean = false) => {
+    const handleNotificationClick = (id: string) => {
         const slug = window.location.pathname.split('/')[1];
-        const dashboardPath = `/${slug}`;
-
-        if (isAssistant) {
-            window.location.href = `${dashboardPath}#assist-${id}`;
-        } else {
-            window.location.href = `${dashboardPath}#task-${id}`;
-        }
+        window.location.href = `/${slug}#task-${id}`;
         setIsOpen(false);
     };
 
@@ -208,7 +157,7 @@ export function NotificationDropdown() {
 
                     {/* Content */}
                     <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
-                        {isLoading ? (
+                        {checklistLoading ? (
                             <div className="p-10 text-center text-slate-400 text-xs animate-pulse">Yükleniyor...</div>
                         ) : pendingCount === 0 ? (
                             <div className="p-10 text-center">
@@ -222,7 +171,7 @@ export function NotificationDropdown() {
                             </div>
                         ) : (
                             <div className="divide-y divide-slate-50">
-                                {/* PANEL BİLDİRİMLERİ (yeni randevu vb.) */}
+                                {/* PANEL BİLDİRİMLERİ */}
                                 {panelNotifications.map((notif) => (
                                     <div
                                         key={`panel-${notif.id}`}
@@ -258,16 +207,10 @@ export function NotificationDropdown() {
                                             <div className="shrink-0 group-hover:scale-110 transition-transform">{getAnnIcon(ann.type)}</div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2 mb-1">
-                                                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
-                                                        Sistem Duyurusu
-                                                    </span>
+                                                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Sistem Duyurusu</span>
                                                 </div>
-                                                <p className="text-xs font-black text-slate-900 leading-tight mb-1">
-                                                    {ann.title}
-                                                </p>
-                                                <p className="text-[11px] text-slate-600 font-medium leading-relaxed line-clamp-2">
-                                                    {ann.content}
-                                                </p>
+                                                <p className="text-xs font-black text-slate-900 leading-tight mb-1">{ann.title}</p>
+                                                <p className="text-[11px] text-slate-600 font-medium leading-relaxed line-clamp-2">{ann.content}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -277,52 +220,17 @@ export function NotificationDropdown() {
                                 {controlItems.map((item) => (
                                     <div
                                         key={`control-${item.id}`}
-                                        onClick={() => handleNotificationClick(item.id, false)}
+                                        onClick={() => handleNotificationClick(item.id)}
                                         className="p-4 hover:bg-slate-50 transition-colors group cursor-pointer"
                                     >
                                         <div className="flex gap-3">
                                             <div className="shrink-0 group-hover:scale-110 transition-transform">{getIcon(item.code)}</div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2 mb-0.5">
-                                                    <span className="text-xs font-bold text-slate-900 truncate">
-                                                        {item.patientName}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-400 font-medium shrink-0">
-                                                        {item.timeLabel.split('-')[0].trim()}
-                                                    </span>
+                                                    <span className="text-xs font-bold text-slate-900 truncate">{item.patientName}</span>
+                                                    <span className="text-[10px] text-slate-400 font-medium shrink-0">{item.timeLabel.split('-')[0].trim()}</span>
                                                 </div>
-                                                <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
-                                                    {item.title}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {/* Akıllı Asistan Bildirimleri */}
-                                {filteredAssistantItems.map((item) => (
-                                    <div
-                                        key={`assist-${item.id}`}
-                                        onClick={() => handleNotificationClick(item.id, true)}
-                                        className="p-4 hover:bg-indigo-50/30 transition-colors group cursor-pointer"
-                                    >
-                                        <div className="flex gap-3">
-                                            <div className="shrink-0 group-hover:scale-110 transition-transform">{getIcon('', item.type)}</div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between gap-2 mb-0.5">
-                                                    <span className="text-xs font-bold text-slate-900 truncate">
-                                                        {item.patientName}
-                                                    </span>
-                                                    <span className="text-[9px] font-black text-indigo-500 uppercase tracking-tight shrink-0">
-                                                        Mesaj Bekliyor
-                                                    </span>
-                                                </div>
-                                                <p className="text-[11px] text-slate-600 font-bold leading-relaxed truncate">
-                                                    {item.title}
-                                                </p>
-                                                <p className="text-[10px] text-slate-400 italic line-clamp-1 mt-0.5">
-                                                    {item.message}
-                                                </p>
+                                                <p className="text-[11px] text-slate-600 font-medium leading-relaxed">{item.title}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -343,7 +251,6 @@ export function NotificationDropdown() {
                 </div>
             )}
 
-            {/* Announcement Detail Modal */}
             {selectedAnnouncement && (
                 <AnnouncementModal
                     announcement={selectedAnnouncement}

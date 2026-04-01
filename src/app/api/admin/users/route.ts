@@ -21,9 +21,24 @@ export const GET = withAuth(
       return NextResponse.json({ error: error?.message ?? "Kullanıcılar alınamadı" }, { status: 400 });
     }
 
-    // Enrich with last_sign_in_at from auth
-    const { data: authData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-    const authMap = new Map((authData?.users ?? []).map(u => [u.id, u.last_sign_in_at ?? null]));
+    // Enrich with last_sign_in_at from auth — sadece mevcut kullanıcıların ID'leri sorgulanır
+    const userIds = users.map(u => u.id);
+    const authMap = new Map<string, string | null>();
+
+    if (userIds.length > 0) {
+        // Supabase Admin API tekil getUser çağrısı destekler; ID başına çağrı yerine
+        // listUsers ile filtre yapılamadığından paralel getUser çağrısı kullanıyoruz.
+        // Klinik başına max ~100 kullanıcı için bu kabul edilebilir.
+        const authResults = await Promise.allSettled(
+            userIds.map(id => supabaseAdmin.auth.admin.getUserById(id))
+        );
+        for (let i = 0; i < userIds.length; i++) {
+            const result = authResults[i];
+            if (result.status === "fulfilled" && result.value.data?.user) {
+                authMap.set(userIds[i], result.value.data.user.last_sign_in_at ?? null);
+            }
+        }
+    }
 
     const enriched = users.map(u => ({
       ...u,

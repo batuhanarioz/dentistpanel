@@ -60,73 +60,84 @@ function RegisterForm() {
         }
     }, [formData.name]);
 
-    // Check slug availability with debounce
+    // TR telefon format kontrolü: 10 veya 11 haneli, mobil için 05XX veya 5XX
+    const isValidTRPhone = (phone: string) => {
+        const digits = phone.replace(/\D/g, "");
+        if (digits.length === 10) return /^5\d{9}$/.test(digits);
+        if (digits.length === 11) return /^05\d{9}$/.test(digits);
+        return false;
+    };
+
+    // Check slug availability with debounce + AbortController (stale response koruması)
     useEffect(() => {
         if (!formData.slug || formData.slug.length < 3) {
             setIsSlugAvailable(null);
             return;
         }
 
+        const controller = new AbortController();
         const timer = setTimeout(async () => {
             setIsCheckingSlug(true);
             try {
-                const res = await fetch(`/api/auth/check-availability?type=slug&value=${formData.slug}`);
+                const res = await fetch(`/api/auth/check-availability?type=slug&value=${formData.slug}`, { signal: controller.signal });
                 const data = await res.json();
                 setIsSlugAvailable(data.available);
-            } catch (err) {
-                console.error("Slug check error:", err);
+            } catch (err: unknown) {
+                if (err instanceof Error && err.name !== "AbortError") console.error("Slug check error:", err);
             } finally {
                 setIsCheckingSlug(false);
             }
         }, 500);
 
-        return () => clearTimeout(timer);
+        return () => { clearTimeout(timer); controller.abort(); };
     }, [formData.slug]);
 
-    // Check email availability
+    // Check email availability with debounce + AbortController
     useEffect(() => {
         if (!formData.email || !formData.email.includes("@")) {
             setIsEmailAvailable(null);
             return;
         }
 
+        const controller = new AbortController();
         const timer = setTimeout(async () => {
             setIsCheckingEmail(true);
             try {
-                const res = await fetch(`/api/auth/check-availability?type=email&value=${formData.email}`);
+                const res = await fetch(`/api/auth/check-availability?type=email&value=${formData.email}`, { signal: controller.signal });
                 const data = await res.json();
                 setIsEmailAvailable(data.available);
-            } catch (err) {
-                console.error("Email check error:", err);
+            } catch (err: unknown) {
+                if (err instanceof Error && err.name !== "AbortError") console.error("Email check error:", err);
             } finally {
                 setIsCheckingEmail(false);
             }
         }, 500);
 
-        return () => clearTimeout(timer);
+        return () => { clearTimeout(timer); controller.abort(); };
     }, [formData.email]);
 
-    // Check phone availability
+    // Check phone availability with debounce + AbortController
     useEffect(() => {
-        if (!formData.phone || formData.phone.length < 10) {
+        if (!formData.phone || !isValidTRPhone(formData.phone)) {
             setIsPhoneAvailable(null);
             return;
         }
 
+        const controller = new AbortController();
         const timer = setTimeout(async () => {
             setIsCheckingPhone(true);
             try {
-                const res = await fetch(`/api/auth/check-availability?type=phone&value=${formData.phone}`);
+                const res = await fetch(`/api/auth/check-availability?type=phone&value=${formData.phone}`, { signal: controller.signal });
                 const data = await res.json();
                 setIsPhoneAvailable(data.available);
-            } catch (err) {
-                console.error("Phone check error:", err);
+            } catch (err: unknown) {
+                if (err instanceof Error && err.name !== "AbortError") console.error("Phone check error:", err);
             } finally {
                 setIsCheckingPhone(false);
             }
         }, 500);
 
-        return () => clearTimeout(timer);
+        return () => { clearTimeout(timer); controller.abort(); };
     }, [formData.phone]);
 
     // Clear error when form data changes
@@ -158,8 +169,8 @@ function RegisterForm() {
             return;
         }
 
-        if (!formData.phone || formData.phone.length < 10) {
-            setError("Geçerli bir telefon numarası giriniz.");
+        if (!formData.phone || !isValidTRPhone(formData.phone)) {
+            setError("Geçerli bir Türkiye telefon numarası giriniz. (Örnek: 0532 123 45 67)");
             return;
         }
 

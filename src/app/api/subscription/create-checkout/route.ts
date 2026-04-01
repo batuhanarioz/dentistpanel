@@ -93,7 +93,7 @@ export const POST = withAuth(
                 if (!alreadyUsed) {
                     discountCodeId = discount.id;
                     if (discount.discount_type === "percent") {
-                        discountAmountTL = Math.round(originalAmountTL * discount.discount_value) / 100;
+                        discountAmountTL = Math.round(originalAmountTL * discount.discount_value / 100);
                     } else {
                         discountAmountTL = Math.min(discount.discount_value, originalAmountTL - 1);
                     }

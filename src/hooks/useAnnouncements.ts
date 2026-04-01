@@ -2,28 +2,22 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Announcement } from '@/types/database';
+import { useClinic } from '@/app/context/ClinicContext';
 
 export function useAnnouncements() {
+    const { clinicId, userId } = useClinic();
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [loading, setLoading] = useState(true);
 
     const loadAnnouncements = useCallback(async () => {
+        // ClinicContext'ten gelen bilgileri kullan — tekrar auth/users sorgusu atmıyoruz
+        if (!userId || !clinicId) {
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            // 1. Get user's clinic_id
-            const { data: userData } = await supabase
-                .from('users')
-                .select('clinic_id')
-                .eq('id', user.id)
-                .single();
-
-            const clinicId = userData?.clinic_id;
-
-            // 2. Fetch announcements (Global OR for this clinic)
-            // Filter by time: started and not expired
             const now = new Date().toISOString();
 
             const { data, error } = await supabase
@@ -34,12 +28,10 @@ export function useAnnouncements() {
                 `)
                 .or(`target_clinic_id.is.null,target_clinic_id.eq.${clinicId}`)
                 .is('announcement_reads.user_id', null)
-                .lte('starts_at', now) // Already started
-                // .or(`expires_at.is.null,expires_at.gte.${now}`) // Expire check - .or is complex for gte
+                .lte('starts_at', now)
                 .order('created_at', { ascending: false });
 
             if (!error) {
-                // Client-side final filter for expiration to keep the query simpler for Supabase .or/LTE logic
                 const filtered = (data || []).filter(a => !a.expires_at || new Date(a.expires_at) >= new Date());
                 setAnnouncements(filtered);
             }
@@ -48,18 +40,13 @@ export function useAnnouncements() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [clinicId, userId]);
 
     const markAsRead = async (announcementId: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
+        if (!userId) return;
         const { error } = await supabase
             .from('announcement_reads')
-            .insert({
-                announcement_id: announcementId,
-                user_id: user.id
-            });
+            .insert({ announcement_id: announcementId, user_id: userId });
 
         if (!error) {
             setAnnouncements(prev => prev.filter(a => a.id !== announcementId));

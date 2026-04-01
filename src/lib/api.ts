@@ -230,6 +230,65 @@ export async function getDashboardData(date: string, clinicId: string) {
     }));
 }
 
+/** Belirli bir tarih aralığındaki randevuları çeker (akıllı asistan lookback için). */
+export async function getDashboardDataRange(startDate: string, endDate: string, clinicId: string) {
+    if (!clinicId) return [];
+    const { data, error } = await supabase
+        .from("appointments")
+        .select(`
+            id, starts_at, ends_at, patient_id, doctor_id, channel, status, treatment_type, estimated_amount,
+            patients(full_name, phone),
+            doctor:doctor_id(full_name)
+        `)
+        .eq("clinic_id", clinicId)
+        .gte("starts_at", `${startDate}T00:00:00+03:00`)
+        .lte("starts_at", `${endDate}T23:59:59+03:00`)
+        .order("starts_at", { ascending: true });
+
+    if (error || !data) return [];
+
+    return (data as unknown as DashboardAppointmentRow[]).map((row) => ({
+        id: row.id,
+        startsAt: row.starts_at,
+        endsAt: row.ends_at,
+        patientName: row.patients?.full_name ?? "İsimsiz Hasta",
+        patientPhone: row.patients?.phone ?? null,
+        doctorName: row.doctor?.full_name ?? "Hekim atanmadı",
+        doctorId: row.doctor_id,
+        channel: row.channel,
+        status: row.status,
+        treatmentType: row.treatment_type ?? null,
+        estimatedAmount: row.estimated_amount !== null ? Number(row.estimated_amount) : null,
+    }));
+}
+
+/** Vadesi bugünden önce geçmiş bekleyen ödemeleri döner (gecikmiş ödeme takibi için). */
+export async function getOverduePendingPayments(clinicId: string, todayDate: string) {
+    if (!clinicId) return [];
+    const { data, error } = await supabase
+        .from("payments")
+        .select(`id, amount, status, due_date, patient_id, appointment_id, patients(full_name, phone)`)
+        .eq("clinic_id", clinicId)
+        .lt("due_date", todayDate)
+        .in("status", ["pending", "planned", "partial", "Beklemede", "Kısmi", "Ödenmedi"]);
+
+    if (error) {
+        console.error("getOverduePendingPayments error:", error);
+        return [];
+    }
+
+    return (data as unknown as TodayPaymentRow[]).map((row) => ({
+        id: row.id,
+        amount: Number(row.amount),
+        status: row.status,
+        dueDate: row.due_date,
+        patientName: row.patients?.full_name ?? "İsimsiz",
+        patientPhone: row.patients?.phone ?? null,
+        patientId: row.patient_id,
+        appointmentId: row.appointment_id,
+    }));
+}
+
 interface ChecklistItemRow {
     id: string;
     status: string;

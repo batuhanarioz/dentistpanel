@@ -42,7 +42,7 @@ export default function CommunicationHubPage() {
     const [searchTerm, setSearchTerm] = useState("");
     
     // Hooks
-    const { assistantItems, isLoading: assistantLoading } = useSmartAssistant();
+    const { assistantItems, missedCount, isLoading: assistantLoading } = useSmartAssistant();
     const { data: recallItems = [], isLoading: recallLoading } = useRecallQueue();
     const { mutate: updateRecallStatus } = useUpdateRecallStatus();
 
@@ -59,7 +59,11 @@ export default function CommunicationHubPage() {
         'BIRTHDAY': 'Doğum Günü',
         'DELAY': 'Gecikme',
         'FOLLOWUP': 'Takip',
-        'PAYMENT': 'Ödeme'
+        'PAYMENT': 'Ödeme',
+        'SATISFACTION': 'Memnuniyet',
+        'NEW_PATIENT': 'Yeni Hasta',
+        'LAB_TRACKING': 'Laboratuvar',
+        'INCOMPLETE': 'Yarım Tedavi',
     };
 
     const statusNames: Record<RecallStatus, string> = {
@@ -73,19 +77,33 @@ export default function CommunicationHubPage() {
     const filteredAssistantItems = useMemo(() => {
         let list = assistantItems.filter(item => !dismissedIds.includes(item.id));
         if (assistantFilter !== 'ALL') list = list.filter(i => i.type === assistantFilter);
-        if (searchTerm) {
-            list = list.filter(i => i.patientName.toLowerCase().includes(searchTerm.toLowerCase()));
-        }
-        return list;
+        if (searchTerm) list = list.filter(i => i.patientName.toLowerCase().includes(searchTerm.toLowerCase()));
+        // Kaçırılanlar üste gelsin
+        return [...list].sort((a, b) => (b.isPastDay ? 1 : 0) - (a.isPastDay ? 1 : 0));
     }, [assistantItems, assistantFilter, dismissedIds, searchTerm]);
 
     const filteredRecallItems = useMemo(() => {
         let list = recallItems.filter(i => i.status === recallTab);
-        if (searchTerm) {
-            list = list.filter(i => i.patients?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()));
-        }
-        return list;
+        if (searchTerm) list = list.filter(i => i.patients?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()));
+        // Gecikmiş olanlar üste
+        return [...list].sort((a, b) => new Date(a.recall_due_at).getTime() - new Date(b.recall_due_at).getTime());
     }, [recallItems, recallTab, searchTerm]);
+
+    // Recall istatistikleri
+    const recallStats = useMemo(() => {
+        const today = todayIST();
+        const pending = recallItems.filter(i => i.status === 'pending');
+        const overdueCount = pending.filter(i => i.recall_due_at <= today).length;
+        const todayCount = pending.filter(i => i.recall_due_at === today).length;
+        return {
+            pending: pending.length,
+            overdue: overdueCount,
+            today: todayCount,
+            contacted: recallItems.filter(i => i.status === 'contacted').length,
+            booked: recallItems.filter(i => i.status === 'booked').length,
+            dismissed: recallItems.filter(i => i.status === 'dismissed').length,
+        };
+    }, [recallItems]);
 
     const handleDismissAssistant = (id: string) => {
         setDismissedIds(prev => [...prev, id]);
@@ -144,17 +162,31 @@ export default function CommunicationHubPage() {
             {/* Content Area */}
             {viewMode === 'ASSISTANT' ? (
                 <div className="space-y-6">
+                    {/* Kaçırılmış bildirim uyarı banner */}
+                    {missedCount > 0 && (
+                        <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-2xl px-5 py-3.5">
+                            <span className="text-rose-500 text-lg">⚠️</span>
+                            <p className="text-xs font-bold text-rose-700">
+                                <span className="font-black">{missedCount} bildirim</span> önceki günlerden kalmış — klinik kapalıyken veya gözden kaçmış olabilir.
+                                Aşağıda listenin başında işaretlenerek gösterilmektedir.
+                            </p>
+                        </div>
+                    )}
+
                     {/* Assistant Stats & Filters */}
                     <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
                         <div className="flex items-center gap-4">
                             <div className="h-12 w-12 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-600 text-xl font-bold">✨</div>
                             <div>
                                 <h2 className="text-lg font-black text-slate-800">Akıllı Bildirimler</h2>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">İlgilenilmesi gereken {filteredAssistantItems.length} kayıt</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">
+                                    {filteredAssistantItems.length} kayıt
+                                    {missedCount > 0 && <span className="ml-2 text-rose-500">· {missedCount} kaçırıldı</span>}
+                                </p>
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2 bg-slate-50 p-1.5 rounded-2xl">
-                            {['ALL', 'REMINDER', 'BIRTHDAY', 'DELAY', 'FOLLOWUP', 'PAYMENT'].map((f) => (
+                            {(['ALL', 'REMINDER', 'BIRTHDAY', 'DELAY', 'FOLLOWUP', 'PAYMENT', 'SATISFACTION', 'NEW_PATIENT', 'LAB_TRACKING', 'INCOMPLETE'] as const).map((f) => (
                                 <button
                                     key={f}
                                     onClick={() => setAssistantFilter(f as AssistantItemType | "ALL")}
@@ -176,24 +208,36 @@ export default function CommunicationHubPage() {
                             <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-100 italic text-slate-400">Bekleyen bildirim bulunamadı.</div>
                         ) : (
                             filteredAssistantItems.map((item) => (
-                                <div key={item.id} className="group bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                                <div key={item.id} className={`group bg-white p-6 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ${item.isPastDay ? "border-2 border-rose-200" : "border border-slate-100"}`}>
                                     <div className="flex justify-between items-start mb-4">
-                                        <span className="px-3 py-1 bg-slate-50 rounded-full text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            {categoryNames[item.type] || item.type}
-                                        </span>
-                                        <button 
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="px-3 py-1 bg-slate-50 rounded-full text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                {categoryNames[item.type] || item.type}
+                                            </span>
+                                            {item.isPastDay && (
+                                                <span className="px-2.5 py-1 bg-rose-50 rounded-full text-[9px] font-black text-rose-600 uppercase tracking-widest border border-rose-200">
+                                                    Kaçırıldı
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button
                                             onClick={() => handleDismissAssistant(item.id)}
-                                            className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-emerald-50 hover:text-emerald-500 transition-colors"
+                                            className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-emerald-50 hover:text-emerald-500 transition-colors shrink-0"
                                         >✓</button>
                                     </div>
                                     <h3 className="font-black text-slate-800 text-base mb-1">{item.patientName}</h3>
-                                    <p className="text-[11px] font-bold text-teal-600 uppercase tracking-tighter mb-4">{item.title}</p>
-                                    <div className="bg-slate-50 p-4 rounded-2xl mb-6 italic text-[11px] text-slate-500 leading-relaxed border-l-4 border-teal-500">
-                                        `{`"{item.message}"`}`
+                                    <p className={`text-[11px] font-bold uppercase tracking-tighter mb-4 ${item.isPastDay ? "text-rose-500" : "text-teal-600"}`}>{item.title}</p>
+                                    {item.isPastDay && item.pastDate && (
+                                        <p className="text-[10px] text-rose-400 font-semibold mb-2">
+                                            {new Date(item.pastDate + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} tarihinden kalmış
+                                        </p>
+                                    )}
+                                    <div className={`p-4 rounded-2xl mb-6 italic text-[11px] leading-relaxed border-l-4 ${item.isPastDay ? "bg-rose-50 text-rose-700 border-rose-400" : "bg-slate-50 text-slate-500 border-teal-500"}`}>
+                                        {item.message}
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={() => handleSendWhatsApp(item.patientPhone || "", item.message)}
-                                        className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black py-3 rounded-2xl text-xs shadow-lg shadow-emerald-100 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                                        className={`w-full text-white font-black py-3 rounded-2xl text-xs shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 ${item.isPastDay ? "bg-gradient-to-r from-rose-500 to-orange-500 shadow-rose-100" : "bg-gradient-to-r from-emerald-500 to-teal-600 shadow-emerald-100"}`}
                                     >
                                         <span>MESAJI GÖNDER</span>
                                     </button>
@@ -204,27 +248,48 @@ export default function CommunicationHubPage() {
                 </div>
             ) : (
                 <div className="space-y-6">
+                    {/* Gecikmiş recall uyarı banner */}
+                    {!recallLoading && recallStats.overdue > 0 && (
+                        <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-2xl px-5 py-3.5">
+                            <span className="text-rose-500 text-lg">⚠️</span>
+                            <p className="text-xs font-bold text-rose-700">
+                                <span className="font-black">{recallStats.overdue} hasta</span> için recall zamanı geçti ve henüz aranmadı.
+                                {recallStats.today > 0 && <span className="ml-2 text-amber-700 font-black">· Bugün {recallStats.today} yeni recall çıktı.</span>}
+                            </p>
+                        </div>
+                    )}
+
                     {/* Recall Stats & Tabs */}
                     <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
                         <div className="flex items-center gap-4">
                             <div className="h-12 w-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 text-xl font-bold">📅</div>
                             <div>
                                 <h2 className="text-lg font-black text-slate-800">Recall Takip Listesi</h2>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Periyodik kontrol zamanı gelen hastalar</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">
+                                    {recallStats.pending} bekleyen
+                                    {recallStats.overdue > 0 && <span className="ml-2 text-rose-500 font-black">· {recallStats.overdue} gecikmiş</span>}
+                                </p>
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2 bg-slate-50 p-1.5 rounded-2xl">
-                            {['pending', 'contacted', 'booked', 'dismissed'].map((t) => (
-                                <button
-                                    key={t}
-                                    onClick={() => setRecallTab(t as RecallStatus)}
-                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all ${
-                                        recallTab === t ? "bg-white text-amber-600 shadow-md ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
-                                    }`}
-                                >
-                                    {statusNames[t as RecallStatus]}
-                                </button>
-                            ))}
+                            {(['pending', 'contacted', 'booked', 'dismissed'] as RecallStatus[]).map((t) => {
+                                const count = recallStats[t as keyof typeof recallStats] as number;
+                                const isOverduePending = t === 'pending' && recallStats.overdue > 0;
+                                return (
+                                    <button
+                                        key={t}
+                                        onClick={() => setRecallTab(t)}
+                                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all flex items-center gap-1.5 ${
+                                            recallTab === t ? "bg-white text-amber-600 shadow-md ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
+                                        }`}
+                                    >
+                                        {statusNames[t]}
+                                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${isOverduePending ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-500"}`}>
+                                            {count}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -239,18 +304,22 @@ export default function CommunicationHubPage() {
                                 const label = daysLabel(item.recall_due_at);
                                 const waLink = buildRecallWaLink(item.patients?.phone, item.patients?.full_name ?? "Hasta", item.treatment_type, item.last_treatment_date);
                                 return (
-                                    <div key={item.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300">
+                                    <div key={item.id} className={`bg-white p-6 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all duration-300 ${label.isOverdue && item.status === 'pending' ? "border-2 border-rose-200" : "border border-slate-100"}`}>
                                         <div className="flex justify-between items-start mb-4">
                                             <span className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${label.cls}`}>{label.text}</span>
                                             <span className="text-[10px] font-bold text-slate-400 font-mono italic">#{item.id.slice(0,4)}</span>
                                         </div>
                                         <h3 className="font-black text-slate-800 text-base mb-1">{item.patients?.full_name}</h3>
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-4">{item.treatment_type}</p>
-                                        
+
                                         <div className="space-y-2 mb-6">
                                             <div className="flex justify-between text-[11px] font-semibold text-slate-500">
                                                 <span>Son Tedavi:</span>
                                                 <span className="text-slate-800">{formatDate(item.last_treatment_date)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-[11px] font-semibold text-slate-500">
+                                                <span>Recall Tarihi:</span>
+                                                <span className={label.isOverdue ? "text-rose-600 font-bold" : "text-slate-800"}>{formatDate(item.recall_due_at)}</span>
                                             </div>
                                             <div className="flex justify-between text-[11px] font-semibold text-slate-500">
                                                 <span>Ulaşılma:</span>
@@ -259,16 +328,16 @@ export default function CommunicationHubPage() {
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-2">
-                                            <a 
+                                            <a
                                                 href={waLink}
                                                 target="_blank"
                                                 className="bg-emerald-500 text-white font-black py-2.5 rounded-xl text-[10px] flex items-center justify-center gap-1.5 hover:bg-emerald-600"
                                             >WHATSAPP</a>
-                                            <button 
+                                            <button
                                                 onClick={() => updateRecallStatus({ id: item.id, status: 'contacted' })}
                                                 className="bg-blue-50 text-blue-700 font-black py-2.5 rounded-xl text-[10px] hover:bg-blue-100"
                                             >ULAŞILDI</button>
-                                            <button 
+                                            <button
                                                 onClick={() => updateRecallStatus({ id: item.id, status: 'booked' })}
                                                 className="col-span-2 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-black py-3 rounded-xl text-[10px] mt-1 shadow-lg shadow-teal-50"
                                             >📅 RANDEVU ALINDI</button>

@@ -210,7 +210,7 @@ export function useAppointmentManagement(initialData?: {
                 .from("patients")
                 .select("id, full_name, phone, email, birth_date, allergies, medical_alerts")
                 .eq("clinic_id", effectiveClinicId!)
-                .or(`full_name.ilike.%${debouncedPatientSearch}%,phone.ilike.%${debouncedPatientSearch}%`)
+                .or(`full_name.ilike.%${debouncedPatientSearch}%,phone.ilike.${debouncedPatientSearch}%`)
                 .limit(10);
             return (data || []) as PatientSearchResult[];
         },
@@ -231,7 +231,7 @@ export function useAppointmentManagement(initialData?: {
                     .from("patients")
                     .select("id, full_name, phone, email, birth_date, allergies, medical_alerts")
                     .eq("clinic_id", effectiveClinicId)
-                    .ilike("phone", `%${cleanPhone}%`)
+                    .ilike("phone", `${cleanPhone}%`)
                     .limit(1);
                 if (!cancelled) setDuplicatePatient(data?.[0] || null);
             } else {
@@ -242,7 +242,16 @@ export function useAppointmentManagement(initialData?: {
         return () => { cancelled = true; clearTimeout(timer); };
     }, [phoneNumber, selectedPatientId, effectiveClinicId]);
 
-    // Conflict checking
+    // Conflict checking — in-memory using already-cached appointments for formDate
+    const { data: conflictDateAppts = [] } = useQuery({
+        queryKey: ["appointments", formDate, effectiveClinicId],
+        queryFn: () => getAppointmentsForDate(formDate, effectiveClinicId!),
+        enabled: !!formDate && !!effectiveClinicId && formDate !== selectedDate,
+        staleTime: 60 * 1000,
+    });
+    // For formDate === selectedDate the main `appointments` query is already loaded
+    const apptPoolForConflict = formDate === selectedDate ? appointments : conflictDateAppts;
+
     useEffect(() => {
         if (!formDate || !formTime || !form.doctor || !effectiveClinicId) {
             setConflictWarning(null);
@@ -251,28 +260,19 @@ export function useAppointmentManagement(initialData?: {
         const drId = doctorsList.find(d => d.full_name === form.doctor)?.id;
         if (!drId) { setConflictWarning(null); return; }
 
-        let cancelled = false;
-        const checkConflict = async () => {
-            // +03:00 (Istanbul) ile yorumla — tarayıcı timezone'undan bağımsız
-            const proposedStart = new Date(`${formDate}T${formTime}:00+03:00`);
-            const proposedEnd = new Date(proposedStart.getTime() + form.durationMinutes * 60000);
-            const { data } = await supabase
-                .from("appointments")
-                .select("id, starts_at, ends_at")
-                .eq("clinic_id", effectiveClinicId)
-                .eq("doctor_id", drId)
-                .not("status", "in", `(cancelled,no_show)`)
-                .lt("starts_at", proposedEnd.toISOString())
-                .gt("ends_at", proposedStart.toISOString());
-            if (!cancelled) {
-                const conflicts = (data || []).filter(a => a.id !== editing?.id);
-                setConflictWarning(conflicts.length > 0 ? "Bu saatte hekimin başka bir randevusu mevcut." : null);
-            }
-        };
+        const proposedStart = new Date(`${formDate}T${formTime}:00+03:00`);
+        const proposedEnd = new Date(proposedStart.getTime() + form.durationMinutes * 60000);
 
-        const t = setTimeout(checkConflict, 600);
-        return () => { cancelled = true; clearTimeout(t); };
-    }, [formDate, formTime, form.doctor, form.durationMinutes, effectiveClinicId, editing?.id, doctorsList]);
+        const conflicts = apptPoolForConflict.filter(a => {
+            if (a.id === editing?.id) return false;
+            if (a.dbStatus === "cancelled" || a.dbStatus === "no_show") return false;
+            if (a.doctorId !== drId) return false;
+            const aStart = new Date(`${a.date}T${a.startHour.toString().padStart(2,"0")}:${a.startMinute.toString().padStart(2,"0")}:00+03:00`);
+            const aEnd = new Date(aStart.getTime() + a.durationMinutes * 60000);
+            return aStart < proposedEnd && aEnd > proposedStart;
+        });
+        setConflictWarning(conflicts.length > 0 ? "Bu saatte hekimin başka bir randevusu mevcut." : null);
+    }, [formDate, formTime, form.doctor, form.durationMinutes, effectiveClinicId, editing?.id, doctorsList, apptPoolForConflict]);
 
     const openNew = (hour?: number, date?: string, minute?: number, doctorName?: string) => {
         setEditing(null);

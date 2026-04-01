@@ -458,7 +458,7 @@ export function ClinicSettingsTab() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateTiming = (type: MessageType, field: string, value: any) => {
         if (!localSettings) return;
-        const currentTimings = (localSettings.assistant_timings as Record<string, {value: number; unit: string}>) || {};
+        const currentTimings = (localSettings.assistant_timings as Record<string, { value: number; unit: string }>) || {};
         const currentTypeTiming = currentTimings[type] || { value: 1, unit: 'hours' };
 
         setLocalSettings({
@@ -471,7 +471,7 @@ export function ClinicSettingsTab() {
                     ...currentTypeTiming,
                     [field]: value
                 }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any
         });
     };
@@ -939,14 +939,14 @@ export function ClinicSettingsTab() {
                                             <div className="flex-1">
                                                 <input
                                                     type="number"
-                                                    value={(localSettings.assistant_timings as Record<string, {value: number; unit: string}>)?.[activeMessage]?.value ?? 1}
+                                                    value={(localSettings.assistant_timings as Record<string, { value: number; unit: string }>)?.[activeMessage]?.value ?? 1}
                                                     onChange={(e) => updateTiming(activeMessage, 'value', parseInt(e.target.value))}
                                                     className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
                                                 />
                                             </div>
                                             <div className="flex-[2]">
                                                 <select
-                                                    value={(localSettings.assistant_timings as Record<string, {value: number; unit: string}>)?.[activeMessage]?.unit ?? "hours"}
+                                                    value={(localSettings.assistant_timings as Record<string, { value: number; unit: string }>)?.[activeMessage]?.unit ?? "hours"}
                                                     onChange={(e) => updateTiming(activeMessage, 'unit', e.target.value)}
                                                     className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
                                                 >
@@ -970,17 +970,17 @@ export function ClinicSettingsTab() {
                                             <div className="absolute inset-0 p-6 text-sm font-semibold leading-relaxed pointer-events-none whitespace-pre-wrap break-words overflow-hidden text-slate-700 z-10" aria-hidden="true" style={{ fontFamily: 'inherit' }}>
                                                 {((localSettings.message_templates as Record<string, string>)?.[activeMessage] || "").split(/(\{patient_name\}|\{patient_surname\}|\{appointment_time\}|\{appointment_date\}|\{doctor_name\}|\{amount\}|\{clinic_name\})/g).map((part: string, i: number) => {
                                                     const placeholder = PLACEHOLDERS.find(p => p.key === part);
-                                                if (placeholder) {
+                                                    if (placeholder) {
                                                         return (
-                                                <span key={i} className="relative inline-block mx-0.5 align-middle group/pill">
-                                                    <span className="invisible pointer-events-none select-none">{part}</span>
-                                                    <span className="absolute inset-x-0 inset-y-[2px] rounded-md bg-indigo-100 text-indigo-700 text-[9px] font-black flex items-center justify-center px-1 shadow-sm border border-indigo-200 whitespace-nowrap">
-                                                        {placeholder.label}
-                                                    </span>
-                                                </span>
-                                                );
+                                                            <span key={i} className="relative inline-block mx-0.5 align-middle group/pill">
+                                                                <span className="invisible pointer-events-none select-none">{part}</span>
+                                                                <span className="absolute inset-x-0 inset-y-[2px] rounded-md bg-indigo-100 text-indigo-700 text-[9px] font-black flex items-center justify-center px-1 shadow-sm border border-indigo-200 whitespace-nowrap">
+                                                                    {placeholder.label}
+                                                                </span>
+                                                            </span>
+                                                        );
                                                     }
-                                                return <span key={i}>{part}</span>;
+                                                    return <span key={i}>{part}</span>;
                                                 })}
                                             </div>
                                             <textarea
@@ -1103,880 +1103,880 @@ export function ClinicSettingsTab() {
                                                             const start = textarea.selectionStart;
                                                             const end = textarea.selectionEnd;
                                                             const currentText = (localSettings.message_templates as Record<string, string>)?.[activeMessage] || "";
-                                            const newText = currentText.substring(0, start) + p.key + currentText.substring(end);
-                                            updateMessageTemplate(activeMessage, newText);
+                                                            const newText = currentText.substring(0, start) + p.key + currentText.substring(end);
+                                                            updateMessageTemplate(activeMessage, newText);
 
                                                             // Restore focus and cursor position after React update
                                                             setTimeout(() => {
-                                                textarea.focus();
-                                            textarea.setSelectionRange(start + p.key.length, start + p.key.length);
+                                                                textarea.focus();
+                                                                textarea.setSelectionRange(start + p.key.length, start + p.key.length);
                                                             }, 0);
                                                         }
                                                     }}
-                                            className={`px-3 py-2 rounded-xl bg-gradient-to-r ${p.color} text-white text-[10px] font-black uppercase tracking-widest hover:scale-110 active:scale-95 transition-all shadow-sm border border-white/20 active:cursor-grabbing select-none`}
-                                            title="Sürükle veya tıkla"
+                                                    className={`px-3 py-2 rounded-xl bg-gradient-to-r ${p.color} text-white text-[10px] font-black uppercase tracking-widest hover:scale-110 active:scale-95 transition-all shadow-sm border border-white/20 active:cursor-grabbing select-none`}
+                                                    title="Sürükle veya tıkla"
                                                 >
-                                            {p.label}
-                                        </button>
+                                                    {p.label}
+                                                </button>
                                             ))}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Preview Area */}
-                            <div className="hidden xl:flex flex-col items-center">
-                                <div className="relative w-72 h-[580px] bg-slate-900 rounded-[45px] p-3 shadow-2xl ring-8 ring-slate-800">
-                                    {/* Phone Header */}
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-3xl z-20 flex items-center justify-center">
-                                        <div className="w-10 h-1 bg-slate-800 rounded-full" />
-                                    </div>
-
-                                    <div className="w-full h-full bg-[#E5DDD5] rounded-[35px] overflow-hidden flex flex-col relative border-4 border-slate-900">
-                                        {/* WhatsApp Header */}
-                                        <div className="bg-[#075E54] p-4 pt-8 flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-white/20 rounded-full" />
-                                            <div>
-                                                <p className="text-white text-xs font-bold">{clinic.clinicName}</p>
-                                                <p className="text-white/70 text-[8px]">WhatsApp İşletme Hesabı</p>
-                                            </div>
+                                {/* Preview Area */}
+                                <div className="hidden xl:flex flex-col items-center">
+                                    <div className="relative w-72 h-[580px] bg-slate-900 rounded-[45px] p-3 shadow-2xl ring-8 ring-slate-800">
+                                        {/* Phone Header */}
+                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-3xl z-20 flex items-center justify-center">
+                                            <div className="w-10 h-1 bg-slate-800 rounded-full" />
                                         </div>
 
-                                        {/* Messages Content */}
-                                        <div className="flex-1 p-4 space-y-4 overflow-y-auto custom-scrollbar">
-                                            <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm max-w-[85%] relative break-words">
-                                                <p className="text-[11px] leading-relaxed text-slate-800 font-medium whitespace-pre-wrap italic break-words">
-                                                    {renderPreview((localSettings.message_templates as Record<string, string>)?.[activeMessage] || "")}
-                                                </p>
-                                                <div className="flex justify-end mt-1">
-                                                    <span className="text-[8px] text-slate-400 uppercase">10:45 ✓</span>
+                                        <div className="w-full h-full bg-[#E5DDD5] rounded-[35px] overflow-hidden flex flex-col relative border-4 border-slate-900">
+                                            {/* WhatsApp Header */}
+                                            <div className="bg-[#075E54] p-4 pt-8 flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-white/20 rounded-full" />
+                                                <div>
+                                                    <p className="text-white text-xs font-bold">{clinic.clinicName}</p>
+                                                    <p className="text-white/70 text-[8px]">WhatsApp İşletme Hesabı</p>
                                                 </div>
-                                                {/* bubble spike */}
-                                                <div className="absolute -left-2 top-0 w-3 h-3 bg-white" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }} />
+                                            </div>
+
+                                            {/* Messages Content */}
+                                            <div className="flex-1 p-4 space-y-4 overflow-y-auto custom-scrollbar">
+                                                <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm max-w-[85%] relative break-words">
+                                                    <p className="text-[11px] leading-relaxed text-slate-800 font-medium whitespace-pre-wrap italic break-words">
+                                                        {renderPreview((localSettings.message_templates as Record<string, string>)?.[activeMessage] || "")}
+                                                    </p>
+                                                    <div className="flex justify-end mt-1">
+                                                        <span className="text-[8px] text-slate-400 uppercase">10:45 ✓</span>
+                                                    </div>
+                                                    {/* bubble spike */}
+                                                    <div className="absolute -left-2 top-0 w-3 h-3 bg-white" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }} />
+                                                </div>
+                                            </div>
+
+                                            {/* WhatsApp Input Mockup */}
+                                            <div className="bg-white/80 backdrop-blur p-2 pb-4 flex items-center gap-2">
+                                                <div className="flex-1 h-8 bg-white rounded-full border border-slate-200 px-4 flex items-center">
+                                                    <div className="h-1 w-12 bg-slate-100 rounded-full" />
+                                                </div>
+                                                <div className="w-8 h-8 bg-[#128C7E] rounded-full flex items-center justify-center text-white shadow-lg">
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* WhatsApp Input Mockup */}
-                                        <div className="bg-white/80 backdrop-blur p-2 pb-4 flex items-center gap-2">
-                                            <div className="flex-1 h-8 bg-white rounded-full border border-slate-200 px-4 flex items-center">
-                                                <div className="h-1 w-12 bg-slate-100 rounded-full" />
-                                            </div>
-                                            <div className="w-8 h-8 bg-[#128C7E] rounded-full flex items-center justify-center text-white shadow-lg">
-                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
-                                            </div>
-                                        </div>
+                                        <p className="absolute -bottom-8 text-center w-full text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                                            CANLI ÖNİZLEME
+                                        </p>
                                     </div>
-
-                                    <p className="absolute -bottom-8 text-center w-full text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                                        CANLI ÖNİZLEME
-                                    </p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    </div>
-    )
-}
+                )
+                }
 
-{
-    activeSub === "checklist" && (
-        <div className="space-y-6">
-            <div className="bg-white rounded-[32px] border border-slate-200/60 p-6 sm:p-8 shadow-sm">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                    <div>
-                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Görev, Bildirim ve Rol Eşleşmesi</h2>
-                        <p className="text-[11px] text-slate-500 font-bold leading-relaxed max-w-2xl mt-1">
-                            Klinik içerisindeki kritik olayların (eksik veriler, ödeme takipleri, laboratuvar süreçleri) ve
-                            akıllı asistan bildirimlerinin hangi kullanıcı rollerine anlık bildirim olarak düşeceğini buradan yönetebilirsiniz.
-                        </p>
-                    </div>
-                    <button
-                        onClick={handleSaveChecklist}
-                        disabled={isLoading || checklistLoading}
-                        className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] transition-all disabled:opacity-50"
-                    >
-                        Değişiklikleri Kaydet
-                    </button>
-                </div>
-
-                {saveMessage && (
-                    <div className={`mb-6 p-4 rounded-2xl border text-sm font-bold flex items-center gap-3 ${saveMessage.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
-                        {saveMessage.text}
-                    </div>
-                )}
-
-                {checklistLoading ? (
-                    <div className="py-20 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /></div>
-                ) : (
-                    <div className="space-y-6">
-                        <div className="flex flex-col gap-8">
-                            {/* Teknik Görevler */}
-                            <div className="w-full">
-                                <div className="flex items-center gap-3 mb-6 bg-slate-50/50 p-4 rounded-3xl border border-slate-100 w-fit">
-                                    <div className="p-2 bg-white rounded-xl shadow-sm">
-                                        <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                    </div>
+                {
+                    activeSub === "checklist" && (
+                        <div className="space-y-6">
+                            <div className="bg-white rounded-[32px] border border-slate-200/60 p-6 sm:p-8 shadow-sm">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                                     <div>
-                                        <h3 className="text-[12px] font-black text-slate-800 uppercase tracking-widest">Operasyonel Takip Bildirimleri</h3>
-                                        <p className="text-[10px] text-slate-500 font-bold tracking-tight max-w-lg leading-relaxed">
-                                            Sistem tarafından otomatik üretilen aksaklık ve görev uyarılarının
-                                            hangi rollere anlık bildirim olarak düşeceğini buradan belirleyin.
+                                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Görev, Bildirim ve Rol Eşleşmesi</h2>
+                                        <p className="text-[11px] text-slate-500 font-bold leading-relaxed max-w-2xl mt-1">
+                                            Klinik içerisindeki kritik olayların (eksik veriler, ödeme takipleri, laboratuvar süreçleri) ve
+                                            akıllı asistan bildirimlerinin hangi kullanıcı rollerine anlık bildirim olarak düşeceğini buradan yönetebilirsiniz.
                                         </p>
                                     </div>
+                                    <button
+                                        onClick={handleSaveChecklist}
+                                        disabled={isLoading || checklistLoading}
+                                        className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] transition-all disabled:opacity-50"
+                                    >
+                                        Değişiklikleri Kaydet
+                                    </button>
                                 </div>
-                                <div className="flex flex-col gap-3">
-                                    {taskDefs.filter(d => !d.code.startsWith('ASSISTANT_') && !['BIRTHDAY', 'DELAY', 'FOLLOWUP', 'INCOMPLETE', 'NEW_PATIENT', 'LAB_TRACKING'].includes(d.code)).map((def) => (
-                                        <div key={def.id} className="group/row flex flex-col hover:bg-slate-50 border border-slate-200/60 hover:border-indigo-200 rounded-3xl p-5 transition-all shadow-sm">
-                                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                                                {/* Sol Kısım: İkon ve Görev Adı */}
-                                                <div className="flex items-start gap-4 flex-1 min-w-0">
-                                                    <div className="mt-0.5 w-10 h-10 rounded-2xl bg-indigo-50/80 border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm shadow-indigo-100 transition-transform">
-                                                        <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+
+                                {saveMessage && (
+                                    <div className={`mb-6 p-4 rounded-2xl border text-sm font-bold flex items-center gap-3 ${saveMessage.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+                                        {saveMessage.text}
+                                    </div>
+                                )}
+
+                                {checklistLoading ? (
+                                    <div className="py-20 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /></div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        <div className="flex flex-col gap-8">
+                                            {/* Teknik Görevler */}
+                                            <div className="w-full">
+                                                <div className="flex items-center gap-3 mb-6 bg-slate-50/50 p-4 rounded-3xl border border-slate-100 w-fit">
+                                                    <div className="p-2 bg-white rounded-xl shadow-sm">
+                                                        <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                                     </div>
-                                                    <div className="flex-1 min-w-0 px-1">
-                                                        <div className="flex items-center flex-wrap gap-2 mb-1">
-                                                            <h3 className="text-[13px] font-black text-slate-900 tracking-tight uppercase whitespace-pre-wrap">{def.title}</h3>
-                                                            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center cursor-help group/info relative shrink-0">
-                                                                <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                                <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-72 p-4 bg-slate-900 shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-white text-[11px] font-medium rounded-2xl opacity-0 translate-y-2 group-hover/info:opacity-100 group-hover/info:translate-y-0 transition-all pointer-events-none z-[100] border border-white/10 ring-1 ring-black/5">
-                                                                    <div className="flex flex-col gap-1.5 whitespace-normal">
-                                                                        <span className="text-indigo-400 font-black text-[10px] uppercase tracking-wider border-b border-white/5 pb-1 mb-0.5 whitespace-nowrap">Bilgilendirme</span>
-                                                                        <p className="leading-relaxed text-slate-200">{def.description}</p>
+                                                    <div>
+                                                        <h3 className="text-[12px] font-black text-slate-800 uppercase tracking-widest">Operasyonel Takip Bildirimleri</h3>
+                                                        <p className="text-[10px] text-slate-500 font-bold tracking-tight max-w-lg leading-relaxed">
+                                                            Sistem tarafından otomatik üretilen aksaklık ve görev uyarılarının
+                                                            hangi rollere anlık bildirim olarak düşeceğini buradan belirleyin.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col gap-3">
+                                                    {taskDefs.filter(d => !d.code.startsWith('ASSISTANT_') && !['BIRTHDAY', 'DELAY', 'FOLLOWUP', 'INCOMPLETE', 'NEW_PATIENT', 'LAB_TRACKING'].includes(d.code)).map((def) => (
+                                                        <div key={def.id} className="group/row flex flex-col hover:bg-slate-50 border border-slate-200/60 hover:border-indigo-200 rounded-3xl p-5 transition-all shadow-sm">
+                                                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                                                {/* Sol Kısım: İkon ve Görev Adı */}
+                                                                <div className="flex items-start gap-4 flex-1 min-w-0">
+                                                                    <div className="mt-0.5 w-10 h-10 rounded-2xl bg-indigo-50/80 border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm shadow-indigo-100 transition-transform">
+                                                                        <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                                                     </div>
+                                                                    <div className="flex-1 min-w-0 px-1">
+                                                                        <div className="flex items-center flex-wrap gap-2 mb-1">
+                                                                            <h3 className="text-[13px] font-black text-slate-900 tracking-tight uppercase whitespace-pre-wrap">{def.title}</h3>
+                                                                            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center cursor-help group/info relative shrink-0">
+                                                                                <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                                <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-72 p-4 bg-slate-900 shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-white text-[11px] font-medium rounded-2xl opacity-0 translate-y-2 group-hover/info:opacity-100 group-hover/info:translate-y-0 transition-all pointer-events-none z-[100] border border-white/10 ring-1 ring-black/5">
+                                                                                    <div className="flex flex-col gap-1.5 whitespace-normal">
+                                                                                        <span className="text-indigo-400 font-black text-[10px] uppercase tracking-wider border-b border-white/5 pb-1 mb-0.5 whitespace-nowrap">Bilgilendirme</span>
+                                                                                        <p className="leading-relaxed text-slate-200">{def.description}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed w-full break-words">{def.description}</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Sağ Kısım: Rol Seçiciler (Pills) */}
+                                                                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0">
+                                                                    {[UserRole.ADMIN, UserRole.DOKTOR, UserRole.SEKRETER, UserRole.FINANS].map((role) => {
+                                                                        const active = isRoleSelected(def.id, role);
+                                                                        return (
+                                                                            <button
+                                                                                key={role}
+                                                                                onClick={() => handleToggleRole(def.id, role)}
+                                                                                className={`px-3 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${active ? 'bg-indigo-600 text-white shadow-md border border-indigo-700' : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-800'}`}
+                                                                            >
+                                                                                {active && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                                                                                {role === UserRole.DOKTOR ? "HEKİM" : role}
+                                                                            </button>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed w-full break-words">{def.description}</p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Sağ Kısım: Rol Seçiciler (Pills) */}
-                                                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0">
-                                                    {[UserRole.ADMIN, UserRole.DOKTOR, UserRole.SEKRETER, UserRole.FINANS].map((role) => {
-                                                        const active = isRoleSelected(def.id, role);
-                                                        return (
-                                                            <button
-                                                                key={role}
-                                                                onClick={() => handleToggleRole(def.id, role)}
-                                                                className={`px-3 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${active ? 'bg-indigo-600 text-white shadow-md border border-indigo-700' : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-800'}`}
-                                                            >
-                                                                {active && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-                                                                {role === UserRole.DOKTOR ? "HEKİM" : role}
-                                                            </button>
-                                                        );
-                                                    })}
+                                                    ))}
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
 
-                            {/* Akıllı Asistan Bildirim Yetkileri */}
-                            <div className="mt-4">
-                                <div className="flex items-center gap-3 mb-6 bg-violet-50/50 p-4 rounded-3xl border border-violet-100 w-fit">
-                                    <div className="p-2 bg-white rounded-xl shadow-sm">
-                                        <svg className="w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-[12px] font-black text-slate-800 uppercase tracking-widest">Hasta İletişimi & Asistan Bildirimleri</h3>
-                                        <p className="text-[10px] text-slate-500 font-bold tracking-tight max-w-lg leading-relaxed">
-                                            Hastalara giden otomatik mesajlar (tebrik, takip, hatırlatma vb.)
-                                            hakkında hangi ekip üyelerinin bilgilendirileceğini buradan seçin.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-3">
-                                    {taskDefs.filter(d => d.code.startsWith('ASSISTANT_') || ['BIRTHDAY', 'DELAY', 'FOLLOWUP', 'INCOMPLETE', 'NEW_PATIENT', 'LAB_TRACKING'].includes(d.code)).map((def) => (
-                                        <div key={def.id} className="group/row flex flex-col hover:bg-slate-50 border border-slate-200/60 hover:border-violet-200 rounded-3xl p-5 transition-all shadow-sm">
-                                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                                                {/* Sol Kısım: İkon ve Görev Adı */}
-                                                <div className="flex items-start gap-4 flex-1 min-w-0">
-                                                    <div className="mt-0.5 w-10 h-10 rounded-2xl bg-violet-50/80 border border-violet-100 flex items-center justify-center shrink-0 shadow-sm shadow-violet-100 transition-transform">
-                                                        <svg className="w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                            {/* Akıllı Asistan Bildirim Yetkileri */}
+                                            <div className="mt-4">
+                                                <div className="flex items-center gap-3 mb-6 bg-violet-50/50 p-4 rounded-3xl border border-violet-100 w-fit">
+                                                    <div className="p-2 bg-white rounded-xl shadow-sm">
+                                                        <svg className="w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                                                     </div>
-                                                    <div className="flex-1 min-w-0 px-1">
-                                                        <div className="flex items-center flex-wrap gap-2 mb-1">
-                                                            <h3 className="text-[13px] font-black text-slate-900 tracking-tight uppercase whitespace-pre-wrap">{def.title}</h3>
-                                                            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center cursor-help group/info relative shrink-0">
-                                                                <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                                <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-72 p-4 bg-slate-900 shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-white text-[11px] font-medium rounded-2xl opacity-0 translate-y-2 group-hover/info:opacity-100 group-hover/info:translate-y-0 transition-all pointer-events-none z-[100] border border-white/10 ring-1 ring-black/5">
-                                                                    <div className="flex flex-col gap-1.5 whitespace-normal">
-                                                                        <span className="text-violet-400 font-black text-[10px] uppercase tracking-wider border-b border-white/5 pb-1 mb-0.5 whitespace-nowrap">Bilgilendirme</span>
-                                                                        <p className="leading-relaxed text-slate-200">{def.description}</p>
+                                                    <div>
+                                                        <h3 className="text-[12px] font-black text-slate-800 uppercase tracking-widest">Hasta İletişimi & Asistan Bildirimleri</h3>
+                                                        <p className="text-[10px] text-slate-500 font-bold tracking-tight max-w-lg leading-relaxed">
+                                                            Hastalara giden otomatik mesajlar (tebrik, takip, hatırlatma vb.)
+                                                            hakkında hangi ekip üyelerinin bilgilendirileceğini buradan seçin.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col gap-3">
+                                                    {taskDefs.filter(d => d.code.startsWith('ASSISTANT_') || ['BIRTHDAY', 'DELAY', 'FOLLOWUP', 'INCOMPLETE', 'NEW_PATIENT', 'LAB_TRACKING'].includes(d.code)).map((def) => (
+                                                        <div key={def.id} className="group/row flex flex-col hover:bg-slate-50 border border-slate-200/60 hover:border-violet-200 rounded-3xl p-5 transition-all shadow-sm">
+                                                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                                                {/* Sol Kısım: İkon ve Görev Adı */}
+                                                                <div className="flex items-start gap-4 flex-1 min-w-0">
+                                                                    <div className="mt-0.5 w-10 h-10 rounded-2xl bg-violet-50/80 border border-violet-100 flex items-center justify-center shrink-0 shadow-sm shadow-violet-100 transition-transform">
+                                                                        <svg className="w-5 h-5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                                                                     </div>
+                                                                    <div className="flex-1 min-w-0 px-1">
+                                                                        <div className="flex items-center flex-wrap gap-2 mb-1">
+                                                                            <h3 className="text-[13px] font-black text-slate-900 tracking-tight uppercase whitespace-pre-wrap">{def.title}</h3>
+                                                                            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center cursor-help group/info relative shrink-0">
+                                                                                <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                                <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-72 p-4 bg-slate-900 shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-white text-[11px] font-medium rounded-2xl opacity-0 translate-y-2 group-hover/info:opacity-100 group-hover/info:translate-y-0 transition-all pointer-events-none z-[100] border border-white/10 ring-1 ring-black/5">
+                                                                                    <div className="flex flex-col gap-1.5 whitespace-normal">
+                                                                                        <span className="text-violet-400 font-black text-[10px] uppercase tracking-wider border-b border-white/5 pb-1 mb-0.5 whitespace-nowrap">Bilgilendirme</span>
+                                                                                        <p className="leading-relaxed text-slate-200">{def.description}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed w-full break-words">{def.description}</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Sağ Kısım: Rol Seçiciler (Pills) */}
+                                                                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0">
+                                                                    {[UserRole.ADMIN, UserRole.DOKTOR, UserRole.SEKRETER, UserRole.FINANS].map((role) => {
+                                                                        const active = isRoleSelected(def.id, role);
+                                                                        return (
+                                                                            <button
+                                                                                key={role}
+                                                                                onClick={() => handleToggleRole(def.id, role)}
+                                                                                className={`px-3 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${active ? 'bg-violet-600 text-white shadow-md border border-violet-700' : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-800'}`}
+                                                                            >
+                                                                                {active && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                                                                                {role === UserRole.DOKTOR ? "HEKİM" : role}
+                                                                            </button>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed w-full break-words">{def.description}</p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Sağ Kısım: Rol Seçiciler (Pills) */}
-                                                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0">
-                                                    {[UserRole.ADMIN, UserRole.DOKTOR, UserRole.SEKRETER, UserRole.FINANS].map((role) => {
-                                                        const active = isRoleSelected(def.id, role);
-                                                        return (
-                                                            <button
-                                                                key={role}
-                                                                onClick={() => handleToggleRole(def.id, role)}
-                                                                className={`px-3 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${active ? 'bg-violet-600 text-white shadow-md border border-violet-700' : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-800'}`}
-                                                            >
-                                                                {active && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-                                                                {role === UserRole.DOKTOR ? "HEKİM" : role}
-                                                            </button>
-                                                        );
-                                                    })}
+                                                    ))}
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
 
-                            <div className="w-full mt-4 group isolate relative">
-                                <div className="group/row flex flex-col hover:bg-slate-50 border border-slate-200/60 hover:border-amber-200 rounded-3xl p-5 transition-all shadow-sm relative group-hover:z-[110] bg-white">
-                                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-400/20 to-transparent" />
-                                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-                                        {/* Sol Kısım: İkon ve Görev Adı */}
-                                        <div className="flex items-start gap-4 flex-1 min-w-0">
-                                            <div className="mt-0.5 w-10 h-10 rounded-2xl bg-amber-50/80 border border-amber-100 flex items-center justify-center shrink-0 shadow-sm shadow-amber-100 transition-transform">
-                                                <svg className="w-5 h-5 text-amber-500 animate-swing origin-top" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-                                            </div>
-                                            <div className="flex-1 min-w-0 px-1">
-                                                <div className="flex items-center flex-wrap gap-2 mb-1">
-                                                    <h3 className="text-[13px] font-black text-slate-900 tracking-tight uppercase whitespace-pre-wrap">Klinik İçi Anlık Sistemsel Bildirimler</h3>
-                                                    <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center cursor-help group/info relative shrink-0">
-                                                        <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                        <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-72 p-4 bg-slate-900 shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-white text-[11px] font-medium rounded-2xl opacity-0 translate-y-2 group-hover/info:opacity-100 group-hover/info:translate-y-0 transition-all pointer-events-none z-[120] border border-white/10 ring-1 ring-black/5">
-                                                            <div className="flex flex-col gap-1.5 whitespace-normal">
-                                                                <p className="flex items-center gap-2 text-amber-400 font-black text-[10px] uppercase tracking-wider border-b border-white/5 pb-1 mb-0.5 whitespace-nowrap">
-                                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" /></svg>
-                                                                    BİLDİRİM REHBERİ
-                                                                </p>
-                                                                <p className="leading-relaxed text-slate-200 text-left">Randevu defterine yeni bir kayıt girildiğinde veya mevcut bir randevunun detayları (saat, hekim vb.) değiştirildiğinde; seçilen rollere sahip tüm personelin ekranına (sağ üstteki zil ikonuna) anlık uyarı düşer.</p>
+                                            <div className="w-full mt-4 group isolate relative">
+                                                <div className="group/row flex flex-col hover:bg-slate-50 border border-slate-200/60 hover:border-amber-200 rounded-3xl p-5 transition-all shadow-sm relative group-hover:z-[110] bg-white">
+                                                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-400/20 to-transparent" />
+                                                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+                                                        {/* Sol Kısım: İkon ve Görev Adı */}
+                                                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                                                            <div className="mt-0.5 w-10 h-10 rounded-2xl bg-amber-50/80 border border-amber-100 flex items-center justify-center shrink-0 shadow-sm shadow-amber-100 transition-transform">
+                                                                <svg className="w-5 h-5 text-amber-500 animate-swing origin-top" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
                                                             </div>
+                                                            <div className="flex-1 min-w-0 px-1">
+                                                                <div className="flex items-center flex-wrap gap-2 mb-1">
+                                                                    <h3 className="text-[13px] font-black text-slate-900 tracking-tight uppercase whitespace-pre-wrap">Klinik İçi Anlık Sistemsel Bildirimler</h3>
+                                                                    <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center cursor-help group/info relative shrink-0">
+                                                                        <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                        <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-72 p-4 bg-slate-900 shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-white text-[11px] font-medium rounded-2xl opacity-0 translate-y-2 group-hover/info:opacity-100 group-hover/info:translate-y-0 transition-all pointer-events-none z-[120] border border-white/10 ring-1 ring-black/5">
+                                                                            <div className="flex flex-col gap-1.5 whitespace-normal">
+                                                                                <p className="flex items-center gap-2 text-amber-400 font-black text-[10px] uppercase tracking-wider border-b border-white/5 pb-1 mb-0.5 whitespace-nowrap">
+                                                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" /></svg>
+                                                                                    BİLDİRİM REHBERİ
+                                                                                </p>
+                                                                                <p className="leading-relaxed text-slate-200 text-left">Randevu defterine yeni bir kayıt girildiğinde veya mevcut bir randevunun detayları (saat, hekim vb.) değiştirildiğinde; seçilen rollere sahip tüm personelin ekranına (sağ üstteki zil ikonuna) anlık uyarı düşer.</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-[10px] text-slate-500 font-bold leading-relaxed w-full break-words">Randevu girişlerinde veya güncellemelerinde anlık bildirim alacak rolleri seçin.</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Sağ Kısım: Rol Seçiciler (Pills) */}
+                                                        <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0">
+                                                            {[UserRole.ADMIN, UserRole.DOKTOR, UserRole.SEKRETER, UserRole.FINANS].map((role) => {
+                                                                const active = notifRules.notify_roles_on_new_appointment.includes(role);
+                                                                return (
+                                                                    <button
+                                                                        key={role}
+                                                                        onClick={() => {
+                                                                            const updated = active
+                                                                                ? notifRules.notify_roles_on_new_appointment.filter(r => r !== role)
+                                                                                : [...notifRules.notify_roles_on_new_appointment, role];
+                                                                            setNotifRules(prev => ({ ...prev, notify_roles_on_new_appointment: updated }));
+                                                                        }}
+                                                                        className={`px-3 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${active ? 'bg-amber-500 text-white shadow-md border border-amber-600' : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-800'}`}
+                                                                    >
+                                                                        {active && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                                                                        {role === UserRole.DOKTOR ? 'HEKİM' : role}
+                                                                    </button>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <p className="text-[10px] text-slate-500 font-bold leading-relaxed w-full break-words">Randevu girişlerinde veya güncellemelerinde anlık bildirim alacak rolleri seçin.</p>
                                             </div>
-                                        </div>
 
-                                        {/* Sağ Kısım: Rol Seçiciler (Pills) */}
-                                        <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0">
-                                            {[UserRole.ADMIN, UserRole.DOKTOR, UserRole.SEKRETER, UserRole.FINANS].map((role) => {
-                                                const active = notifRules.notify_roles_on_new_appointment.includes(role);
-                                                return (
-                                                    <button
-                                                        key={role}
-                                                        onClick={() => {
-                                                            const updated = active
-                                                                ? notifRules.notify_roles_on_new_appointment.filter(r => r !== role)
-                                                                : [...notifRules.notify_roles_on_new_appointment, role];
-                                                            setNotifRules(prev => ({ ...prev, notify_roles_on_new_appointment: updated }));
-                                                        }}
-                                                        className={`px-3 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${active ? 'bg-amber-500 text-white shadow-md border border-amber-600' : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-800'}`}
-                                                    >
-                                                        {active && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-                                                        {role === UserRole.DOKTOR ? 'HEKİM' : role}
-                                                    </button>
-                                                );
-                                            })}
+                                            {/* Modül İzinleri: Kasa Kapatma */}
+                                            <div className="w-full mt-4 group isolate relative">
+                                                <div className="group/row flex flex-col hover:bg-slate-50 border border-slate-200/60 hover:border-emerald-200 rounded-3xl p-5 transition-all shadow-sm relative group-hover:z-[110] bg-white">
+                                                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400/20 to-transparent" />
+                                                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+                                                        {/* Sol Kısım */}
+                                                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                                                            <div className="mt-0.5 w-10 h-10 rounded-2xl bg-emerald-50/80 border border-emerald-100 flex items-center justify-center shrink-0 shadow-sm shadow-emerald-100 transition-transform">
+                                                                <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0 px-1">
+                                                                <div className="flex items-center flex-wrap gap-2 mb-1">
+                                                                    <h3 className="text-[13px] font-black text-slate-900 tracking-tight uppercase whitespace-pre-wrap">Gün Sonu Kasa Kapatma</h3>
+                                                                    <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center cursor-help group/info relative shrink-0">
+                                                                        <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                        <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-72 p-4 bg-slate-900 shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-white text-[11px] font-medium rounded-2xl opacity-0 translate-y-2 group-hover/info:opacity-100 group-hover/info:translate-y-0 transition-all pointer-events-none z-[120] border border-white/10 ring-1 ring-black/5">
+                                                                            <div className="flex flex-col gap-1.5 whitespace-normal">
+                                                                                <p className="text-emerald-400 font-black text-[10px] uppercase tracking-wider border-b border-white/5 pb-1 mb-0.5 flex items-center gap-2 whitespace-nowrap">
+                                                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                                                                                    MALİ GÜVENLİK REHBERİ
+                                                                                </p>
+                                                                                <p className="leading-relaxed text-slate-200 text-left">Bu yetki, gün sonunda toplanan ödemelerin kontrol edilip kasanın resmi olarak kapatılması işlemini kimlerin yapabileceğini belirler.</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-[10px] text-slate-500 font-bold leading-relaxed w-full break-words">Seçilen roller günü kapatabilir. Hiç seçilmezse tüm kullanıcılar kapatır.</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Sağ Kısım */}
+                                                        <div className="flex flex-col items-start lg:items-end gap-3 shrink-0 border-t border-slate-100 lg:border-t-0 pt-4 lg:pt-0">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                {[UserRole.ADMIN, UserRole.DOKTOR, UserRole.SEKRETER, UserRole.FINANS].map((role) => {
+                                                                    const selected = dayCloseRoles.includes(role);
+                                                                    return (
+                                                                        <button
+                                                                            key={role}
+                                                                            onClick={() => setDayCloseRoles(prev => selected ? prev.filter(r => r !== role) : [...prev, role])}
+                                                                            className={`px-3 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${selected ? 'bg-emerald-600 border border-emerald-700 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-800'}`}
+                                                                        >
+                                                                            {selected && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                                                                            {role === UserRole.DOKTOR ? "HEKİM" : role}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                            {dayCloseRoles.length === 0 && (
+                                                                <p className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg uppercase tracking-tight flex items-center gap-1.5 border border-emerald-100">
+                                                                    <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
+                                                                    Tüm kullanıcılar kapatabilir
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {/* Background decoration */}
+                                                <div className="absolute -right-6 top-[-10%] opacity-[0.04] text-emerald-900 group-hover/finance:scale-110 group-hover/finance:-rotate-12 transition-all duration-700 pointer-events-none">
+                                                    <svg className="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.82v-1.91c-1.47-.29-2.83-1.03-3.92-2.1l1.39-1.39c.83.83 1.83 1.41 2.94 1.63v-3.79c-1.89-.48-3.52-1.78-3.52-4.04 0-2.02 1.35-3.64 3.52-4.14V3h2.82v1.9c1.07.21 2.06.67 2.9 1.33L16.4 7.62a4.4 4.4 0 00-2.43-.91v3.42c1.77.44 3.79 1.6 3.79 4.31 0 2.21-1.52 3.44-3.79 4.14v3.13c1.52-.3 2.82-.95 3.79-1.95zm-2.82-10.75c-.88.24-1.33.8-1.33 1.54 0 .7.45 1.2 1.33 1.45V7.34zm2.82 7.15c.95-.31 1.45-.9 1.45-1.74 0-.8-.5-1.4-1.45-1.7v3.44z" /></svg>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
+                        </div>
+                    )
+                }
 
-                            {/* Modül İzinleri: Kasa Kapatma */}
-                            <div className="w-full mt-4 group isolate relative">
-                                <div className="group/row flex flex-col hover:bg-slate-50 border border-slate-200/60 hover:border-emerald-200 rounded-3xl p-5 transition-all shadow-sm relative group-hover:z-[110] bg-white">
-                                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400/20 to-transparent" />
-                                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-                                        {/* Sol Kısım */}
-                                        <div className="flex items-start gap-4 flex-1 min-w-0">
-                                            <div className="mt-0.5 w-10 h-10 rounded-2xl bg-emerald-50/80 border border-emerald-100 flex items-center justify-center shrink-0 shadow-sm shadow-emerald-100 transition-transform">
-                                                <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {
+                    activeSub === "general" && (
+                        <div className="space-y-6">
+                            <div className="bg-white rounded-[32px] border border-slate-200/60 p-6 sm:p-8 shadow-sm">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                                    <div>
+                                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Klinik Çalışma Saatleri</h2>
+                                        <p className="text-sm text-slate-500 font-medium italic">Haftalık düzen ve özel gün istisnalarını yönetin.</p>
+                                    </div>
+                                    <button
+                                        onClick={handleSaveGeneral}
+                                        disabled={isLoading}
+                                        className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] transition-all disabled:opacity-50"
+                                    >
+                                        Ayarları Kaydet
+                                    </button>
+                                </div>
+
+                                <div className="flex gap-4 border-b border-slate-100 mb-8">
+                                    <button onClick={() => setActiveGeneralTab("standard")} className={`pb-3 text-xs font-black uppercase tracking-widest relative ${activeGeneralTab === 'standard' ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                        Haftalık Düzen
+                                        {activeGeneralTab === 'standard' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-full" />}
+                                    </button>
+                                    <button onClick={() => setActiveGeneralTab("exceptions")} className={`pb-3 text-xs font-black uppercase tracking-widest relative ${activeGeneralTab === 'exceptions' ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                        Özel Günler
+                                        {activeGeneralTab === 'exceptions' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-full" />}
+                                    </button>
+                                </div>
+
+                                {activeGeneralTab === "standard" ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {ORDERED_DAYS.map((day) => (
+                                            <div key={day} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50/30">
+                                                <span className="w-20 text-[10px] font-black text-slate-700 uppercase tracking-tighter shrink-0">{DAY_LABELS[day]}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <input type="time" value={localHours[day].open} onChange={(e) => handleUpdateStandard(day, "open", e.target.value)} disabled={!localHours[day].enabled} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-40" />
+                                                    <span className="text-slate-400">-</span>
+                                                    <input type="time" value={localHours[day].close} onChange={(e) => handleUpdateStandard(day, "close", e.target.value)} disabled={!localHours[day].enabled} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-40" />
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer ml-auto">
+                                                    <input type="checkbox" className="sr-only peer" checked={localHours[day].enabled} onChange={(e) => handleUpdateStandard(day, "enabled", e.target.checked)} />
+                                                    <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                                                </label>
                                             </div>
-                                            <div className="flex-1 min-w-0 px-1">
-                                                <div className="flex items-center flex-wrap gap-2 mb-1">
-                                                    <h3 className="text-[13px] font-black text-slate-900 tracking-tight uppercase whitespace-pre-wrap">Gün Sonu Kasa Kapatma</h3>
-                                                    <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center cursor-help group/info relative shrink-0">
-                                                        <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                        <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-72 p-4 bg-slate-900 shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-white text-[11px] font-medium rounded-2xl opacity-0 translate-y-2 group-hover/info:opacity-100 group-hover/info:translate-y-0 transition-all pointer-events-none z-[120] border border-white/10 ring-1 ring-black/5">
-                                                            <div className="flex flex-col gap-1.5 whitespace-normal">
-                                                                <p className="text-emerald-400 font-black text-[10px] uppercase tracking-wider border-b border-white/5 pb-1 mb-0.5 flex items-center gap-2 whitespace-nowrap">
-                                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                                                                    MALİ GÜVENLİK REHBERİ
-                                                                </p>
-                                                                <p className="leading-relaxed text-slate-200 text-left">Bu yetki, gün sonunda toplanan ödemelerin kontrol edilip kasanın resmi olarak kapatılması işlemini kimlerin yapabileceğini belirler.</p>
-                                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        {saveMessage && (
+                                            <div className={`p-3 rounded-2xl border text-sm font-bold flex items-center gap-2 ${saveMessage.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+                                                {saveMessage.text}
+                                            </div>
+                                        )}
+                                        <div className="flex justify-end">
+                                            <button
+                                                onClick={handleAddOfficialHolidays}
+                                                className="flex items-center gap-2 h-9 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all active:scale-95"
+                                            >
+                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                                                </svg>
+                                                2026 Resmi Tatillerini Ekle
+                                            </button>
+                                        </div>
+                                        <div className="p-6 rounded-[32px] bg-slate-50 border border-slate-200/60 shadow-inner space-y-6">
+                                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                                <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-full sm:w-auto">
+                                                    <button onClick={() => setIsRangeMode(false)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${!isRangeMode ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Tek Gün</button>
+                                                    <button onClick={() => setIsRangeMode(true)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${isRangeMode ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Aralık</button>
+                                                </div>
+                                                <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-full sm:w-auto">
+                                                    <button onClick={() => setIsFullDayOverride(true)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${isFullDayOverride ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Tüm Gün</button>
+                                                    <button onClick={() => setIsFullDayOverride(false)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${!isFullDayOverride ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Özel Saatler</button>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{isRangeMode ? 'Başlangıç' : 'Tarih'}</label>
+                                                    <PremiumDatePicker
+                                                        value={newOverrideDate}
+                                                        onChange={setNewOverrideDate}
+                                                        compact
+                                                    />
+                                                </div>
+                                                {isRangeMode && (
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bitiş</label>
+                                                        <PremiumDatePicker
+                                                            value={newOverrideEndDate}
+                                                            onChange={setNewOverrideEndDate}
+                                                            compact
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                {!isFullDayOverride && (
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Saat Aralığı</label>
+                                                        <div className="flex items-center gap-2">
+                                                            <input type="time" value={newOverrideOpen} onChange={(e) => setNewOverrideOpen(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold shadow-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" />
+                                                            <input type="time" value={newOverrideClose} onChange={(e) => setNewOverrideClose(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold shadow-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" />
                                                         </div>
                                                     </div>
+                                                )}
+                                                <div className={`space-y-1.5 ${(!isRangeMode && isFullDayOverride) ? 'md:col-span-2' : ''} ${(isRangeMode && !isFullDayOverride) ? 'md:col-span-1' : ''}`}>
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Açıklama</label>
+                                                    <input type="text" placeholder="Örn: Bayram Tatili" value={newOverrideNote} onChange={(e) => setNewOverrideNote(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold shadow-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
                                                 </div>
-                                                <p className="text-[10px] text-slate-500 font-bold leading-relaxed w-full break-words">Seçilen roller günü kapatabilir. Hiç seçilmezse tüm kullanıcılar kapatır.</p>
+                                                <div className="flex items-end">
+                                                    <button onClick={addOverride} className="w-full h-[42px] bg-indigo-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all active:scale-[0.98]">Ekle</button>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Sağ Kısım */}
-                                        <div className="flex flex-col items-start lg:items-end gap-3 shrink-0 border-t border-slate-100 lg:border-t-0 pt-4 lg:pt-0">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                {[UserRole.ADMIN, UserRole.DOKTOR, UserRole.SEKRETER, UserRole.FINANS].map((role) => {
-                                                    const selected = dayCloseRoles.includes(role);
-                                                    return (
-                                                        <button
-                                                            key={role}
-                                                            onClick={() => setDayCloseRoles(prev => selected ? prev.filter(r => r !== role) : [...prev, role])}
-                                                            className={`px-3 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all flex items-center gap-2 ${selected ? 'bg-emerald-600 border border-emerald-700 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-800'}`}
-                                                        >
-                                                            {selected && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-                                                            {role === UserRole.DOKTOR ? "HEKİM" : role}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                            {dayCloseRoles.length === 0 && (
-                                                <p className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg uppercase tracking-tight flex items-center gap-1.5 border border-emerald-100">
-                                                    <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
-                                                    Tüm kullanıcılar kapatabilir
-                                                </p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-4">
+                                            {localOverrides.map((ov) => (
+                                                <div key={ov.date} className="group relative p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 transition-all shadow-sm hover:shadow-md">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-black text-slate-900">{new Date(ov.date).toLocaleDateString("tr-TR", { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{new Date(ov.date).toLocaleDateString("tr-TR", { weekday: 'long' })}</span>
+                                                        </div>
+                                                        <button onClick={() => removeOverride(ov.date)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${ov.is_closed ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
+                                                            {ov.is_closed ? 'Kapalı' : `${ov.open} - ${ov.close}`}
+                                                        </span>
+                                                        {ov.note && <span className="text-[10px] text-slate-500 font-medium truncate italic border-l pl-2 border-slate-100">{ov.note}</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {localOverrides.length === 0 && (
+                                                <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-100 rounded-[32px]">
+                                                    <p className="text-xs font-bold text-slate-400 italic">Henüz özel gün veya istisna eklenmemiş.</p>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
-                                </div>
-                                {/* Background decoration */}
-                                <div className="absolute -right-6 top-[-10%] opacity-[0.04] text-emerald-900 group-hover/finance:scale-110 group-hover/finance:-rotate-12 transition-all duration-700 pointer-events-none">
-                                    <svg className="w-40 h-40" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.82v-1.91c-1.47-.29-2.83-1.03-3.92-2.1l1.39-1.39c.83.83 1.83 1.41 2.94 1.63v-3.79c-1.89-.48-3.52-1.78-3.52-4.04 0-2.02 1.35-3.64 3.52-4.14V3h2.82v1.9c1.07.21 2.06.67 2.9 1.33L16.4 7.62a4.4 4.4 0 00-2.43-.91v3.42c1.77.44 3.79 1.6 3.79 4.31 0 2.21-1.52 3.44-3.79 4.14v3.13c1.52-.3 2.82-.95 3.79-1.95zm-2.82-10.75c-.88.24-1.33.8-1.33 1.54 0 .7.45 1.2 1.33 1.45V7.34zm2.82 7.15c.95-.31 1.45-.9 1.45-1.74 0-.8-.5-1.4-1.45-1.7v3.44z" /></svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    )
-}
-
-{
-    activeSub === "general" && (
-        <div className="space-y-6">
-            <div className="bg-white rounded-[32px] border border-slate-200/60 p-6 sm:p-8 shadow-sm">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                    <div>
-                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Klinik Çalışma Saatleri</h2>
-                        <p className="text-sm text-slate-500 font-medium italic">Haftalık düzen ve özel gün istisnalarını yönetin.</p>
-                    </div>
-                    <button
-                        onClick={handleSaveGeneral}
-                        disabled={isLoading}
-                        className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] transition-all disabled:opacity-50"
-                    >
-                        Ayarları Kaydet
-                    </button>
-                </div>
-
-                <div className="flex gap-4 border-b border-slate-100 mb-8">
-                    <button onClick={() => setActiveGeneralTab("standard")} className={`pb-3 text-xs font-black uppercase tracking-widest relative ${activeGeneralTab === 'standard' ? 'text-indigo-600' : 'text-slate-400'}`}>
-                        Haftalık Düzen
-                        {activeGeneralTab === 'standard' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-full" />}
-                    </button>
-                    <button onClick={() => setActiveGeneralTab("exceptions")} className={`pb-3 text-xs font-black uppercase tracking-widest relative ${activeGeneralTab === 'exceptions' ? 'text-indigo-600' : 'text-slate-400'}`}>
-                        Özel Günler
-                        {activeGeneralTab === 'exceptions' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 rounded-full" />}
-                    </button>
-                </div>
-
-                {activeGeneralTab === "standard" ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {ORDERED_DAYS.map((day) => (
-                            <div key={day} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50/30">
-                                <span className="w-20 text-[10px] font-black text-slate-700 uppercase tracking-tighter shrink-0">{DAY_LABELS[day]}</span>
-                                <div className="flex items-center gap-2">
-                                    <input type="time" value={localHours[day].open} onChange={(e) => handleUpdateStandard(day, "open", e.target.value)} disabled={!localHours[day].enabled} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-40" />
-                                    <span className="text-slate-400">-</span>
-                                    <input type="time" value={localHours[day].close} onChange={(e) => handleUpdateStandard(day, "close", e.target.value)} disabled={!localHours[day].enabled} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-40" />
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer ml-auto">
-                                    <input type="checkbox" className="sr-only peer" checked={localHours[day].enabled} onChange={(e) => handleUpdateStandard(day, "enabled", e.target.checked)} />
-                                    <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-                                </label>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        {saveMessage && (
-                            <div className={`p-3 rounded-2xl border text-sm font-bold flex items-center gap-2 ${saveMessage.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
-                                {saveMessage.text}
-                            </div>
-                        )}
-                        <div className="flex justify-end">
-                            <button
-                                onClick={handleAddOfficialHolidays}
-                                className="flex items-center gap-2 h-9 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all active:scale-95"
-                            >
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                                </svg>
-                                2026 Resmi Tatillerini Ekle
-                            </button>
-                        </div>
-                        <div className="p-6 rounded-[32px] bg-slate-50 border border-slate-200/60 shadow-inner space-y-6">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-full sm:w-auto">
-                                    <button onClick={() => setIsRangeMode(false)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${!isRangeMode ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Tek Gün</button>
-                                    <button onClick={() => setIsRangeMode(true)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${isRangeMode ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Aralık</button>
-                                </div>
-                                <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-full sm:w-auto">
-                                    <button onClick={() => setIsFullDayOverride(true)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${isFullDayOverride ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Tüm Gün</button>
-                                    <button onClick={() => setIsFullDayOverride(false)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${!isFullDayOverride ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Özel Saatler</button>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{isRangeMode ? 'Başlangıç' : 'Tarih'}</label>
-                                    <PremiumDatePicker
-                                        value={newOverrideDate}
-                                        onChange={setNewOverrideDate}
-                                        compact
-                                    />
-                                </div>
-                                {isRangeMode && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bitiş</label>
-                                        <PremiumDatePicker
-                                            value={newOverrideEndDate}
-                                            onChange={setNewOverrideEndDate}
-                                            compact
-                                        />
-                                    </div>
                                 )}
 
-                                {!isFullDayOverride && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Saat Aralığı</label>
-                                        <div className="flex items-center gap-2">
-                                            <input type="time" value={newOverrideOpen} onChange={(e) => setNewOverrideOpen(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold shadow-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" />
-                                            <input type="time" value={newOverrideClose} onChange={(e) => setNewOverrideClose(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold shadow-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" />
-                                        </div>
-                                    </div>
-                                )}
-                                <div className={`space-y-1.5 ${(!isRangeMode && isFullDayOverride) ? 'md:col-span-2' : ''} ${(isRangeMode && !isFullDayOverride) ? 'md:col-span-1' : ''}`}>
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Açıklama</label>
-                                    <input type="text" placeholder="Örn: Bayram Tatili" value={newOverrideNote} onChange={(e) => setNewOverrideNote(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold shadow-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
-                                </div>
-                                <div className="flex items-end">
-                                    <button onClick={addOverride} className="w-full h-[42px] bg-indigo-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all active:scale-[0.98]">Ekle</button>
-                                </div>
                             </div>
                         </div>
+                    )
+                }
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-4">
-                            {localOverrides.map((ov) => (
-                                <div key={ov.date} className="group relative p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 transition-all shadow-sm hover:shadow-md">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-black text-slate-900">{new Date(ov.date).toLocaleDateString("tr-TR", { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{new Date(ov.date).toLocaleDateString("tr-TR", { weekday: 'long' })}</span>
+                {
+                    activeSub === "treatments" && (
+                        <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+                            <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-900">Tedavi Türleri ve Süreleri</h3>
+                                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Randevu alırken kullanılan işlem türlerini yönetin.</p>
+                                </div>
+                            </div>
+
+                            <div className="p-8 space-y-8">
+                                <div className="p-6 rounded-[32px] bg-slate-50 border border-slate-200/60 shadow-inner">
+                                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <span className="w-1.5 h-4 bg-teal-500 rounded-full" />
+                                        Yeni Tedavi Ekle
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Tedavi Adı</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Örn: Kanal Tedavisi"
+                                                value={newTreatmentName}
+                                                onChange={(e) => setNewTreatmentName(e.target.value)}
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                            />
                                         </div>
-                                        <button onClick={() => removeOverride(ov.date)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${ov.is_closed ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
-                                            {ov.is_closed ? 'Kapalı' : `${ov.open} - ${ov.close}`}
-                                        </span>
-                                        {ov.note && <span className="text-[10px] text-slate-500 font-medium truncate italic border-l pl-2 border-slate-100">{ov.note}</span>}
-                                    </div>
-                                </div>
-                            ))}
-                            {localOverrides.length === 0 && (
-                                <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-100 rounded-[32px]">
-                                    <p className="text-xs font-bold text-slate-400 italic">Henüz özel gün veya istisna eklenmemiş.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-            </div>
-        </div>
-    )
-}
-
-{
-    activeSub === "treatments" && (
-        <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-            <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h3 className="text-xl font-black text-slate-900">Tedavi Türleri ve Süreleri</h3>
-                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Randevu alırken kullanılan işlem türlerini yönetin.</p>
-                </div>
-            </div>
-
-            <div className="p-8 space-y-8">
-                <div className="p-6 rounded-[32px] bg-slate-50 border border-slate-200/60 shadow-inner">
-                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <span className="w-1.5 h-4 bg-teal-500 rounded-full" />
-                        Yeni Tedavi Ekle
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-                        <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Tedavi Adı</label>
-                            <input
-                                type="text"
-                                placeholder="Örn: Kanal Tedavisi"
-                                value={newTreatmentName}
-                                onChange={(e) => setNewTreatmentName(e.target.value)}
-                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Varsayılan Süre (Dakika)</label>
-                            <input
-                                type="number"
-                                value={newTreatmentDuration}
-                                onChange={(e) => setNewTreatmentDuration(parseInt(e.target.value))}
-                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Malzeme Maliyeti (₺)</label>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={newTreatmentMaterialCost}
-                                onFocus={(e) => e.target.select()}
-                                onChange={(e) => setNewTreatmentMaterialCost(parseFloat(e.target.value) || 0)}
-                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Hekim Prim (%)</label>
-                            <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.1"
-                                value={newTreatmentPrimPercent}
-                                onFocus={(e) => e.target.select()}
-                                onChange={(e) => setNewTreatmentPrimPercent(parseFloat(e.target.value) || 0)}
-                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Geri Çağırma (Gün)</label>
-                            <input
-                                type="number"
-                                min="1"
-                                placeholder="Örn: 180"
-                                value={newTreatmentRecallDays ?? ""}
-                                onChange={(e) => setNewTreatmentRecallDays(e.target.value ? parseInt(e.target.value) : null)}
-                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
-                            />
-                        </div>
-                        <div className="flex items-end">
-                            <button
-                                onClick={handleSaveTreatment}
-                                disabled={isLoading || !newTreatmentName}
-                                className="w-full h-[52px] bg-gradient-to-r from-teal-600 to-emerald-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-teal-100 hover:shadow-teal-200 transition-all active:scale-[0.98] disabled:opacity-50"
-                            >
-                                Ekle
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {isTreatmentsLoading ? (
-                        <div className="col-span-full py-12 flex justify-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
-                        </div>
-                    ) : treatmentDefinitions.map((td) => (
-                        <div key={td.id} className={`group relative p-6 rounded-[32px] border transition-all shadow-sm ${editingTreatmentId === td.id ? "border-teal-300 bg-teal-50/30 shadow-md" : "border-slate-100 bg-white hover:border-teal-200 hover:shadow-md"}`}>
-                            {editingTreatmentId === td.id ? (
-                                /* ── Düzenleme modu ── */
-                                <div className="space-y-3">
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tedavi Adı</label>
-                                        <input
-                                            type="text"
-                                            value={editingTreatmentName}
-                                            onChange={e => setEditingTreatmentName(e.target.value)}
-                                            onKeyDown={e => { if (e.key === "Enter") handleUpdateTreatment(); if (e.key === "Escape") handleCancelEditTreatment(); }}
-                                            autoFocus
-                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Süre (Dakika)</label>
-                                        <input
-                                            type="number"
-                                            value={editingTreatmentDuration}
-                                            onChange={e => setEditingTreatmentDuration(parseInt(e.target.value) || 0)}
-                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Malzeme Maliyeti (₺)</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={editingMaterialCost}
-                                            onFocus={(e) => e.target.select()}
-                                            onChange={e => setEditingMaterialCost(parseFloat(e.target.value) || 0)}
-                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hekim Prim (%)</label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            step="0.1"
-                                            value={editingPrimPercent}
-                                            onFocus={(e) => e.target.select()}
-                                            onChange={e => setEditingPrimPercent(parseFloat(e.target.value) || 0)}
-                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Geri Çağırma (Gün)</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            placeholder="Örn: 180"
-                                            value={editingRecallDays ?? ""}
-                                            onChange={e => setEditingRecallDays(e.target.value ? parseInt(e.target.value) : null)}
-                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
-                                        />
-                                    </div>
-                                    <div className="flex gap-2 pt-1">
-                                        <button
-                                            onClick={handleUpdateTreatment}
-                                            disabled={isLoading || !editingTreatmentName.trim()}
-                                            className="flex-1 h-9 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-black transition-all active:scale-95 disabled:opacity-50"
-                                        >
-                                            Kaydet
-                                        </button>
-                                        <button
-                                            onClick={handleCancelEditTreatment}
-                                            className="h-9 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all active:scale-95"
-                                        >
-                                            İptal
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                /* ── Normal görünüm ── */
-                                <>
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-base font-black text-slate-900">{td.name}</span>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">İşlem Türü</span>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Varsayılan Süre (Dakika)</label>
+                                            <input
+                                                type="number"
+                                                value={newTreatmentDuration}
+                                                onChange={(e) => setNewTreatmentDuration(parseInt(e.target.value))}
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                            />
                                         </div>
-                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Malzeme Maliyeti (₺)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={newTreatmentMaterialCost}
+                                                onFocus={(e) => e.target.select()}
+                                                onChange={(e) => setNewTreatmentMaterialCost(parseFloat(e.target.value) || 0)}
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Hekim Prim (%)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                step="0.1"
+                                                value={newTreatmentPrimPercent}
+                                                onFocus={(e) => e.target.select()}
+                                                onChange={(e) => setNewTreatmentPrimPercent(parseFloat(e.target.value) || 0)}
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Geri Çağırma (Gün)</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                placeholder="Örn: 180"
+                                                value={newTreatmentRecallDays ?? ""}
+                                                onChange={(e) => setNewTreatmentRecallDays(e.target.value ? parseInt(e.target.value) : null)}
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                            />
+                                        </div>
+                                        <div className="flex items-end">
                                             <button
-                                                onClick={() => handleStartEditTreatment(td)}
-                                                className="p-2 rounded-xl text-slate-300 hover:text-teal-600 hover:bg-teal-50 transition-all"
-                                                title="Düzenle"
+                                                onClick={handleSaveTreatment}
+                                                disabled={isLoading || !newTreatmentName}
+                                                className="w-full h-[52px] bg-gradient-to-r from-teal-600 to-emerald-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-teal-100 hover:shadow-teal-200 transition-all active:scale-[0.98] disabled:opacity-50"
                                             >
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
-                                                </svg>
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteTreatment(td.id)}
-                                                className="p-2 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all"
-                                                title="Sil"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                </svg>
+                                                Ekle
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-100">
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                            </svg>
-                                            <span className="text-[11px] font-black uppercase tracking-tighter">{td.default_duration} Dakika</span>
-                                        </div>
-                                        {(td.material_cost ?? 0) > 0 && (
-                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-100">
-                                                <span className="text-[11px] font-black">₺{td.material_cost} Malzeme</span>
-                                            </div>
-                                        )}
-                                        {(td.doctor_prim_percent ?? 0) > 0 && (
-                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                                <span className="text-[11px] font-black">%{td.doctor_prim_percent} Prim</span>
-                                            </div>
-                                        )}
-                                        {(td.recall_interval_days ?? 0) > 0 && (
-                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 text-teal-700 border border-teal-100">
-                                                <span className="text-[11px] font-black">🔁 {td.recall_interval_days}g Recall</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    ))}
-                    {!isTreatmentsLoading && treatmentDefinitions.length === 0 && (
-                        <div className="col-span-full py-16 text-center border-2 border-dashed border-slate-100 rounded-[40px]">
-                            <p className="text-xs font-bold text-slate-400 italic">Henüz özel bir tedavi türü tanımlanmamış.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    )
-}
-
-{
-    activeSub === "doctor-hours" && (
-        <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-slate-50">
-                <h3 className="text-xl font-black text-slate-900">Hekim Bazlı Müsaitlik</h3>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Her hekim için ayrı çalışma saati tanımlayın.</p>
-            </div>
-
-            {saveMessage && (
-                <div className={`mx-8 mt-6 p-4 rounded-2xl border text-sm font-bold flex items-center gap-3 ${saveMessage.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>{saveMessage.text}</div>
-            )}
-
-            {doctorHoursLoading ? (
-                <div className="p-12 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /></div>
-            ) : doctorList.length === 0 ? (
-                <div className="p-12 text-center text-slate-400 text-sm font-medium italic">Klinikte kayıtlı hekim bulunamadı.</div>
-            ) : (
-                <div className="p-8 space-y-6">
-                    {/* Doktor seçici */}
-                    <div className="flex flex-wrap gap-2">
-                        {doctorList.map(doc => (
-                            <button key={doc.id}
-                                onClick={() => setSelectedDoctorId(doc.id)}
-                                className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${selectedDoctorId === doc.id ? 'bg-violet-600 text-white shadow-lg shadow-violet-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                                {doc.full_name}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Seçili doktorun çalışma saatleri */}
-                    {selectedDoctorId && (() => {
-                        const hours: WorkingHours = doctorSchedules[selectedDoctorId] ?? clinic.workingHours;
-                        const doc = doctorList.find(d => d.id === selectedDoctorId);
-                        return (
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-black text-slate-700">{doc?.full_name} — Haftalık Program</h4>
-                                    <button
-                                        onClick={() => handleSaveDoctorHours(selectedDoctorId)}
-                                        disabled={isLoading}
-                                        className="h-9 px-5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-black shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2">
-                                        {isLoading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                                        Kaydet
-                                    </button>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {ORDERED_DAYS.map(day => (
-                                        <div key={day} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50/30">
-                                            <span className="w-20 text-[10px] font-black text-slate-700 uppercase tracking-tighter shrink-0">{DAY_LABELS[day]}</span>
-                                            <div className="flex items-center gap-2">
-                                                <input type="time" value={hours[day]?.open ?? "09:00"} onChange={e => updateDoctorHour(selectedDoctorId, day, "open", e.target.value)} disabled={!hours[day]?.enabled} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-40" />
-                                                <span className="text-slate-400">-</span>
-                                                <input type="time" value={hours[day]?.close ?? "18:00"} onChange={e => updateDoctorHour(selectedDoctorId, day, "close", e.target.value)} disabled={!hours[day]?.enabled} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-40" />
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer ml-auto">
-                                                <input type="checkbox" className="sr-only peer" checked={hours[day]?.enabled ?? true} onChange={e => updateDoctorHour(selectedDoctorId, day, "enabled", e.target.checked)} />
-                                                <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-violet-600"></div>
-                                            </label>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {isTreatmentsLoading ? (
+                                        <div className="col-span-full py-12 flex justify-center">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+                                        </div>
+                                    ) : treatmentDefinitions.map((td) => (
+                                        <div key={td.id} className={`group relative p-6 rounded-[32px] border transition-all shadow-sm ${editingTreatmentId === td.id ? "border-teal-300 bg-teal-50/30 shadow-md" : "border-slate-100 bg-white hover:border-teal-200 hover:shadow-md"}`}>
+                                            {editingTreatmentId === td.id ? (
+                                                /* ── Düzenleme modu ── */
+                                                <div className="space-y-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tedavi Adı</label>
+                                                        <input
+                                                            type="text"
+                                                            value={editingTreatmentName}
+                                                            onChange={e => setEditingTreatmentName(e.target.value)}
+                                                            onKeyDown={e => { if (e.key === "Enter") handleUpdateTreatment(); if (e.key === "Escape") handleCancelEditTreatment(); }}
+                                                            autoFocus
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Süre (Dakika)</label>
+                                                        <input
+                                                            type="number"
+                                                            value={editingTreatmentDuration}
+                                                            onChange={e => setEditingTreatmentDuration(parseInt(e.target.value) || 0)}
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Malzeme Maliyeti (₺)</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="0.01"
+                                                            value={editingMaterialCost}
+                                                            onFocus={(e) => e.target.select()}
+                                                            onChange={e => setEditingMaterialCost(parseFloat(e.target.value) || 0)}
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hekim Prim (%)</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max="100"
+                                                            step="0.1"
+                                                            value={editingPrimPercent}
+                                                            onFocus={(e) => e.target.select()}
+                                                            onChange={e => setEditingPrimPercent(parseFloat(e.target.value) || 0)}
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Geri Çağırma (Gün)</label>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            placeholder="Örn: 180"
+                                                            value={editingRecallDays ?? ""}
+                                                            onChange={e => setEditingRecallDays(e.target.value ? parseInt(e.target.value) : null)}
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2 pt-1">
+                                                        <button
+                                                            onClick={handleUpdateTreatment}
+                                                            disabled={isLoading || !editingTreatmentName.trim()}
+                                                            className="flex-1 h-9 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-black transition-all active:scale-95 disabled:opacity-50"
+                                                        >
+                                                            Kaydet
+                                                        </button>
+                                                        <button
+                                                            onClick={handleCancelEditTreatment}
+                                                            className="h-9 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all active:scale-95"
+                                                        >
+                                                            İptal
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                /* ── Normal görünüm ── */
+                                                <>
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-base font-black text-slate-900">{td.name}</span>
+                                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">İşlem Türü</span>
+                                                        </div>
+                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                            <button
+                                                                onClick={() => handleStartEditTreatment(td)}
+                                                                className="p-2 rounded-xl text-slate-300 hover:text-teal-600 hover:bg-teal-50 transition-all"
+                                                                title="Düzenle"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                                                                </svg>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteTreatment(td.id)}
+                                                                className="p-2 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all"
+                                                                title="Sil"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-100">
+                                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                                            </svg>
+                                                            <span className="text-[11px] font-black uppercase tracking-tighter">{td.default_duration} Dakika</span>
+                                                        </div>
+                                                        {(td.material_cost ?? 0) > 0 && (
+                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-100">
+                                                                <span className="text-[11px] font-black">₺{td.material_cost} Malzeme</span>
+                                                            </div>
+                                                        )}
+                                                        {(td.doctor_prim_percent ?? 0) > 0 && (
+                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                                <span className="text-[11px] font-black">%{td.doctor_prim_percent} Prim</span>
+                                                            </div>
+                                                        )}
+                                                        {(td.recall_interval_days ?? 0) > 0 && (
+                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 text-teal-700 border border-teal-100">
+                                                                <span className="text-[11px] font-black">🔁 {td.recall_interval_days}g Recall</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     ))}
+                                    {!isTreatmentsLoading && treatmentDefinitions.length === 0 && (
+                                        <div className="col-span-full py-16 text-center border-2 border-dashed border-slate-100 rounded-[40px]">
+                                            <p className="text-xs font-bold text-slate-400 italic">Henüz özel bir tedavi türü tanımlanmamış.</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        );
-                    })()}
-                </div>
-            )}
-        </div>
-    )
-}
+                        </div>
+                    )
+                }
 
-{
-    activeSub === "channels" && (
-        <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col">
-            <div className="px-8 py-6 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <h3 className="text-xl font-black text-slate-900">Kanal Yönetimi</h3>
-                    {isLoading && <span className="w-3.5 h-3.5 rounded-full border-2 border-sky-400 border-t-transparent animate-spin" />}
-                </div>
-            </div>
-            <div className="px-8 py-5 bg-sky-50/40 border-b border-sky-100/60">
-                <p className="text-sm text-slate-600 font-medium leading-relaxed">
-                    Randevu kanalları, hastanın kliniğe nasıl ulaştığını takip etmek için kullanılır — örneğin <span className="font-black text-slate-800">Instagram</span>, <span className="font-black text-slate-800">Telefon</span>, <span className="font-black text-slate-800">Google</span> veya <span className="font-black text-slate-800">Tavsiye</span>.
-                    Yeni randevu eklerken veya düzenlerken bu listeden seçim yapılabilir. Silinen bir kanalın atandığı randevular otomatik olarak &ldquo;Belirtilmedi&rdquo; olarak güncellenir.
-                </p>
-            </div>
-
-            <div className="p-5 space-y-4">
-                {/* Yeni kanal ekle */}
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        placeholder="Kanal adı gir, Ekle'ye bas..."
-                        value={newChannelName}
-                        onChange={(e) => setNewChannelName(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddChannel(); } }}
-                        disabled={isLoading}
-                        className="flex-1 h-10 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-sky-400/30 focus:border-sky-400 transition-all disabled:opacity-50"
-                    />
-                    <button
-                        onClick={handleAddChannel}
-                        disabled={!newChannelName.trim() || isLoading}
-                        className="h-10 px-5 bg-gradient-to-r from-sky-600 to-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-wide shadow-sm hover:shadow-md transition-all active:scale-[0.97] disabled:opacity-40"
-                    >
-                        Ekle
-                    </button>
-                </div>
-
-                {/* Mevcut kanallar */}
-                {channels.length === 0 ? (
-                    <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl">
-                        <p className="text-xs font-semibold text-slate-400">Henüz kanal yok. Randevular &quot;Belirtilmedi&quot; görünür.</p>
-                    </div>
-                ) : (
-                    <div className="flex flex-wrap gap-2">
-                        {channels.map((ch) => (
-                            <div key={ch} className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 transition-all">
-                                <span className="text-sm font-bold text-slate-700">{ch}</span>
-                                <button
-                                    onClick={() => handleDeleteChannel(ch)}
-                                    disabled={isLoading}
-                                    className="w-5 h-5 flex items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-rose-500 transition-all disabled:opacity-40"
-                                    title="Sil"
-                                >
-                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
+                {
+                    activeSub === "doctor-hours" && (
+                        <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden">
+                            <div className="p-8 border-b border-slate-50">
+                                <h3 className="text-xl font-black text-slate-900">Hekim Bazlı Müsaitlik</h3>
+                                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Her hekim için ayrı çalışma saati tanımlayın.</p>
                             </div>
-                        ))}
-                    </div>
-                )}
 
-                {saveMessage && (
-                    <div className={`px-3 py-2 rounded-xl text-xs font-bold ${saveMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
-                        {saveMessage.text}
-                    </div>
-                )}
-            </div>
-        </div>
-    )
-}
+                            {saveMessage && (
+                                <div className={`mx-8 mt-6 p-4 rounded-2xl border text-sm font-bold flex items-center gap-3 ${saveMessage.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>{saveMessage.text}</div>
+                            )}
+
+                            {doctorHoursLoading ? (
+                                <div className="p-12 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /></div>
+                            ) : doctorList.length === 0 ? (
+                                <div className="p-12 text-center text-slate-400 text-sm font-medium italic">Klinikte kayıtlı hekim bulunamadı.</div>
+                            ) : (
+                                <div className="p-8 space-y-6">
+                                    {/* Doktor seçici */}
+                                    <div className="flex flex-wrap gap-2">
+                                        {doctorList.map(doc => (
+                                            <button key={doc.id}
+                                                onClick={() => setSelectedDoctorId(doc.id)}
+                                                className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${selectedDoctorId === doc.id ? 'bg-violet-600 text-white shadow-lg shadow-violet-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                                                {doc.full_name}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Seçili doktorun çalışma saatleri */}
+                                    {selectedDoctorId && (() => {
+                                        const hours: WorkingHours = doctorSchedules[selectedDoctorId] ?? clinic.workingHours;
+                                        const doc = doctorList.find(d => d.id === selectedDoctorId);
+                                        return (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <h4 className="text-sm font-black text-slate-700">{doc?.full_name} — Haftalık Program</h4>
+                                                    <button
+                                                        onClick={() => handleSaveDoctorHours(selectedDoctorId)}
+                                                        disabled={isLoading}
+                                                        className="h-9 px-5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-black shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2">
+                                                        {isLoading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                                        Kaydet
+                                                    </button>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {ORDERED_DAYS.map(day => (
+                                                        <div key={day} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50/30">
+                                                            <span className="w-20 text-[10px] font-black text-slate-700 uppercase tracking-tighter shrink-0">{DAY_LABELS[day]}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <input type="time" value={hours[day]?.open ?? "09:00"} onChange={e => updateDoctorHour(selectedDoctorId, day, "open", e.target.value)} disabled={!hours[day]?.enabled} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-40" />
+                                                                <span className="text-slate-400">-</span>
+                                                                <input type="time" value={hours[day]?.close ?? "18:00"} onChange={e => updateDoctorHour(selectedDoctorId, day, "close", e.target.value)} disabled={!hours[day]?.enabled} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 disabled:opacity-40" />
+                                                            </div>
+                                                            <label className="relative inline-flex items-center cursor-pointer ml-auto">
+                                                                <input type="checkbox" className="sr-only peer" checked={hours[day]?.enabled ?? true} onChange={e => updateDoctorHour(selectedDoctorId, day, "enabled", e.target.checked)} />
+                                                                <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-violet-600"></div>
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
+
+                {
+                    activeSub === "channels" && (
+                        <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col">
+                            <div className="px-8 py-6 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="text-xl font-black text-slate-900">Kanal Yönetimi</h3>
+                                    {isLoading && <span className="w-3.5 h-3.5 rounded-full border-2 border-sky-400 border-t-transparent animate-spin" />}
+                                </div>
+                            </div>
+                            <div className="px-8 py-5 bg-sky-50/40 border-b border-sky-100/60">
+                                <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                                    Randevu kanalları, hastanın kliniğe nasıl ulaştığını takip etmek için kullanılır — örneğin <span className="font-black text-slate-800">Instagram</span>, <span className="font-black text-slate-800">Telefon</span>, <span className="font-black text-slate-800">Google</span> veya <span className="font-black text-slate-800">Tavsiye</span>.
+                                    Yeni randevu eklerken veya düzenlerken bu listeden seçim yapılabilir. Silinen bir kanalın atandığı randevular otomatik olarak &ldquo;Belirtilmedi&rdquo; olarak güncellenir.
+                                </p>
+                            </div>
+
+                            <div className="p-5 space-y-4">
+                                {/* Yeni kanal ekle */}
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Kanal adı gir, Ekle'ye bas..."
+                                        value={newChannelName}
+                                        onChange={(e) => setNewChannelName(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddChannel(); } }}
+                                        disabled={isLoading}
+                                        className="flex-1 h-10 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-sky-400/30 focus:border-sky-400 transition-all disabled:opacity-50"
+                                    />
+                                    <button
+                                        onClick={handleAddChannel}
+                                        disabled={!newChannelName.trim() || isLoading}
+                                        className="h-10 px-5 bg-gradient-to-r from-sky-600 to-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-wide shadow-sm hover:shadow-md transition-all active:scale-[0.97] disabled:opacity-40"
+                                    >
+                                        Ekle
+                                    </button>
+                                </div>
+
+                                {/* Mevcut kanallar */}
+                                {channels.length === 0 ? (
+                                    <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl">
+                                        <p className="text-xs font-semibold text-slate-400">Henüz kanal yok. Randevular &quot;Belirtilmedi&quot; görünür.</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {channels.map((ch) => (
+                                            <div key={ch} className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 transition-all">
+                                                <span className="text-sm font-bold text-slate-700">{ch}</span>
+                                                <button
+                                                    onClick={() => handleDeleteChannel(ch)}
+                                                    disabled={isLoading}
+                                                    className="w-5 h-5 flex items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-rose-500 transition-all disabled:opacity-40"
+                                                    title="Sil"
+                                                >
+                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {saveMessage && (
+                                    <div className={`px-3 py-2 rounded-xl text-xs font-bold ${saveMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                                        {saveMessage.text}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )
+                }
             </main >
         </div >
     );

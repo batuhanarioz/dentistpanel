@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback, useReducer } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useMemo, useCallback, useReducer, useRef } from "react";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { localDateStr, paymentDateRange } from "@/lib/dateUtils";
 import { Appointment } from "@/types/database";
@@ -207,8 +207,6 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
     const setDetailMethod = (v: string) => dispatchDetail({ type: "SET_METHOD", value: v });
 
     const [patients, setPatients] = useState<Patient[]>([]);
-    const [modalAppointments, setModalAppointments] = useState<AppointmentOption[]>([]);
-    const [modalAppointmentsLoading, setModalAppointmentsLoading] = useState(false);
     const [payments, setPayments] = useState<PaymentRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [bulkLoading, setBulkLoading] = useState(false);
@@ -263,38 +261,42 @@ export function usePaymentManagement(appointmentIdParam: string | null) {
         loadPayments(s, e);
     }, [selectedDate, viewMode, startDate, endDate, loadPayments]);
 
+    // Debounce modal search to avoid a DB query on every keystroke
+    const [debouncedModalSearch, setDebouncedModalSearch] = useState("");
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     useEffect(() => {
-        const term = modalPatientSearch.trim().toLowerCase();
-        if (!isModalOpen || !term || !clinicId) {
-            if (!selectedAppointmentId) setModalAppointments([]);
-            return;
-        }
-        const pIds = patients.filter(p => p.full_name?.toLowerCase().includes(term) || p.phone?.includes(term)).map(p => p.id);
-        if (pIds.length === 0) { setModalAppointments([]); return; }
-        let mounted = true;
-        setModalAppointmentsLoading(true);
-        supabase.from("appointments")
-            .select("id, starts_at, treatment_type, patient_id, patients:patient_id(full_name, phone)")
-            .eq("clinic_id", clinicId)
-            .in("patient_id", pIds).order("starts_at", { ascending: true }).limit(30)
-            .then(
-                ({ data }) => {
-                    if (!mounted) return;
-                    type PaymentModalRow = Pick<Appointment, "id" | "starts_at" | "treatment_type" | "patient_id"> & { patients: { full_name: string; phone: string | null } | null };
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(() => setDebouncedModalSearch(modalPatientSearch), 300);
+        return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+    }, [modalPatientSearch]);
 
-                    setModalAppointments(((data as unknown as PaymentModalRow[]) || []).map((r) => ({
-                        id: r.id, starts_at: r.starts_at, treatment_type: r.treatment_type, patient_id: r.patient_id,
-                        patient_full_name: r.patients?.full_name || "Hasta", patient_phone: r.patients?.phone || null
-                    })));
-                    setModalAppointmentsLoading(false);
-                },
-                () => {
-                    if (!mounted) return;
-                    setModalAppointmentsLoading(false);
-                }
-            );
-        return () => { mounted = false; };
-    }, [modalPatientSearch, isModalOpen, patients, selectedAppointmentId, clinicId]);
+    // In-memory patient filter — no extra DB query
+    const matchedPatientIds = useMemo(() => {
+        const term = debouncedModalSearch.trim().toLowerCase();
+        if (!term || !isModalOpen) return [];
+        return patients
+            .filter(p => p.full_name?.toLowerCase().includes(term) || p.phone?.includes(term))
+            .map(p => p.id);
+    }, [debouncedModalSearch, isModalOpen, patients]);
+
+    const { data: modalAppointments = [], isFetching: modalAppointmentsLoading } = useQuery({
+        queryKey: ["modalAppointments", clinicId, matchedPatientIds],
+        queryFn: async () => {
+            type PaymentModalRow = Pick<Appointment, "id" | "starts_at" | "treatment_type" | "patient_id"> & { patients: { full_name: string; phone: string | null } | null };
+            const { data } = await supabase.from("appointments")
+                .select("id, starts_at, treatment_type, patient_id, patients:patient_id(full_name, phone)")
+                .eq("clinic_id", clinicId!)
+                .in("patient_id", matchedPatientIds)
+                .order("starts_at", { ascending: true })
+                .limit(30);
+            return ((data as unknown as PaymentModalRow[]) || []).map(r => ({
+                id: r.id, starts_at: r.starts_at, treatment_type: r.treatment_type, patient_id: r.patient_id,
+                patient_full_name: r.patients?.full_name || "Hasta", patient_phone: r.patients?.phone || null,
+            }));
+        },
+        enabled: isModalOpen && matchedPatientIds.length > 0 && !!clinicId,
+        staleTime: 5 * 60 * 1000,
+    });
 
 
     const closeModal = useCallback(() => {

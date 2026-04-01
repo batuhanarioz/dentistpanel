@@ -133,7 +133,7 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     // ── 8. İndirim hesapla ───────────────────────────────────────────────────
     let discountAmount: number;
     if (discount.discount_type === "percent") {
-        discountAmount = Math.round((originalAmount * discount.discount_value) / 100 * 100) / 100;
+        discountAmount = Math.round(originalAmount * discount.discount_value / 100);
     } else {
         discountAmount = Math.min(discount.discount_value, originalAmount - 1); // min 1₺ kalır
     }

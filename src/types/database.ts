@@ -63,6 +63,12 @@ export interface ClinicSettings {
     REMINDER: string;
     SATISFACTION: string;
     PAYMENT: string;
+    DELAY?: string;
+    BIRTHDAY?: string;
+    FOLLOWUP?: string;
+    INCOMPLETE?: string;
+    NEW_PATIENT?: string;
+    LAB_TRACKING?: string;
   };
   notification_settings: {
     is_reminder_enabled: boolean;
@@ -73,6 +79,12 @@ export interface ClinicSettings {
     REMINDER: AssistantTiming;
     SATISFACTION: AssistantTiming;
     PAYMENT: AssistantTiming;
+    DELAY?: AssistantTiming;
+    BIRTHDAY?: AssistantTiming;
+    FOLLOWUP?: AssistantTiming;
+    INCOMPLETE?: AssistantTiming;
+    NEW_PATIENT?: AssistantTiming;
+    LAB_TRACKING?: AssistantTiming;
   };
   /** Kliniğe özel randevu kanalları. Boş dizi = tüm randevular "Belirtilmedi". */
   appointment_channels: string[];

@@ -29,6 +29,8 @@ interface PayTRCheckoutModalProps {
     billingCycle: BillingCycle;
     /** Gösterilecek plan fiyatı (TL). Subscription sayfasından geçirilir. */
     amountTL: number;
+    /** Aylık ve yıllık taban fiyatlar — tasarruf hesabı için. Geçilmezse fallback kullanılır. */
+    prices?: { monthly: number; annual: number };
     onSuccess?: () => void;
     onFailure?: (reason?: string) => void;
 }
@@ -64,6 +66,7 @@ export function PayTRCheckoutModal({
     onClose,
     billingCycle,
     amountTL,
+    prices,
     onSuccess,
     onFailure,
 }: PayTRCheckoutModalProps) {
@@ -161,7 +164,7 @@ export function PayTRCheckoutModal({
 
         function handleMessage(event: MessageEvent) {
             const trustedOrigin = "https://www.paytr.com";
-            if (event.origin !== trustedOrigin && process.env.NODE_ENV === "production") return;
+            if (event.origin !== trustedOrigin) return;
 
             const data = event.data;
             if (data?.status === "success" || data?.result === "success") {
@@ -180,11 +183,11 @@ export function PayTRCheckoutModal({
 
     const planLabel = billingCycle === "annual" ? "Yıllık Plan" : "Aylık Plan";
 
-    // Fiyat hesaplamaları
-    const monthlyPrice = 1199;
-    const annualTotal = 11990;
-    const annualPerMonth = 999;
-    const annualSavings = monthlyPrice * 12 - annualTotal; // 2398
+    // Fiyat hesaplamaları — props'tan gelirse kullan, gelmezse fallback
+    const monthlyPrice = prices?.monthly ?? 1199;
+    const annualTotal = prices?.annual ?? 11990;
+    const annualPerMonth = Math.round(annualTotal / 12);
+    const annualSavings = monthlyPrice * 12 - annualTotal;
 
     const discountPreview = codePreview?.type === "discount" ? codePreview : null;
     const baseAmount = discountPreview?.originalAmount ?? amountTL;

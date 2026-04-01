@@ -8,10 +8,14 @@ function makeQueryClient() {
                 // 5 dakika: doktorlar, tedavi tipleri gibi nadiren değişen data için yeterli.
                 // Randevu/ödeme gibi sık değişen sorgular kendi staleTime'larını override eder.
                 staleTime: 5 * 60 * 1000,
-                // Unused cache 10 dakika bellekte kalsın (tab değiştirince yeniden fetch olmasın)
+                // Unused cache 10 dakika bellekte kalsın
                 gcTime: 10 * 60 * 1000,
                 // Network hatalarında 1 kez retry yeterli (default 3 = 3x yavaş UX)
                 retry: 1,
+                // Tab geçişlerinde gereksiz toplu refetch'i engelle
+                refetchOnWindowFocus: false,
+                // İnternet kopup gelince tüm sorguların aynı anda yeniden çalışmasını engelle
+                refetchOnReconnect: false,
             },
         },
     });

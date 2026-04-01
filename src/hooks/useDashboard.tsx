@@ -7,7 +7,6 @@ import { UserRole } from "@/types/database";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAppointmentsForDate } from "@/lib/api";
 import { useChecklist, ControlItem } from "./useChecklist";
-import { isPaid, isPending } from "@/constants/payments";
 
 export type { ControlItem };
 
@@ -149,28 +148,20 @@ export function useDashboard() {
     const noShowCount = useMemo(() => appointments.filter(a => a.status === "no_show").length, [appointments]);
     const completedCount = useMemo(() => appointments.filter(a => a.status === "completed").length, [appointments]);
 
-    // Today's payment totals (paid vs pending) for today's appointments
-    const appointmentIds = useMemo(() => rawAppointments.map(a => a.id), [rawAppointments]);
-
+    // Today's payment totals — RPC ile appointment IDs bağımlılığı kırıldı, paralel çalışır
     const { data: revenueData } = useQuery({
         queryKey: ["todayRevenue", viewDateAppointments, clinic.clinicId],
         queryFn: async () => {
-            if (!clinic.clinicId || !appointmentIds.length) return { paidTotal: 0, pendingTotal: 0 };
-            const { data } = await supabase
-                .from("payments")
-                .select("amount, status")
-                .in("appointment_id", appointmentIds);
-            let paidCents = 0;
-            let pendingCents = 0;
-            for (const p of (data ?? [])) {
-                const cents = Math.round(Number(p.amount) * 100);
-                if (isPaid(p.status)) paidCents += cents;
-                else if (isPending(p.status)) pendingCents += cents;
-            }
-            return { paidTotal: paidCents / 100, pendingTotal: pendingCents / 100 };
+            if (!clinic.clinicId) return { paidTotal: 0, pendingTotal: 0 };
+            const { data, error } = await supabase.rpc("get_daily_revenue", {
+                p_clinic_id: clinic.clinicId,
+                p_date: viewDateAppointments,
+            });
+            if (error || !data) return { paidTotal: 0, pendingTotal: 0 };
+            return data as { paidTotal: number; pendingTotal: number };
         },
-        enabled: !!clinic.clinicId && appointmentIds.length > 0,
-        staleTime: 60 * 1000, // 30s → 60s; invalidate on payment changes
+        enabled: !!clinic.clinicId,
+        staleTime: 60 * 1000,
     });
 
     const todayRevenue = revenueData ?? { paidTotal: 0, pendingTotal: 0 };

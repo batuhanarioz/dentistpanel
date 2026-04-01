@@ -13,21 +13,47 @@ export const POST = withAuth(async (req, auth) => {
   const body = await req.json().catch(() => ({}));
   const { additional_clinics } = body;
 
-  // additional_clinics'in mutlak suretle bir dizi (array) olmasını şart koşuyoruz.
+  // additional_clinics'in mutlak suretle string UUID'lerden oluşan bir dizi olmasını şart koşuyoruz.
   if (!userId || !Array.isArray(additional_clinics)) {
     return NextResponse.json({ error: "Kullanıcı ID ve klinik ID dizisi (array olarak additional_clinics) gereklidir." }, { status: 400 });
+  }
+
+  // Her eleman UUID formatında string olmalı
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const invalidItems = (additional_clinics as unknown[]).filter(
+    (id) => typeof id !== "string" || !UUID_REGEX.test(id)
+  );
+  if (invalidItems.length > 0) {
+    return NextResponse.json({ error: "Geçersiz klinik ID formatı. Tüm elemanlar UUID olmalıdır." }, { status: 400 });
   }
 
   // Sadece SUPER_ADMIN bu işlemi yapabilir (withAuth tarafından zorunlu kılınır)
 
   // Supabase Admin Client'ı oluştur
-  // DİKKAT: environment değişkenleri sunucuda olmalıdır.
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
   try {
+    // 0. Gönderilen clinic_id'lerin gerçekten DB'de var olduğunu doğrula
+    if ((additional_clinics as string[]).length > 0) {
+      const { data: existingClinics } = await supabaseAdmin
+        .from("clinics")
+        .select("id")
+        .in("id", additional_clinics as string[]);
+
+      const foundIds = new Set((existingClinics ?? []).map((c: { id: string }) => c.id));
+      const missingIds = (additional_clinics as string[]).filter((id) => !foundIds.has(id));
+
+      if (missingIds.length > 0) {
+        return NextResponse.json(
+          { error: `Şu klinikler bulunamadı: ${missingIds.join(", ")}` },
+          { status: 400 }
+        );
+      }
+    }
+
     // 1. Mevcut kullanıcı verilerini al (Doğrulama ve mevcut app_metadata'yı bozmamak için)
     const { data: { user }, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
 
