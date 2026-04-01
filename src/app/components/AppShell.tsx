@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { AuthGuard } from "./AuthGuard";
 import { useClinic } from "../context/ClinicContext";
 import { supabase } from "@/lib/supabaseClient";
@@ -49,9 +50,10 @@ function SuperAdminNav({
   linkClass: (href: string) => string;
   onNav?: () => void;
 }) {
+  const router = useRouter();
   const handleNav = (href: string) => {
     if (onNav) onNav();
-    window.location.href = href;
+    router.push(href);
   };
 
   return (
@@ -112,58 +114,58 @@ function ClinicNav({
 
   return (
     <>
-      <a id="tour-dashboard" href={base} className={linkClass(base)} onClick={handleClick}>
+      <Link id="tour-dashboard" href={base} className={linkClass(base)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
         <span>Genel Bakış</span>
-      </a>
-      <a id="tour-appointment-management" href={`${base}/appointment-management`} className={linkClass(`${base}/appointment-management`)} onClick={handleClick}>
+      </Link>
+      <Link id="tour-appointment-management" href={`${base}/appointment-management`} className={linkClass(`${base}/appointment-management`)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" /></svg>
         <span>Randevu Yönetimi</span>
-      </a>
-      <a id="tour-payment-management" href={`${base}/payment-management`} className={linkClass(`${base}/payment-management`)} onClick={handleClick}>
+      </Link>
+      <Link id="tour-payment-management" href={`${base}/payment-management`} className={linkClass(`${base}/payment-management`)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" /></svg>
         <span>Ödeme Yönetimi</span>
-      </a>
-      <a id="tour-patients" href={`${base}/patients`} className={linkClass(`${base}/patients`)} onClick={handleClick}>
+      </Link>
+      <Link id="tour-patients" href={`${base}/patients`} className={linkClass(`${base}/patients`)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
         <span>Hasta Kayıtları</span>
-      </a>
-      <a href={`${base}/lab-management`} className={linkClass(`${base}/lab-management`)} onClick={handleClick}>
+      </Link>
+      <Link href={`${base}/lab-management`} className={linkClass(`${base}/lab-management`)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23-.693L5 14.5m14.8.8 1.402 1.402c1 1 .03 2.798-1.328 2.798H6.126c-1.358 0-2.329-1.798-1.328-2.798L5 14.5" /></svg>
         <span>Laboratuvar</span>
-      </a>
-      <a href={`${base}/treatment-plans`} className={linkClass(`${base}/treatment-plans`)} onClick={handleClick}>
+      </Link>
+      <Link href={`${base}/treatment-plans`} className={linkClass(`${base}/treatment-plans`)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg>
         <span>Tedavi Planları</span>
-      </a>
-      <a href={`${base}/communication`} className={linkClass(`${base}/communication`)} onClick={handleClick}>
+      </Link>
+      <Link href={`${base}/communication`} className={linkClass(`${base}/communication`)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.213c-.079-.335.215-.632.557-.59 1.094.135 2.212.217 3.34.246Zm0-9.18c.253-.962.584-1.892.985-2.783.247-.55.06-1.21-.463-1.511l-.657-.38c-.551-.318-1.26-.117-1.527.461a20.845 20.845 0 0 0-1.44 4.213c-.079.335.215.632.557.59 1.094-.135 2.212-.217 3.34-.246Zm0 9.18c.954.025 1.914.037 2.88.037 1.477 0 2.927-.03 4.35-.088m-7.23-.013V6.66m7.23 9.18c.551.021 1.103.03 1.656.028a.75.75 0 0 0 .736-.827 45.046 45.046 0 0 0-1.123-7.514.75.75 0 0 0-.736-.827c-.553-.002-1.105.007-1.656.028m0 9.18V6.674" /></svg>
         <span>Hasta İletişimi</span>
-      </a>
-      <a href={`${base}/guide`} className={linkClass(`${base}/guide`)} onClick={handleClick}>
+      </Link>
+      <Link href={`${base}/guide`} className={linkClass(`${base}/guide`)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
         <span>Asistan Rehberi</span>
-      </a>
+      </Link>
       {isAdmin && (
-        <a id="tour-reports" href={`${base}/reports`} className={linkClass(`${base}/reports`)} onClick={handleClick}>
+        <Link id="tour-reports" href={`${base}/reports`} className={linkClass(`${base}/reports`)} onClick={handleClick}>
           <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>
           <span>Raporlar</span>
-        </a>
+        </Link>
       )}
       {canSeeFinance && (
-        <a href={`${base}/finance`} className={linkClass(`${base}/finance`)} onClick={handleClick}>
+        <Link href={`${base}/finance`} className={linkClass(`${base}/finance`)} onClick={handleClick}>
           <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
           <span>Karlılık & Hak Ediş</span>
-        </a>
+        </Link>
       )}
-      <a href={`${base}/admin/users`} className={linkClass(`${base}/admin/users`)} onClick={handleClick}>
+      <Link href={`${base}/admin/users`} className={linkClass(`${base}/admin/users`)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" /></svg>
         <span>Ekip ve Yetkiler</span>
-      </a>
-      <a id="tour-subscription" href={`${base}/admin/subscription`} className={linkClass(`${base}/admin/subscription`)} onClick={handleClick}>
+      </Link>
+      <Link id="tour-subscription" href={`${base}/admin/subscription`} className={linkClass(`${base}/admin/subscription`)} onClick={handleClick}>
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" /></svg>
         <span>Abonelik & Destek</span>
-      </a>
+      </Link>
     </>
   );
 }
@@ -388,7 +390,7 @@ function ShellInner({ children }: Props) {
     return pathname === href || pathname === href + "/";
   };
 
-  const linkClass = (href: string) =>
+  const linkClass = useCallback((href: string) =>
     [
       "flex items-center gap-2 px-3.5 py-2.5 text-[13px] font-medium rounded-xl transition-all",
       isActive(href)
@@ -396,7 +398,7 @@ function ShellInner({ children }: Props) {
           ? "bg-slate-900 text-white shadow-xl shadow-slate-200"
           : "bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-500 text-white shadow-sm"
         : "text-slate-700 bg-white/60 hover:bg-white hover:text-slate-900 hover:shadow-sm hover:ring-1 hover:ring-slate-100",
-    ].join(" ");
+    ].join(" "), [isActive, isPlatform, clinic.isSuperAdmin]);
 
   return (
     <div className="min-h-screen flex flex-col w-full">
@@ -434,7 +436,7 @@ function ShellInner({ children }: Props) {
       <AnnouncementBanner />
       <div className="flex-1 flex w-full">
         <aside className="hidden md:flex w-64 flex-col border-r border-r-slate-100 bg-white h-screen sticky top-0">
-          <a
+          <Link
             href={homeHref}
             className={`h-20 flex items-center px-5 border-b shadow-md rounded-br-2xl transition-opacity hover:opacity-95 active:opacity-90 ${isPlatform && clinic.isSuperAdmin
               ? "bg-slate-900 border-slate-800"
@@ -456,7 +458,7 @@ function ShellInner({ children }: Props) {
                 </span>
               </div>
             </div>
-          </a>
+          </Link>
           <nav className="flex-1 px-4 py-4 text-sm flex flex-col min-h-0">
             <div className="space-y-1.5 flex-1 overflow-y-auto">
               {(clinic.isSuperAdmin && isPlatform) ? (
@@ -494,7 +496,7 @@ function ShellInner({ children }: Props) {
               ? "bg-slate-900"
               : "bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-500"
               }`}>
-              <a
+              <Link
                 href={homeHref}
                 className={`flex items-center gap-3 min-w-0 flex-1 mr-2 transition-opacity hover:opacity-90 active:opacity-80 ${isOnHome ? "cursor-default" : "cursor-pointer"}`}
               >
@@ -509,7 +511,7 @@ function ShellInner({ children }: Props) {
                   <span className={`text-[11px] leading-tight ${isPlatform && clinic.isSuperAdmin ? "text-slate-400" : "text-teal-50/90"
                     }`}>{brandSubtitle}</span>
                 </div>
-              </a>
+              </Link>
               <div className="flex items-center gap-3 shrink-0">
                 {isClinicEnv && <GlobalPatientSearch />}
                 <NotificationDropdown />
@@ -550,7 +552,7 @@ function ShellInner({ children }: Props) {
                       ? "bg-slate-900"
                       : "bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-500"
                       }`}>
-                      <a
+                      <Link
                         href={homeHref}
                         onClick={() => { if (!isOnHome) closeMobileNav(); }}
                         className={`flex items-center gap-3 min-w-0 flex-1 mr-2 transition-opacity hover:opacity-90 active:opacity-80 ${isOnHome ? "cursor-default" : "cursor-pointer"}`}
@@ -564,7 +566,7 @@ function ShellInner({ children }: Props) {
                           <span className={`text-[11px] leading-tight ${isPlatform && clinic.isSuperAdmin ? "text-slate-400" : "text-teal-50/80"
                             }`}>{brandSubtitle}</span>
                         </div>
-                      </a>
+                      </Link>
                       <button
                         type="button"
                         onClick={closeMobileNav}

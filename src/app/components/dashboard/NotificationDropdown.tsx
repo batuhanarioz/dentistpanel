@@ -9,6 +9,7 @@ import { Announcement } from "@/types/database";
 import { tr } from "date-fns/locale";
 import { supabase } from "@/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
+import { useRouter } from "next/navigation";
 
 type PanelNotification = {
     id: string;
@@ -22,7 +23,8 @@ type PanelNotification = {
 export function NotificationDropdown() {
     const { controlItems, checklistLoading } = useChecklist(0);
     const { announcements, markAsRead } = useAnnouncements();
-    const { userId } = useClinic();
+    const { userId, clinicSlug } = useClinic();
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
     const [panelNotifications, setPanelNotifications] = useState<PanelNotification[]>([]);
@@ -120,8 +122,7 @@ export function NotificationDropdown() {
     };
 
     const handleNotificationClick = (id: string) => {
-        const slug = window.location.pathname.split('/')[1];
-        window.location.href = `/${slug}#task-${id}`;
+        router.push(`/${clinicSlug}#task-${id}`);
         setIsOpen(false);
     };
 
@@ -175,7 +176,7 @@ export function NotificationDropdown() {
                                 {panelNotifications.map((notif) => (
                                     <div
                                         key={`panel-${notif.id}`}
-                                        onClick={() => { markPanelNotificationRead(notif.id); if (notif.link) window.location.href = notif.link; setIsOpen(false); }}
+                                        onClick={() => { markPanelNotificationRead(notif.id); if (notif.link) router.push(notif.link); setIsOpen(false); }}
                                         className="p-4 bg-blue-50/40 hover:bg-blue-50 transition-colors group cursor-pointer border-l-4 border-blue-400"
                                     >
                                         <div className="flex gap-3">
@@ -242,7 +243,7 @@ export function NotificationDropdown() {
                     {/* Footer */}
                     <div className="p-3 border-t border-slate-50 bg-slate-50/30 text-center">
                         <button
-                            onClick={() => { window.location.href = `/${window.location.pathname.split('/')[1]}`; setIsOpen(false); }}
+                            onClick={() => { router.push(`/${clinicSlug}`); setIsOpen(false); }}
                             className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
                         >
                             Tüm Kontrolleri Gör
