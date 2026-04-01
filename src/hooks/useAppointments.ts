@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { useClinic } from "@/app/context/ClinicContext";
+import { useClinic, ClinicContextValue } from "@/app/context/ClinicContext";
 import { UserRole } from "@/types/database";
 import { format, addDays, subDays, getDay, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -76,7 +76,7 @@ export const STATUS_BADGE_COLORS: Record<ExtendedStatus, string> = {
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useAppointments() {
-    const { clinicId, workingHours: clinicWorkingHours, workingHoursOverrides } = useClinic() as { clinicId: string; workingHours: any; workingHoursOverrides: any[] };
+    const { clinicId, workingHours: clinicWorkingHours, workingHoursOverrides } = useClinic() as unknown as ClinicContextValue;
     const queryClient = useQueryClient();
 
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -164,15 +164,10 @@ export function useAppointments() {
                     startHour: startDate.getHours(),
                     startMinute: startDate.getMinutes(),
                     durationMinutes: duration,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    patientName: (row.patients as any)?.full_name || "İsimsiz",
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    phone: (row.patients as any)?.phone || "",
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    email: (row.patients as any)?.email || "",
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    patientId: (row.patients as any)?.id,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    patientName: (row.patients as unknown as { full_name: string })?.full_name || "İsimsiz",
+                    phone: (row.patients as unknown as { phone: string })?.phone || "",
+                    email: (row.patients as unknown as { email: string })?.email || "",
+                    patientId: (row.patients as unknown as { id: string })?.id,
                     doctor: (row.doctor as unknown as { full_name: string })?.full_name,
                     doctorId: row.doctor_id,
                     treatmentType: row.treatment_type || "",
@@ -270,8 +265,7 @@ export function useAppointments() {
         const dayIdx = getDay(selectedDate);
         const dayName = ORDERED_DAYS[dayIdx === 0 ? 6 : dayIdx - 1];
         const base = clinicWorkingHours?.[dayName] || { open: "08:00", close: "19:00" };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const override = workingHoursOverrides?.find((o: any) => o.date === dateStr);
+        const override = (workingHoursOverrides || []).find((o) => (o as { date: string }).date === dateStr);
         return override || base;
     }, [selectedDate, dateStr, clinicWorkingHours, workingHoursOverrides]);
 
