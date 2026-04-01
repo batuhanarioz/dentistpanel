@@ -658,10 +658,38 @@ export function ClinicSettingsTab() {
     };
 
     return (
-        <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar Navigation */}
-            <aside className="w-full lg:w-64 shrink-0">
-                <div className="bg-white rounded-3xl border border-slate-200/60 p-2 shadow-sm sticky top-24">
+        <div className="flex flex-col lg:flex-row gap-8 pb-24 lg:pb-0 relative">
+            {/* Mobile Sticky Header/Select */}
+            <div className="lg:hidden sticky top-[72px] z-[80] -mx-4 px-4 py-3 bg-slate-50/90 backdrop-blur-2xl border-b border-slate-200/60 shadow-lg shadow-black/5 animate-in slide-in-from-top-4 duration-500">
+                <div className="relative isolate">
+                    <select
+                        value={activeSub}
+                        onChange={(e) => {
+                            setActiveSub(e.target.value as SubSection);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="w-full h-15 bg-white border-2 border-indigo-100/80 rounded-[24px] pl-6 pr-12 text-[14px] font-black text-indigo-900 outline-none appearance-none shadow-xl shadow-indigo-500/5 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 transition-all cursor-pointer relative z-20"
+                    >
+                        <option value="profile">🏢 Klinik Profili</option>
+                        <option value="assistant">🤖 Akıllı Asistan Ayarları</option>
+                        <option value="checklist">🛡️ Görev & İzin Yönetimi</option>
+                        <option value="general">⏰ Çalışma Saatleri</option>
+                        <option value="doctor-hours">👨‍⚕️ Hekim Müsaitliği</option>
+                        <option value="treatments">🦷 Tedavi Ayarları</option>
+                        <option value="channels">📱 Kanal Yönetimi</option>
+                        <option value="check-in">🔲 QR Check-in Yönetimi</option>
+                    </select>
+                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-500 z-30">
+                        <svg className="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            {/* Sidebar Navigation - Hidden on Mobile, Shown on LG */}
+            <aside className="hidden lg:block w-64 shrink-0">
+                <div className="bg-white rounded-[32px] border border-slate-200/60 p-2 shadow-xl shadow-slate-200/10 sticky top-24 ring-4 ring-slate-50/50 transition-all duration-500 hover:shadow-2xl">
                     <button
                         onClick={() => setActiveSub("profile")}
                         className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all ${activeSub === "profile"
@@ -790,19 +818,33 @@ export function ClinicSettingsTab() {
             {/* Main Content Area */}
             <main className="flex-1">
                 {activeSub === "profile" && (
-                    <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden">
+                    <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                                 <h3 className="text-xl font-black text-slate-900">Klinik Profil Bilgileri</h3>
                                 <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Kliniğinizin temel bilgilerini yönetin.</p>
                             </div>
+                            <div className="hidden lg:block">
+                                <button
+                                    onClick={handleSaveProfile}
+                                    disabled={isLoading || profileLoading}
+                                    className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {isLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+                                    Ayarları Kaydet
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Mobile Fixed Save Bar for Profile */}
+                        <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/40 backdrop-blur-3xl border-t border-white/20 z-[100] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom-10 duration-500">
                             <button
                                 onClick={handleSaveProfile}
                                 disabled={isLoading || profileLoading}
-                                className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2"
+                                className="w-full h-15 rounded-[22px] bg-indigo-600 text-white text-sm font-black shadow-2xl shadow-indigo-500/40 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                             >
-                                {isLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                                Kaydet
+                                {isLoading ? <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+                                DEĞİŞİKLİKLERİ KAYDET
                             </button>
                         </div>
 
@@ -884,315 +926,317 @@ export function ClinicSettingsTab() {
                 )}
 
                 {activeSub === "assistant" && localSettings && (
-                    <div className="space-y-6">
-                        <div className="bg-white rounded-[32px] border border-slate-200/60 p-6 sm:p-8 shadow-sm">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                                <div>
-                                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Akıllı Mesaj Asistanı</h2>
-                                    <p className="text-sm text-slate-500 font-medium italic">Otomatik mesajları ve zamanlamaları özelleştirin.</p>
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-white rounded-[40px] border border-slate-200/60 p-6 sm:p-10 shadow-xl shadow-slate-200/20 relative overflow-hidden group/container">
+                            {/* Background decorative glow */}
+                            <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none group-hover/container:bg-indigo-500/10 transition-colors duration-700" />
+                            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl pointer-events-none group-hover/container:bg-violet-500/10 transition-colors duration-700" />
+
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 relative z-10">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200/50">
+                                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a.75.75 0 0 1-1.074-.765 4.99 4.99 0 0 1 .63-1.536C3.908 17.204 3 15.204 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Akıllı Mesaj Asistanı</h2>
+                                            <div className="flex items-center gap-2">
+                                                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Otomatik İletişim Merkezi</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+                                <div className="hidden lg:block">
+                                    <button
+                                        onClick={handleSaveAssistant}
+                                        disabled={isLoading}
+                                        className="h-14 px-10 rounded-[22px] bg-indigo-600 text-white text-sm font-black shadow-xl shadow-indigo-100/80 hover:shadow-indigo-200/90 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3 group/save"
+                                    >
+                                        {isLoading ? <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : 
+                                            <svg className="w-5 h-5 group-hover/save:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                            </svg>
+                                        }
+                                        Ayarları Kaydet
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Mobile Fixed Save Bar */}
+                            <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/40 backdrop-blur-3xl border-t border-white/20 z-[100] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom-10 duration-500">
                                 <button
                                     onClick={handleSaveAssistant}
                                     disabled={isLoading}
-                                    className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2"
+                                    className="w-full h-15 rounded-[22px] bg-indigo-600 text-white text-sm font-black shadow-2xl shadow-indigo-500/40 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                                 >
-                                    {isLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                                    Ayarları Kaydet
+                                    {isLoading ? <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : 
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                        </svg>
+                                    }
+                                    AYARLARI KAYDET
                                 </button>
                             </div>
 
                             {saveMessage && (
-                                <div className={`mb-6 p-4 rounded-2xl border text-sm font-bold animate-in slide-in-from-top-2 flex items-center gap-3 ${saveMessage.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'
+                                <div className={`mb-8 p-5 rounded-[24px] border text-sm font-bold animate-in zoom-in-95 slide-in-from-top-4 flex items-center gap-4 transition-all duration-300 ${saveMessage.type === 'success'
+                                        ? 'bg-emerald-50 border-emerald-100/50 text-emerald-800 shadow-lg shadow-emerald-500/5'
+                                        : 'bg-rose-50 border-rose-100/50 text-rose-800 shadow-lg shadow-rose-500/5'
                                     }`}>
-                                    <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${saveMessage.type === 'success' ? 'bg-emerald-100' : 'bg-rose-100'}`}>
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d={saveMessage.type === 'success' ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"} />
+                                        </svg>
+                                    </div>
                                     {saveMessage.text}
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-                                <div className="space-y-10">
-                                    {/* Tab Buttons for Message Types */}
-                                    <div className="flex flex-wrap bg-slate-100 p-1 rounded-2xl border border-slate-200/60 transition-all">
-                                        {(["REMINDER", "SATISFACTION", "PAYMENT", "BIRTHDAY", "DELAY", "FOLLOWUP", "INCOMPLETE", "NEW_PATIENT", "LAB_TRACKING"] as MessageType[]).map((type) => (
-                                            <button
-                                                key={type}
-                                                onClick={() => setActiveMessage(type)}
-                                                className={`px-3 py-2 rounded-xl text-[9px] font-black tracking-widest uppercase transition-all mb-1 mr-1 ${activeMessage === type
-                                                    ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50"
-                                                    : "text-slate-400 hover:text-slate-600"
-                                                    }`}
-                                            >
-                                                {type === 'REMINDER' ? 'Hatırlatma' :
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 relative z-10">
+                                {/* Left Section: Categories (3/12 or 4/12) */}
+                                <div className="md:col-span-4 lg:col-span-3 space-y-3 pr-0 md:pr-4">
+                                    <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5 ml-2">İletişim Türleri</h3>
+                                    <div className="relative">
+                                        <div className="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 scrollbar-hide snap-x snap-mandatory">
+                                            {(["REMINDER", "SATISFACTION", "PAYMENT", "BIRTHDAY", "DELAY", "FOLLOWUP", "INCOMPLETE", "NEW_PATIENT", "LAB_TRACKING"] as MessageType[]).map((type) => {
+                                                const label = type === 'REMINDER' ? 'Hatırlat' :
                                                     type === 'SATISFACTION' ? 'Memnuniyet' :
                                                         type === 'PAYMENT' ? 'Ödeme' :
-                                                            type === 'BIRTHDAY' ? 'Doğum Günü' :
+                                                            type === 'BIRTHDAY' ? 'Doğum' :
                                                                 type === 'DELAY' ? 'Gecikme' :
-                                                                    type === 'FOLLOWUP' ? 'Cerrahi Takip' :
+                                                                    type === 'FOLLOWUP' ? 'Cerrahi' :
                                                                         type === 'INCOMPLETE' ? 'Eksik' :
-                                                                            type === 'NEW_PATIENT' ? 'Yeni Hasta' : 'Lab'}
-                                            </button>
-                                        ))}
-                                    </div>
+                                                                            type === 'NEW_PATIENT' ? 'Yeni' : 'Lab';
 
-                                    {/* Settings for Active Message Header Info */}
-                                    <div className="p-6 rounded-3xl bg-indigo-50/50 border border-indigo-100/30 flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100 shrink-0">
-                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
-                                            </svg>
+                                                const icons = {
+                                                    REMINDER: "⏰", SATISFACTION: "⭐️", PAYMENT: "💳", BIRTHDAY: "🎂",
+                                                    DELAY: "⏳", FOLLOWUP: "🩹", INCOMPLETE: "⚠️", NEW_PATIENT: "👋", LAB_TRACKING: "🧪"
+                                                };
+
+                                                const isActive = activeMessage === type;
+
+                                                return (
+                                                    <button
+                                                        key={type}
+                                                        onClick={() => setActiveMessage(type)}
+                                                        className={`group/cat w-auto md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3.5 rounded-[16px] md:rounded-[18px] transition-all duration-300 relative shrink-0 md:shrink snap-center ${isActive
+                                                                ? 'bg-gradient-to-r from-indigo-50 to-indigo-100/50 border-2 border-indigo-200/60 shadow-md shadow-indigo-100/10'
+                                                                : 'hover:bg-slate-50 border border-transparent'
+                                                            }`}
+                                                    >
+                                                        <span className={`text-base md:text-lg transition-transform duration-300 ${isActive ? 'scale-110 drop-shadow-md' : 'grayscale opacity-60 group-hover/cat:grayscale-0 group-hover/cat:opacity-100'}`}>
+                                                            {icons[type]}
+                                                        </span>
+                                                        <span className={`text-[12px] md:text-[13px] font-black whitespace-nowrap tracking-tight transition-colors duration-300 ${isActive ? 'text-indigo-900 border-b-2 border-indigo-400 md:border-none' : 'text-slate-500 group-hover/cat:text-slate-700'}`}>
+                                                            {label}
+                                                        </span>
+                                                        {isActive && <div className="absolute right-4 w-2 h-2 rounded-full bg-indigo-600 animate-pulse shrink-0 hidden md:block" />}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
-                                        <div>
-                                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">{activeMessage === 'REMINDER' ? 'Hatırlatma' : 'Asistan'} Şablonu</h3>
-                                            <p className="text-xs text-slate-500 font-medium">Bu taslak otomatik bildirimlerde kullanılır.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                            <span className="w-1.5 h-4 bg-indigo-600 rounded-full" />
-                                            Zamanlama Ayarı
-                                        </h4>
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex-1">
-                                                <input
-                                                    type="number"
-                                                    value={(localSettings.assistant_timings as Record<string, { value: number; unit: string }>)?.[activeMessage]?.value ?? 1}
-                                                    onChange={(e) => updateTiming(activeMessage, 'value', parseInt(e.target.value))}
-                                                    className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                                />
-                                            </div>
-                                            <div className="flex-[2]">
-                                                <select
-                                                    value={(localSettings.assistant_timings as Record<string, { value: number; unit: string }>)?.[activeMessage]?.unit ?? "hours"}
-                                                    onChange={(e) => updateTiming(activeMessage, 'unit', e.target.value)}
-                                                    className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                                >
-                                                    <option value="minutes">Dakika</option>
-                                                    <option value="hours">Saat</option>
-                                                    <option value="days">Gün</option>
-                                                </select>
-                                            </div>
-                                            <span className="text-sm font-bold text-slate-400">
-                                                {activeMessage === 'REMINDER' ? 'Önce' : 'Sonra'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                            <span className="w-1.5 h-4 bg-indigo-600 rounded-full" />
-                                            Mesaj Taslağı
-                                        </h4>
-                                        <div className="relative group">
-                                            <div className="absolute inset-0 p-6 text-sm font-semibold leading-relaxed pointer-events-none whitespace-pre-wrap break-words overflow-hidden text-slate-700 z-10" aria-hidden="true" style={{ fontFamily: 'inherit' }}>
-                                                {((localSettings.message_templates as Record<string, string>)?.[activeMessage] || "").split(/(\{patient_name\}|\{patient_surname\}|\{appointment_time\}|\{appointment_date\}|\{doctor_name\}|\{amount\}|\{clinic_name\})/g).map((part: string, i: number) => {
-                                                    const placeholder = PLACEHOLDERS.find(p => p.key === part);
-                                                    if (placeholder) {
-                                                        return (
-                                                            <span key={i} className="relative inline-block mx-0.5 align-middle group/pill">
-                                                                <span className="invisible pointer-events-none select-none">{part}</span>
-                                                                <span className="absolute inset-x-0 inset-y-[2px] rounded-md bg-indigo-100 text-indigo-700 text-[9px] font-black flex items-center justify-center px-1 shadow-sm border border-indigo-200 whitespace-nowrap">
-                                                                    {placeholder.label}
-                                                                </span>
-                                                            </span>
-                                                        );
-                                                    }
-                                                    return <span key={i}>{part}</span>;
-                                                })}
-                                            </div>
-                                            <textarea
-                                                id={`template-editor-${activeMessage}`}
-                                                value={(localSettings.message_templates as Record<string, string>)?.[activeMessage] || ""}
-                                                onChange={(e) => updateMessageTemplate(activeMessage, e.target.value)}
-                                                spellCheck="false"
-                                                onClick={(e) => {
-                                                    const target = e.currentTarget;
-                                                    const start = target.selectionStart;
-                                                    const value = target.value;
-
-                                                    const matchBefore = value.slice(0, start).match(/\{[^}]*$/);
-                                                    const matchAfter = value.slice(start).match(/^[^}]*\}/);
-
-                                                    if (matchBefore && matchAfter) {
-                                                        const posToStart = matchBefore[0].length;
-                                                        const posToEnd = matchAfter[0].length;
-                                                        if (posToStart < posToEnd) {
-                                                            target.setSelectionRange(start - posToStart, start - posToStart);
-                                                        } else {
-                                                            target.setSelectionRange(start + posToEnd, start + posToEnd);
-                                                        }
-                                                    }
-                                                }}
-                                                onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                                                    const target = e.currentTarget;
-                                                    const start = target.selectionStart;
-                                                    const value = target.value;
-
-                                                    // Atomic Deletion Logic
-                                                    if (e.key === 'Backspace') {
-                                                        const before = value.slice(0, start);
-                                                        const match = before.match(/\{[^}]+\}$/);
-                                                        if (match) {
-                                                            const placeholder = match[0];
-                                                            if (PLACEHOLDERS.some(p => p.key === placeholder)) {
-                                                                e.preventDefault();
-                                                                const newValue = value.slice(0, start - placeholder.length) + value.slice(start);
-                                                                updateMessageTemplate(activeMessage, newValue);
-                                                                setTimeout(() => {
-                                                                    target.selectionStart = target.selectionEnd = start - placeholder.length;
-                                                                }, 0);
-                                                                return;
-                                                            }
-                                                        }
-                                                    } else if (e.key === 'Delete') {
-                                                        const after = value.slice(start);
-                                                        const match = after.match(/^\{[^}]+\}/);
-                                                        if (match) {
-                                                            const placeholder = match[0];
-                                                            if (PLACEHOLDERS.some(p => p.key === placeholder)) {
-                                                                e.preventDefault();
-                                                                const newValue = value.slice(0, start) + value.slice(start + placeholder.length);
-                                                                updateMessageTemplate(activeMessage, newValue);
-                                                                setTimeout(() => {
-                                                                    target.selectionStart = target.selectionEnd = start;
-                                                                }, 0);
-                                                                return;
-                                                            }
-                                                        }
-                                                    }
-
-                                                    // Atomic Jumping for Arrow Keys
-                                                    if (e.key === 'ArrowRight') {
-                                                        const after = value.slice(start);
-                                                        const match = after.match(/^\{[^}]+\}/);
-                                                        if (match) {
-                                                            const placeholder = match[0];
-                                                            if (PLACEHOLDERS.some(p => p.key === placeholder)) {
-                                                                e.preventDefault();
-                                                                target.setSelectionRange(start + placeholder.length, start + placeholder.length);
-                                                                return;
-                                                            }
-                                                        }
-                                                    } else if (e.key === 'ArrowLeft') {
-                                                        const before = value.slice(0, start);
-                                                        const match = before.match(/\{[^}]+\}$/);
-                                                        if (match) {
-                                                            const placeholder = match[0];
-                                                            if (PLACEHOLDERS.some(p => p.key === placeholder)) {
-                                                                e.preventDefault();
-                                                                target.setSelectionRange(start - placeholder.length, start - placeholder.length);
-                                                                return;
-                                                            }
-                                                        }
-                                                    }
-
-                                                    // Block other keys inside a variable
-                                                    const matchBefore = value.slice(0, start).match(/\{[^}]*$/);
-                                                    const matchAfter = value.slice(start).match(/^[^}]*\}/);
-                                                    if (matchBefore && matchAfter) {
-                                                        const placeholder = matchBefore[0] + matchAfter[0];
-                                                        if (PLACEHOLDERS.some(p => p.key === placeholder)) {
-                                                            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
-                                                                e.preventDefault();
-                                                            }
-                                                        }
-                                                    }
-                                                }}
-                                                rows={6}
-                                                className="w-full bg-slate-50/20 focus:bg-white/10 border border-slate-200 rounded-[28px] p-6 text-sm font-semibold leading-relaxed text-transparent caret-indigo-600 outline-none focus:ring-8 focus:ring-indigo-500/5 transition-all resize-none shadow-sm z-20 relative custom-scrollbar hover:border-slate-300"
-                                                style={{ fontFamily: 'inherit' }}
-                                                placeholder="Mesajınızı yazın..."
-                                            />
-                                        </div>
-
-                                        <div className="flex flex-wrap gap-2 mt-3 cursor-grab">
-                                            {PLACEHOLDERS.map(p => (
-                                                <button
-                                                    key={p.key}
-                                                    draggable
-                                                    onDragStart={(e) => {
-                                                        e.dataTransfer.setData("text/plain", p.key);
-                                                        e.dataTransfer.effectAllowed = "copy";
-                                                    }}
-                                                    onClick={() => {
-                                                        const textarea = document.getElementById(`template-editor-${activeMessage}`) as HTMLTextAreaElement;
-                                                        if (textarea) {
-                                                            const start = textarea.selectionStart;
-                                                            const end = textarea.selectionEnd;
-                                                            const currentText = (localSettings.message_templates as Record<string, string>)?.[activeMessage] || "";
-                                                            const newText = currentText.substring(0, start) + p.key + currentText.substring(end);
-                                                            updateMessageTemplate(activeMessage, newText);
-
-                                                            // Restore focus and cursor position after React update
-                                                            setTimeout(() => {
-                                                                textarea.focus();
-                                                                textarea.setSelectionRange(start + p.key.length, start + p.key.length);
-                                                            }, 0);
-                                                        }
-                                                    }}
-                                                    className={`px-3 py-2 rounded-xl bg-gradient-to-r ${p.color} text-white text-[10px] font-black uppercase tracking-widest hover:scale-110 active:scale-95 transition-all shadow-sm border border-white/20 active:cursor-grabbing select-none`}
-                                                    title="Sürükle veya tıkla"
-                                                >
-                                                    {p.label}
-                                                </button>
-                                            ))}
-                                        </div>
+                                        {/* Mobile scroll indicator mask */}
+                                        <div className="md:hidden absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white pointer-events-none z-10" />
                                     </div>
                                 </div>
 
-                                {/* Preview Area */}
-                                <div className="hidden xl:flex flex-col items-center">
-                                    <div className="relative w-72 h-[580px] bg-slate-900 rounded-[45px] p-3 shadow-2xl ring-8 ring-slate-800">
-                                        {/* Phone Header */}
-                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-3xl z-20 flex items-center justify-center">
-                                            <div className="w-10 h-1 bg-slate-800 rounded-full" />
-                                        </div>
-
-                                        <div className="w-full h-full bg-[#E5DDD5] rounded-[35px] overflow-hidden flex flex-col relative border-4 border-slate-900">
-                                            {/* WhatsApp Header */}
-                                            <div className="bg-[#075E54] p-4 pt-8 flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-white/20 rounded-full" />
-                                                <div>
-                                                    <p className="text-white text-xs font-bold">{clinic.clinicName}</p>
-                                                    <p className="text-white/70 text-[8px]">WhatsApp İşletme Hesabı</p>
+                                {/* Center/Right Section: Editor & Preview */}
+                                <div className="md:col-span-8 lg:col-span-9">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                                        <div className="space-y-8">
+                                             {/* Assistant Explainer Guide */}
+                                            <div className="p-5 rounded-[28px] bg-indigo-50/40 border border-indigo-100/50 mb-4 animate-in slide-in-from-right-4 duration-500 group/guide relative overflow-hidden">
+                                                <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover/guide:scale-110 transition-transform">
+                                                    <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
                                                 </div>
-                                            </div>
-
-                                            {/* Messages Content */}
-                                            <div className="flex-1 p-4 space-y-4 overflow-y-auto custom-scrollbar">
-                                                <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm max-w-[85%] relative break-words">
-                                                    <p className="text-[11px] leading-relaxed text-slate-800 font-medium whitespace-pre-wrap italic break-words">
-                                                        {renderPreview((localSettings.message_templates as Record<string, string>)?.[activeMessage] || "")}
-                                                    </p>
-                                                    <div className="flex justify-end mt-1">
-                                                        <span className="text-[8px] text-slate-400 uppercase">10:45 ✓</span>
+                                                <div className="flex gap-4 relative z-10">
+                                                    <div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0 border border-indigo-100/50">
+                                                        <span className="text-xl">💡</span>
                                                     </div>
-                                                    {/* bubble spike */}
-                                                    <div className="absolute -left-2 top-0 w-3 h-3 bg-white" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }} />
+                                                    <div>
+                                                        <h4 className="text-[12px] font-black text-indigo-900 uppercase tracking-widest mb-1">
+                                                            {activeMessage === 'REMINDER' ? 'Randevu Hatırlatıcı' :
+                                                             activeMessage === 'SATISFACTION' ? 'Memnuniyet Anketi' :
+                                                             activeMessage === 'PAYMENT' ? 'Ödeme Takip' :
+                                                             activeMessage === 'BIRTHDAY' ? 'Doğum Günü Kutlama' :
+                                                             activeMessage === 'DELAY' ? 'Gecikme Uyarısı' :
+                                                             activeMessage === 'FOLLOWUP' ? 'Operasyon Takip' :
+                                                             activeMessage === 'INCOMPLETE' ? 'Eksik Veri Takibi' :
+                                                             activeMessage === 'NEW_PATIENT' ? 'Hoş Geldin Mesajı' : 'Laboratuvar Takip'}
+                                                        </h4>
+                                                        <p className="text-[11px] text-indigo-700/70 font-bold leading-relaxed italic">
+                                                            {activeMessage === 'REMINDER' ? 'Randevudan önce hastaya onay mesajı iletir ve kliniğe hazırlık için asistan bildirimi gönderir.' :
+                                                             activeMessage === 'SATISFACTION' ? 'Tedavi tamamlandığında hastaya otomatik deneyim anketi göndererek geri bildirim toplamanızı sağlar.' :
+                                                             activeMessage === 'PAYMENT' ? 'Ödemesi yaklaşan veya geciken hastalar için hem hastaya hem de ilgili personele otomatik hatırlatma yapar.' :
+                                                             activeMessage === 'BIRTHDAY' ? 'Hastalarınızın profilinde kayıtlı doğum günlerinde onlara özel kutlama mesajları iletir.' :
+                                                             activeMessage === 'DELAY' ? 'Randevu saati geçmesine rağmen işlem başlamamışsa personelinize gecikme uyarısı gönderir.' :
+                                                             activeMessage === 'FOLLOWUP' ? 'Cerrahi operasyonlar gibi kritik işlemler sonrası hastanın durumunu sormak için hatırlatma yapar.' :
+                                                             activeMessage === 'INCOMPLETE' ? 'Profilinde TC Kimlik veya Telefon bilgisi eksik olan hastalar için kayıt anında uyarı verir.' :
+                                                             activeMessage === 'NEW_PATIENT' ? 'Klinik kaydı ilk kez açılan hastalara kliniğiniz hakkında kısa bir tanıtım ve hoş geldin mesajı yollar.' : 'Laboratuvara gönderilen protezlerin durumunu takip eder ve gecikmelerde sizi uyarır.'}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* WhatsApp Input Mockup */}
-                                            <div className="bg-white/80 backdrop-blur p-2 pb-4 flex items-center gap-2">
-                                                <div className="flex-1 h-8 bg-white rounded-full border border-slate-200 px-4 flex items-center">
-                                                    <div className="h-1 w-12 bg-slate-100 rounded-full" />
+                                            {/* Timing Card */}
+                                            <div className="bg-slate-50/50 rounded-3xl p-6 border border-slate-100 space-y-4 shadow-inner">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                    <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                                        <div className="w-1.5 h-4 bg-indigo-600 rounded-full" />
+                                                        Bildirim Zamanlaması
+                                                    </h4>
                                                 </div>
-                                                <div className="w-8 h-8 bg-[#128C7E] rounded-full flex items-center justify-center text-white shadow-lg">
-                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+                                                <div className="flex flex-col gap-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex-1 relative">
+                                                            <input
+                                                                type="number"
+                                                                value={(localSettings.assistant_timings as Record<string, { value: number; unit: string }>)?.[activeMessage]?.value ?? 1}
+                                                                onChange={(e) => updateTiming(activeMessage, 'value', parseInt(e.target.value))}
+                                                                className="w-full h-14 bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all outline-none shadow-sm"
+                                                            />
+                                                        </div>
+                                                        <div className="flex-[1.5]">
+                                                            <select
+                                                                value={(localSettings.assistant_timings as Record<string, { value: number; unit: string }>)?.[activeMessage]?.unit ?? "hours"}
+                                                                onChange={(e) => updateTiming(activeMessage, 'unit', e.target.value)}
+                                                                className="w-full h-14 bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all outline-none shadow-sm appearance-none cursor-pointer"
+                                                            >
+                                                                <option value="minutes">Dakika</option>
+                                                                <option value="hours">Saat</option>
+                                                                <option value="days">Gün</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-3 bg-white border border-indigo-100/50 rounded-2xl">
+                                                        <p className="text-[11px] font-bold text-slate-600 leading-relaxed italic">
+                                                            🔍 Randevu saatinden <span className="text-indigo-600">{(localSettings.assistant_timings as Record<string, { value: number; unit: string }>)?.[activeMessage]?.value ?? 1} {(localSettings.assistant_timings as Record<string, { value: number; unit: string }>)?.[activeMessage]?.unit === 'minutes' ? 'dakika' : (localSettings.assistant_timings as Record<string, { value: number; unit: string }>)?.[activeMessage]?.unit === 'hours' ? 'saat' : 'gün'}</span> {activeMessage === 'REMINDER' ? 'önce' : 'sonra'} kliniğe asistan hatırlatma bildirimi gönderilecektir.
+                                                        </p>
+                                                    </div>
                                                 </div>
+                                            </div>
+
+                                            {/* Editor Card */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between px-1">
+                                                    <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                                        <div className="w-1.5 h-4 bg-indigo-600 rounded-full" />
+                                                        Mesaj Taslağı
+                                                    </h4>
+                                                </div>
+
+                                                <div className="relative group/editor bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm focus-within:ring-8 focus-within:ring-indigo-500/10 focus-within:border-indigo-400 transition-all">
+                                                    {/* Clean Editor */}
+                                                    <textarea
+                                                        id={`template-editor-${activeMessage}`}
+                                                        value={(localSettings.message_templates as Record<string, string>)?.[activeMessage] || ""}
+                                                        onChange={(e) => updateMessageTemplate(activeMessage, e.target.value)}
+                                                        spellCheck="false"
+                                                        rows={6}
+                                                        className="w-full bg-transparent p-7 text-sm font-semibold leading-relaxed text-slate-900 caret-indigo-600 outline-none transition-all resize-none z-20 relative custom-scrollbar overflow-y-auto"
+                                                        style={{ fontFamily: 'inherit' }}
+                                                        placeholder="Mesajınızı yazın..."
+                                                    />
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-2 pt-2">
+                                                    {PLACEHOLDERS.map(p => (
+                                                        <button
+                                                            key={p.key}
+                                                            onClick={() => {
+                                                                const textarea = document.getElementById(`template-editor-${activeMessage}`) as HTMLTextAreaElement;
+                                                                if (textarea) {
+                                                                    const start = textarea.selectionStart;
+                                                                    const end = textarea.selectionEnd;
+                                                                    const currentText = (localSettings.message_templates as Record<string, string>)?.[activeMessage] || "";
+                                                                    const newText = currentText.substring(0, start) + p.key + currentText.substring(end);
+                                                                    updateMessageTemplate(activeMessage, newText);
+                                                                    setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + p.key.length, start + p.key.length); }, 0);
+                                                                }
+                                                            }}
+                                                            className={`px-3 py-2 rounded-xl bg-gradient-to-r ${p.color} text-white text-[9px] font-black uppercase tracking-tighter hover:scale-105 active:scale-95 transition-all shadow-sm border border-white/20`}
+                                                        >
+                                                            {p.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 font-bold italic px-1">
+                                                    💡 <span className="text-indigo-500 font-black">{"{...}"}</span> etiketlerini kullanarak mesajı kişiselleştirebilirsiniz. Yukarıdaki butonlara basarak otomatik ekleme yapabilirsiniz.
+                                                </p>
                                             </div>
                                         </div>
 
-                                        <p className="absolute -bottom-8 text-center w-full text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                                            CANLI ÖNİZLEME
-                                        </p>
+                                        {/* Preview Column */}
+                                        <div className="flex flex-col items-center lg:items-end xl:items-center">
+                                            <div className="relative w-72 h-[600px] bg-slate-900 rounded-[48px] p-3 shadow-2xl ring-8 ring-slate-800 scale-90 lg:scale-[0.85] xl:scale-100 origin-top">
+                                                {/* Notch */}
+                                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-3xl z-30 flex items-center justify-center">
+                                                    <div className="w-10 h-1 bg-slate-800 rounded-full" />
+                                                </div>
+
+                                                <div className="w-full h-full bg-[#E5DDD5] rounded-[38px] overflow-hidden flex flex-col relative border-4 border-slate-900/10">
+                                                    {/* WhatsApp Mock Status Bar */}
+                                                    <div className="h-6 bg-[#075E54] w-full flex justify-between items-center px-6 pt-1 text-[8px] text-white/80 font-bold">
+                                                        <span>10:45</span>
+                                                        <div className="flex items-center gap-1">
+                                                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg> 100%
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-[#075E54] p-4 flex items-center gap-3 shadow-md relative z-10">
+                                                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                                                            <div className="w-full h-full bg-indigo-500/40 flex items-center justify-center text-[10px] text-white font-black italic">IDK</div>
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-white text-xs font-black truncate leading-tight uppercase tracking-tight">{clinic.clinicName || "Dentist Panel"}</p>
+                                                            <div className="flex items-center gap-1">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-[#25D366]" />
+                                                                <p className="text-white/70 text-[9px] font-bold uppercase tracking-tighter">İşletme Hesabı</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex-1 p-5 space-y-4 overflow-y-auto custom-scrollbar bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat">
+                                                        <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-lg shadow-slate-900/5 max-w-[90%] relative animate-in slide-in-from-left-4 duration-500">
+                                                            <p className="text-[12px] leading-relaxed text-slate-800 font-bold whitespace-pre-wrap">
+                                                                {renderPreview((localSettings.message_templates as Record<string, string>)?.[activeMessage] || "")}
+                                                            </p>
+                                                            <div className="flex justify-end mt-2 items-center gap-1">
+                                                                <span className="text-[9px] text-slate-400 font-black uppercase tracking-tighter">10:45</span>
+                                                                <svg className="w-3.5 h-3.5 text-[#34B7F1]" fill="currentColor" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-4.24l-1.41-1.41L9 13.17 4.17 8.35c-.78-.78-2.04-.78-2.82 0-.78.78-.78 2.04 0 2.82l6.24 6.24c.78.78 2.05.78 2.83 0l12.82-12.82z" /></svg>
+                                                            </div>
+                                                            <div className="absolute -left-2.5 top-0 w-3 h-3 bg-white" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }} />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-[#f0f2f5]/95 backdrop-blur p-3 flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-400 shrink-0">
+                                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+                                                        </div>
+                                                        <div className="flex-1 h-10 bg-white rounded-full border border-slate-200/50 px-4 flex items-center border">
+                                                            <div className="h-1.5 w-24 bg-slate-100 rounded-full" />
+                                                        </div>
+                                                        <div className="w-10 h-10 bg-[#128C7E] rounded-full flex items-center justify-center text-white shadow-xl shadow-[#128C7E]/20 shrink-0">
+                                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="absolute -bottom-10 text-center w-full">
+                                                    <span className="bg-slate-800 text-white text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] shadow-lg border border-slate-700">CANLI ÖNİZLEME</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                )
-                }
+                )}
+
 
                 {
                     activeSub === "checklist" && (
@@ -1206,12 +1250,26 @@ export function ClinicSettingsTab() {
                                             akıllı asistan bildirimlerinin hangi kullanıcı rollerine anlık bildirim olarak düşeceğini buradan yönetebilirsiniz.
                                         </p>
                                     </div>
+                                    <div className="hidden lg:block">
+                                        <button
+                                            onClick={handleSaveChecklist}
+                                            disabled={isLoading || checklistLoading}
+                                            className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] transition-all disabled:opacity-50"
+                                        >
+                                            Değişiklikleri Kaydet
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Mobile Fixed Save Bar for Checklist */}
+                                <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/40 backdrop-blur-3xl border-t border-white/20 z-[100] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom-10 duration-500">
                                     <button
                                         onClick={handleSaveChecklist}
                                         disabled={isLoading || checklistLoading}
-                                        className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] transition-all disabled:opacity-50"
+                                        className="w-full h-15 rounded-[22px] bg-indigo-600 text-white text-sm font-black shadow-2xl shadow-indigo-500/40 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                                     >
-                                        Değişiklikleri Kaydet
+                                        {isLoading || checklistLoading ? <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+                                        AYARLARI KAYDET
                                     </button>
                                 </div>
 
@@ -1482,12 +1540,26 @@ export function ClinicSettingsTab() {
                                         <h2 className="text-xl font-black text-slate-900 tracking-tight">Klinik Çalışma Saatleri</h2>
                                         <p className="text-sm text-slate-500 font-medium italic">Haftalık düzen ve özel gün istisnalarını yönetin.</p>
                                     </div>
+                                    <div className="hidden lg:block">
+                                        <button
+                                            onClick={handleSaveGeneral}
+                                            disabled={isLoading}
+                                            className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] transition-all disabled:opacity-50"
+                                        >
+                                            Ayarları Kaydet
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Mobile Fixed Save Bar for Working Hours */}
+                                <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/40 backdrop-blur-3xl border-t border-white/20 z-[100] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom-10 duration-500">
                                     <button
                                         onClick={handleSaveGeneral}
                                         disabled={isLoading}
-                                        className="h-11 px-8 rounded-2xl bg-indigo-600 text-white text-sm font-black shadow-lg shadow-indigo-100 hover:shadow-indigo-200 hover:scale-[1.02] transition-all disabled:opacity-50"
+                                        className="w-full h-15 rounded-[22px] bg-indigo-600 text-white text-sm font-black shadow-2xl shadow-indigo-500/40 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                                     >
-                                        Ayarları Kaydet
+                                        {isLoading ? <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+                                        ÇALIŞMA SAATLERİNİ KAYDET
                                     </button>
                                 </div>
 
@@ -1890,12 +1962,26 @@ export function ClinicSettingsTab() {
                                             <div className="space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <h4 className="text-sm font-black text-slate-700">{doc?.full_name} — Haftalık Program</h4>
+                                                    <div className="hidden lg:block">
+                                                        <button
+                                                            onClick={() => handleSaveDoctorHours(selectedDoctorId)}
+                                                            disabled={isLoading}
+                                                            className="h-9 px-5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-black shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2">
+                                                            {isLoading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                                            Kaydet
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Mobile Fixed Save Bar for Doctor Hours */}
+                                                <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/40 backdrop-blur-3xl border-t border-white/20 z-[100] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom-10 duration-500">
                                                     <button
                                                         onClick={() => handleSaveDoctorHours(selectedDoctorId)}
                                                         disabled={isLoading}
-                                                        className="h-9 px-5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-black shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2">
-                                                        {isLoading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                                                        Kaydet
+                                                        className="w-full h-15 rounded-[22px] bg-violet-600 text-white text-sm font-black shadow-2xl shadow-violet-500/40 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                                                    >
+                                                        {isLoading ? <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+                                                        HEKİM TAKVİMİNİ KAYDET
                                                     </button>
                                                 </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -2002,14 +2088,14 @@ export function ClinicSettingsTab() {
                                 <h3 className="text-xl font-black text-slate-900">QR Check-in Sistemi</h3>
                                 <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Hastalarınızın bekleme salonunda işlemlerini yapması için QR kodunuzu yönetin.</p>
                             </div>
-                            
+
                             <div className="p-8 sm:p-12 flex flex-col items-center">
-                                <QRCodeGenerator 
+                                <QRCodeGenerator
                                     value={getCheckinUrl(clinic.clinicSlug!)}
                                     title={`${clinic.clinicName} Check-in QR Kodu`}
                                     description="Bu kodu bastırıp bekleme salonuna asarak hastalarınızın check-in yapmasını ve dijital anamnez formu doldurmasını sağlayabilirsiniz."
                                 />
-                                
+
                                 <div className="mt-12 max-w-2xl w-full grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="p-6 bg-emerald-50 rounded-[28px] border border-emerald-100/50">
                                         <div className="flex items-center gap-3 mb-3">

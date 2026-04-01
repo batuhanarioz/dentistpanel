@@ -494,7 +494,7 @@ function ShellInner({ children }: Props) {
           </nav>
         </aside>
         <main className="flex-1 flex flex-col min-w-0">
-          <header className="border-b border-b-slate-100/80 bg-white relative z-50">
+          <header className="border-b border-b-slate-100/80 bg-white relative z-[150]">
             {/* Marka satırı – sadece mobilde */}
             <div className={`relative px-4 md:px-6 py-3 flex items-center justify-between md:hidden ${isPlatform && clinic.isSuperAdmin
               ? "bg-slate-900"
@@ -539,14 +539,14 @@ function ShellInner({ children }: Props) {
               <>
                 {/* Karartma overlay */}
                 <div
-                  className={["fixed inset-0 z-30 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 md:hidden", mobileNavState === "open" ? "opacity-100" : "opacity-0"].join(" ")}
+                  className={["fixed inset-0 z-[200] bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 md:hidden", mobileNavState === "open" ? "opacity-100" : "opacity-0"].join(" ")}
                   onClick={closeMobileNav}
                 />
 
                 {/* Menü paneli */}
                 <div
                   className={[
-                    "fixed inset-x-0 top-0 z-40 md:hidden transition-all duration-300 ease-out",
+                    "fixed inset-x-0 top-0 z-[210] md:hidden transition-all duration-300 ease-out",
                     mobileNavState === "open" ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0",
                   ].join(" ")}
                 >
