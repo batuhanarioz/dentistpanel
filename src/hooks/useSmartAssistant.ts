@@ -120,6 +120,7 @@ export function useSmartAssistant() {
             return json.dismissedIds || [];
         },
         enabled: !!clinic.clinicId,
+        refetchInterval: 60000, // 1 minute auto-sync
     });
 
     const assistantItems = useMemo(() => {
@@ -485,7 +486,17 @@ export function useSmartAssistant() {
 
         const filteredItems = items.filter(i => !dbDismissedIds.includes(i.id));
 
-        return filteredItems;
+        // --- Tekilleştirme (Deduplication) ──────────────────────────────────
+        // Aynı hasta için birden fazla "Hatırlatma" veya "Gecikme" varsa sadece en güncelini/ilkini tut.
+        const seen = new Set<string>();
+        const uniqueItems = filteredItems.filter(item => {
+            const key = `${item.patientId}-${item.type}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+
+        return uniqueItems;
     }, [appointments, payments, pastAppointments, overduePayments, allowedTypes, clinic.clinicName, settings, today, dbDismissedIds]);
 
     const missedCount = assistantItems.filter(i => i.isPastDay).length;
@@ -517,6 +528,30 @@ export function useDismissAssistantItem() {
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ["assistantDismissedIds", clinicId] });
+        }
+    });
+}
+
+export function useUndoDismissAssistantItem() {
+    const qc = useQueryClient();
+    const clinic = useClinic();
+
+    return useMutation({
+        mutationFn: async (itemId: string) => {
+            const token = await getToken();
+            const res = await fetch("/api/assistant/dismiss", {
+                method: "DELETE",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}` 
+                },
+                body: JSON.stringify({ itemId })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            return res.json();
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["assistantDismissedIds", clinic.clinicId] });
         }
     });
 }

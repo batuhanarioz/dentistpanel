@@ -58,3 +58,34 @@ export const GET = withAuth(
         return NextResponse.json({ dismissedIds: (data || []).map(d => d.item_id) });
     }
 );
+
+/**
+ * DELETE /api/assistant/dismiss
+ * Body: { itemId: string }
+ * Removes a dismissal record for Undo.
+ */
+export const DELETE = withAuth(
+    async (req: NextRequest, ctx) => {
+        if (!ctx.clinicId || !ctx.user?.id) {
+            return NextResponse.json({ error: "Auth context missing" }, { status: 401 });
+        }
+
+        const { itemId } = await req.json();
+        if (!itemId) {
+            return NextResponse.json({ error: "Item ID required" }, { status: 400 });
+        }
+
+        const { error } = await supabaseAdmin
+            .from("assistant_dismissals")
+            .delete()
+            .eq("clinic_id", ctx.clinicId)
+            .eq("user_id", ctx.user.id)
+            .eq("item_id", itemId);
+
+        if (error) {
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true });
+    }
+);

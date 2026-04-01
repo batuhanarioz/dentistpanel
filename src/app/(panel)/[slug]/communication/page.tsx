@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useSmartAssistant, AssistantItem, AssistantItemType, useDismissAssistantItem } from "@/hooks/useSmartAssistant";
+import { useSmartAssistant, AssistantItem, AssistantItemType, useDismissAssistantItem, useUndoDismissAssistantItem } from "@/hooks/useSmartAssistant";
 import { useRecallQueue, useUpdateRecallStatus } from "@/hooks/useRecallQueue";
 import { QuickAppointmentModal } from "@/app/components/appointments/QuickAppointmentModal";
 import type { RecallQueueItem, RecallStatus } from "@/types/database";
@@ -180,6 +180,12 @@ export default function CommunicationHubPage() {
     const { data: recallItems = [], isLoading: recallLoading } = useRecallQueue();
     const { mutate: updateRecallStatus } = useUpdateRecallStatus();
     const { mutate: dismissAssistant } = useDismissAssistantItem();
+    const { mutate: undoDismissAssistant } = useUndoDismissAssistantItem();
+
+    // Undo States
+    const [lastDismissed, setLastDismissed] = useState<AssistantItem | null>(null);
+    const [showUndo, setShowUndo] = useState(false);
+    const [undoTimer, setUndoTimer] = useState<NodeJS.Timeout | null>(null);
 
     // Quick Appointment Modal State
     const [quickAppt, setQuickAppt] = useState<{
@@ -255,8 +261,27 @@ export default function CommunicationHubPage() {
     }, [recallItems]);
 
     const handleDismissAssistant = (id: string, silent = false) => {
+        const item = assistantItems.find(i => i.id === id);
+        if (item) {
+            setLastDismissed(item);
+            setShowUndo(true);
+            if (undoTimer) clearTimeout(undoTimer);
+            const timer = setTimeout(() => setShowUndo(false), 10000); // 10 seconds undo window
+            setUndoTimer(timer);
+        }
+
         dismissAssistant(id);
         if (!silent) toast.success("Bildirim kaldırıldı");
+    };
+
+    const handleUndoDismiss = () => {
+        if (lastDismissed) {
+            undoDismissAssistant(lastDismissed.id);
+            setShowUndo(false);
+            setLastDismissed(null);
+            if (undoTimer) clearTimeout(undoTimer);
+            toast.success("Bildirim geri getirildi", { icon: "🔄" });
+        }
     };
 
     const handleSendWhatsApp = (id: string, phone: string, message: string) => {
@@ -314,17 +339,51 @@ export default function CommunicationHubPage() {
                 </div>
             </div>
 
+            {/* Undo Toast / Banner */}
+            {showUndo && lastDismissed && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom duration-300">
+                    <div className="bg-slate-900 text-white px-6 py-4 rounded-[2rem] shadow-2xl flex items-center gap-6 border border-white/10 backdrop-blur-md bg-opacity-90">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Geri Al</span>
+                            <span className="text-xs font-bold">{lastDismissed.patientName} bildirimi kaldırıldı</span>
+                        </div>
+                        <div className="h-8 w-px bg-white/10" />
+                        <button 
+                            onClick={handleUndoDismiss}
+                            className="bg-white text-slate-900 px-5 py-2 rounded-xl text-xs font-black hover:bg-rose-500 hover:text-white transition-all active:scale-95"
+                        >
+                            GERİ AL
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Content Area */}
             {viewMode === 'ASSISTANT' ? (
                 <div className="space-y-6">
                     {/* Kaçırılmış bildirim uyarı banner */}
                     {missedCount > 0 && (
-                        <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-2xl px-5 py-3.5">
+                        <div className="flex items-center gap-3 bg-rose-50 border border-border-rose-200 rounded-2xl px-5 py-3.5 mb-4">
                             <span className="text-rose-500 text-lg">⚠️</span>
                             <p className="text-xs font-bold text-rose-700">
-                                <span className="font-black">{missedCount} bildirim</span> önceki günlerden kalmış — klinik kapalıyken veya gözden kaçmış olabilir.
-                                Aşağıda listenin başında işaretlenerek gösterilmektedir.
+                                <span className="font-black">{missedCount} bildirim</span> önceki günlerden kalmış.
                             </p>
+                        </div>
+                    )}
+
+                    {/* Missing Data Summary Banner */}
+                    {assistantItems.filter(i => !i.patientPhone).length > 0 && (
+                        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 mb-4">
+                            <span className="text-amber-500 text-lg">ℹ️</span>
+                            <p className="text-xs font-bold text-amber-700">
+                                <span className="font-black">{assistantItems.filter(i => !i.patientPhone).length} hastanın</span> telefon bilgisi eksik olduğu için WhatsApp ile ulaşılamıyor.
+                            </p>
+                            <button 
+                                onClick={() => setAssistantFilter('INCOMPLETE')}
+                                className="ml-auto text-[10px] font-black underline underline-offset-4 text-amber-600 hover:text-amber-800"
+                            >
+                                HEPSİNİ GÖSTER
+                            </button>
                         </div>
                     )}
 
@@ -540,6 +599,11 @@ export default function CommunicationHubPage() {
                                                 <span>Ulaşılma:</span>
                                                 <span className="text-blue-600 bg-blue-50 px-2 rounded-lg">{item.contact_attempts} kez</span>
                                             </div>
+                                            {item.notes && (
+                                                <div className="mt-4 p-3 bg-amber-50/50 border border-amber-100 rounded-2xl italic text-[10px] text-amber-700 leading-relaxed">
+                                                    <span className="font-black not-italic mr-1">📝 SON NOT:</span> {item.notes}
+                                                </div>
+                                            )}
                                         </div>
 
                                         {item.status === 'pending' ? (
@@ -550,12 +614,20 @@ export default function CommunicationHubPage() {
                                                     className="bg-emerald-500 text-white font-black py-2.5 rounded-xl text-[10px] flex items-center justify-center gap-1.5 hover:bg-emerald-600"
                                                 >WHATSAPP</a>
                                                 <button
-                                                    onClick={() => updateRecallStatus({ id: item.id, status: 'contacted' })}
-                                                    className="bg-blue-50 text-blue-700 font-black py-2.5 rounded-xl text-[10px] hover:bg-blue-100"
+                                                    onClick={() => {
+                                                        const note = window.prompt(`${item.patients?.full_name} için arama notu:`, item.notes || "");
+                                                        if (note !== null) updateRecallStatus({ id: item.id, status: 'contacted', notes: note });
+                                                        else updateRecallStatus({ id: item.id, status: 'contacted' });
+                                                    }}
+                                                    className="bg-blue-50 text-blue-700 font-black py-2.5 rounded-xl text-[10px] hover:bg-blue-100 transition-colors"
                                                 >ULAŞILDI</button>
                                                 <button
-                                                    onClick={() => updateRecallStatus({ id: item.id, status: 'dismissed' })}
-                                                    className="bg-slate-50 text-slate-500 font-black py-2.5 rounded-xl text-[10px] hover:bg-slate-100"
+                                                    onClick={() => {
+                                                        const note = window.prompt(`${item.patients?.full_name} için atlama nedeni/notu:`, item.notes || "");
+                                                        if (note !== null) updateRecallStatus({ id: item.id, status: 'dismissed', notes: note });
+                                                        else updateRecallStatus({ id: item.id, status: 'dismissed' });
+                                                    }}
+                                                    className="bg-slate-50 text-slate-500 font-black py-2.5 rounded-xl text-[10px] hover:bg-slate-100 transition-colors"
                                                 >ATLA</button>
                                                 <button
                                                     onClick={() => setQuickAppt({
