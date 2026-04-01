@@ -17,6 +17,8 @@ interface AnamnesisSectionProps {
     editMode?: boolean;
     onEditModeChange?: (v: boolean) => void;
     hideEditButton?: boolean;
+    onCancel?: () => void;
+    cancelLabel?: string;
 }
 
 type Draft = Omit<PatientAnamnesis, "id" | "clinic_id" | "patient_id" | "updated_at" | "updated_by">;
@@ -46,20 +48,20 @@ function CheckChip({
         <button
             type="button"
             onClick={() => onChange(!checked)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all select-none ${
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold border transition-all select-none active:scale-95 ${
                 checked
                     ? danger
-                        ? "bg-rose-100 border-rose-300 text-rose-700"
-                        : "bg-emerald-100 border-emerald-300 text-emerald-700"
+                        ? "bg-rose-100 border-rose-300 text-rose-700 shadow-sm"
+                        : "bg-emerald-100 border-emerald-300 text-emerald-700 shadow-sm"
                     : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
             }`}
         >
             <span
-                className={`h-3 w-3 rounded-full border-2 flex-shrink-0 transition-colors ${
+                className={`h-4 w-4 rounded-full border-2 flex-shrink-0 transition-colors ${
                     checked
                         ? danger
-                            ? "bg-rose-500 border-rose-500"
-                            : "bg-emerald-500 border-emerald-500"
+                            ? "bg-rose-500 border-rose-500 shadow-inner"
+                            : "bg-emerald-500 border-emerald-500 shadow-inner"
                         : "border-slate-300 bg-white"
                 }`}
             />
@@ -83,19 +85,19 @@ function Toggle({
         <button
             type="button"
             onClick={() => onChange(!checked)}
-            className="flex items-center justify-between w-full py-1.5 group"
+            className="flex items-center justify-between w-full py-3 sm:py-3.5 group active:bg-slate-50 px-2 rounded-xl transition-colors"
         >
-            <span className={`text-xs font-semibold ${checked ? (danger ? "text-rose-700" : "text-emerald-700") : "text-slate-600"}`}>
+            <span className={`text-xs sm:text-sm font-bold tracking-tight ${checked ? (danger ? "text-rose-700" : "text-emerald-700") : "text-slate-600"}`}>
                 {label}
             </span>
             <div
-                className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${
+                className={`relative w-11 h-6 rounded-full transition-all duration-300 flex-shrink-0 ${
                     checked ? (danger ? "bg-rose-500" : "bg-emerald-500") : "bg-slate-200"
                 }`}
             >
                 <div
-                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                        checked ? "translate-x-4" : "translate-x-0.5"
+                    className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                        checked ? "translate-x-6" : "translate-x-1"
                     }`}
                 />
             </div>
@@ -120,7 +122,17 @@ function RiskBadge({ label, color }: { label: string; color: "red" | "amber" | "
 
 // ─── Ana bileşen ───────────────────────────────────────────────────────────────
 
-export function AnamnesisSection({ patientId, data, isLoading, onSave, editMode: controlledEditMode, onEditModeChange, hideEditButton }: AnamnesisSectionProps) {
+export function AnamnesisSection({ 
+    patientId, 
+    data, 
+    isLoading, 
+    onSave, 
+    editMode: controlledEditMode, 
+    onEditModeChange, 
+    hideEditButton,
+    onCancel,
+    cancelLabel = "Vazgeç"
+}: AnamnesisSectionProps) {
     const isControlled = controlledEditMode !== undefined;
     const [internalEditMode, setInternalEditMode] = useState(false);
     const editMode = isControlled ? controlledEditMode : internalEditMode;
@@ -172,6 +184,10 @@ export function AnamnesisSection({ patientId, data, isLoading, onSave, editMode:
     };
 
     const handleCancel = () => {
+        if (onCancel) {
+            onCancel();
+            return;
+        }
         if (data) {
             const { id: __, clinic_id: __c, patient_id: __p, updated_at: __u, updated_by: __ub, ...rest } = data as PatientAnamnesisWithMetadata;
             setDraft(rest as Draft);
@@ -331,7 +347,7 @@ export function AnamnesisSection({ patientId, data, isLoading, onSave, editMode:
 
     // ── Düzenleme modu ────────────────────────────────────────────────────────
     return (
-        <div className="space-y-5">
+        <div className="space-y-8 p-6 sm:p-10">
 
             {/* Sistemik hastalıklar */}
             <div>
@@ -534,7 +550,7 @@ export function AnamnesisSection({ patientId, data, isLoading, onSave, editMode:
                     onClick={handleCancel}
                     className="h-9 px-5 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-colors"
                 >
-                    Vazgeç
+                    {cancelLabel}
                 </button>
                 <button
                     type="button"

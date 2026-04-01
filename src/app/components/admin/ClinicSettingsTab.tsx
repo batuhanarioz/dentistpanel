@@ -10,6 +10,8 @@ import { updateClinicSettings, getTreatmentDefinitions, upsertTreatmentDefinitio
 import { PremiumDatePicker } from "../PremiumDatePicker";
 import { localDateStr } from "@/lib/dateUtils";
 import { TreatmentDefinition } from "@/types/database";
+import { QRCodeGenerator } from "../ui/QRCodeGenerator";
+import { getCheckinUrl } from "@/lib/config";
 
 const PLACEHOLDERS = [
     { key: "{patient_name}", label: "HASTA ADI", color: "from-indigo-500 to-indigo-600" },
@@ -22,7 +24,7 @@ const PLACEHOLDERS = [
 ];
 
 type MessageType = "REMINDER" | "SATISFACTION" | "PAYMENT" | "BIRTHDAY" | "DELAY" | "FOLLOWUP" | "INCOMPLETE" | "NEW_PATIENT" | "LAB_TRACKING";
-type SubSection = "profile" | "general" | "checklist" | "assistant" | "treatments" | "channels" | "doctor-hours";
+type SubSection = "profile" | "general" | "checklist" | "assistant" | "treatments" | "channels" | "doctor-hours" | "check-in";
 
 type TaskDefinition = {
     id: string;
@@ -211,9 +213,9 @@ export function ClinicSettingsTab() {
         try {
             const [usersRes, schedulesRes] = await Promise.all([
                 supabase.from("users")
-                    .select("id, full_name, role")
+                    .select("id, full_name, role, is_clinical_provider")
                     .eq("clinic_id", clinic.clinicId)
-                    .in("role", [UserRole.DOKTOR]),
+                    .or(`role.eq.${UserRole.DOKTOR},is_clinical_provider.eq.true`),
                 supabase.from("doctor_schedules")
                     .select("user_id, working_hours")
                     .eq("clinic_id", clinic.clinicId),
@@ -766,6 +768,21 @@ export function ClinicSettingsTab() {
                             </svg>
                         </div>
                         <span>Kanal Yönetimi</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveSub("check-in")}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "check-in"
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                            : "text-slate-500 hover:bg-slate-50"
+                            }`}
+                    >
+                        <div className={`p-1.5 rounded-lg ${activeSub === 'check-in' ? 'bg-white/20' : 'bg-emerald-50 text-emerald-600'}`}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5Z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.75 11.625c0-.621.504-1.125 1.125-1.125h.75c.621 0 1.125.504 1.125 1.125v.75c0 .621-.504 1.125-1.125 1.125h-.75a1.125 1.125 0 0 1-1.125-1.125v-.75ZM11.625 16.75c0-.621.504-1.125 1.125-1.125h.75c.621 0 1.125.504 1.125 1.125v.75c0 .621-.504 1.125-1.125 1.125h-.75a1.125 1.125 0 0 1-1.125-1.125v-.75ZM16.75 16.75c0-.621.504-1.125 1.125-1.125h.75c.621 0 1.125.504 1.125 1.125v.75c0 .621-.504 1.125-1.125 1.125h-.75a1.125 1.125 0 0 1-1.125-1.125v-.75ZM14.25 14.25h.75v.75h-.75v-.75ZM14.25 19.25h.75v.75h-.75v-.75ZM19.25 14.25h.75v.75h-.75v-.75ZM19.25 19.25h.75v.75h-.75v-.75Z" />
+                            </svg>
+                        </div>
+                        <span>QR Check-in Yönetimi</span>
                     </button>
                 </div>
             </aside >
@@ -1977,6 +1994,62 @@ export function ClinicSettingsTab() {
                         </div>
                     )
                 }
+
+                {activeSub === "check-in" && clinic.clinicId && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden">
+                            <div className="p-8 border-b border-slate-50">
+                                <h3 className="text-xl font-black text-slate-900">QR Check-in Sistemi</h3>
+                                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Hastalarınızın bekleme salonunda işlemlerini yapması için QR kodunuzu yönetin.</p>
+                            </div>
+                            
+                            <div className="p-8 sm:p-12 flex flex-col items-center">
+                                <QRCodeGenerator 
+                                    value={getCheckinUrl(clinic.clinicSlug!)}
+                                    title={`${clinic.clinicName} Check-in QR Kodu`}
+                                    description="Bu kodu bastırıp bekleme salonuna asarak hastalarınızın check-in yapmasını ve dijital anamnez formu doldurmasını sağlayabilirsiniz."
+                                />
+                                
+                                <div className="mt-12 max-w-2xl w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="p-6 bg-emerald-50 rounded-[28px] border border-emerald-100/50">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor font-black"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                            </div>
+                                            <span className="text-xs font-black text-emerald-900 uppercase">Avantajlar</span>
+                                        </div>
+                                        <ul className="space-y-2">
+                                            <li className="flex items-start gap-2 text-[11px] font-bold text-emerald-700/80 leading-relaxed">
+                                                <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                                                Sekreteryanın veri girişi yükü azalır.
+                                            </li>
+                                            <li className="flex items-start gap-2 text-[11px] font-bold text-emerald-700/80 leading-relaxed">
+                                                <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                                                Hatalı veri girişi riski minimize edilir.
+                                            </li>
+                                            <li className="flex items-start gap-2 text-[11px] font-bold text-emerald-700/80 leading-relaxed">
+                                                <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                                                Kliniğinizin teknolojik prestiji artar.
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div className="p-6 bg-indigo-50 rounded-[28px] border border-indigo-100/50">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-8 h-8 rounded-xl bg-indigo-500 flex items-center justify-center text-white">
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor font-black"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            </div>
+                                            <span className="text-xs font-black text-indigo-900 uppercase">Nasıl Kullanılır?</span>
+                                        </div>
+                                        <p className="text-[11px] font-bold text-indigo-700/80 leading-relaxed">
+                                            QR kodu indirip bastırarak bekleme salonuna asın. Hasta kodu okutup telefon numarasını girdiğinde randevusuyla eşleşir ve anamnez formu açılır.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main >
         </div >
     );

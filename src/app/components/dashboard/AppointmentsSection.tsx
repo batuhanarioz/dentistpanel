@@ -10,6 +10,8 @@ interface AppointmentsSectionProps {
     onOffsetChange: () => void;
     onReminderClick: (id: string) => void;
     onAppointmentClick?: (id: string) => void;
+    doctors: Array<{ id: string; full_name: string }>;
+    onAssignDoctor: (id: string, docId: string) => void;
 }
 
 function getStatusStyles(status: string) {
@@ -22,8 +24,12 @@ function getStatusStyles(status: string) {
             return { row: "hover:bg-rose-50/30 opacity-60", border: "border-l-2 border-l-rose-400", badge: "bg-rose-50 text-rose-600" };
         case "no_show":
             return { row: "hover:bg-slate-50/40 opacity-70", border: "border-l-2 border-l-slate-300", badge: "bg-slate-100 text-slate-500" };
+        case "arrived":
+            return { row: "hover:bg-blue-50/40", border: "border-l-2 border-l-blue-400", badge: "bg-blue-50 text-blue-600" };
+        case "in_treatment":
+            return { row: "hover:bg-amber-50/40", border: "border-l-2 border-l-amber-400", badge: "bg-amber-50 text-amber-600" };
         default:
-            return { row: "hover:bg-indigo-50/40", border: "", badge: "" };
+            return { row: "hover:bg-indigo-50/40", border: "border-l-2 border-l-slate-100", badge: "bg-slate-100 text-slate-500" };
     }
 }
 
@@ -33,7 +39,9 @@ function getStatusLabel(status: string) {
         case "completed": return "Tamamlandı";
         case "cancelled": return "İptal";
         case "no_show": return "Gelmedi";
-        default: return "";
+        case "arrived": return "Geldi";
+        case "in_treatment": return "Tedavide";
+        default: return "Planlı";
     }
 }
 
@@ -53,6 +61,8 @@ export function AppointmentsSection({
     onOffsetChange,
     onReminderClick,
     onAppointmentClick,
+    doctors,
+    onAssignDoctor,
 }: AppointmentsSectionProps) {
     return (
         <section className="group/card rounded-[28px] border border-slate-100 bg-white shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col relative" style={{ height: '416px' }}>
@@ -228,13 +238,24 @@ export function AppointmentsSection({
                                         </div>
 
                                         {/* Hekim */}
-                                        <div>
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-100 text-[11px] font-bold text-slate-600">
-                                                <svg className="h-3 w-3 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                                                </svg>
-                                                <span className="truncate">{appt.doctorName}</span>
-                                            </span>
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <div className="relative group/select">
+                                                <select
+                                                    value={appt.doctorId || ""}
+                                                    onChange={(e) => onAssignDoctor(appt.id, e.target.value)}
+                                                    className={`w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 pr-8 text-[11px] font-bold text-slate-600 outline-none hover:bg-white hover:border-indigo-300 transition-all cursor-pointer ${!appt.doctorId ? 'text-rose-500 bg-rose-50/30 border-rose-100 hover:bg-rose-50' : ''}`}
+                                                >
+                                                    <option value="">Hekim Atanmadı</option>
+                                                    {doctors.map(d => (
+                                                        <option key={d.id} value={d.id}>{d.full_name}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400 group-hover/select:text-indigo-500">
+                                                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                                    </svg>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {/* İletişim */}

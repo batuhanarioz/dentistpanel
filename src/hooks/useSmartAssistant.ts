@@ -92,10 +92,10 @@ export function useSmartAssistant() {
     });
 
     // 3. Fetch Task/Role Permissions for the current user
-    const { data: allowedTypes = [] } = useQuery({
-        queryKey: ["assistantPermissions", clinic.clinicId],
+    const { data: allowedTypes = [], isLoading: allowedTypesLoading } = useQuery({
+        queryKey: ["assistantPermissions", clinic.clinicId, clinic.userRole],
         queryFn: async () => {
-            const userRole = localStorage.getItem("userRole");
+            const userRole = clinic.userRole;
             if (!userRole) return [];
             if (userRole === "SUPER_ADMIN" || userRole === "ADMIN") return ["ALL"];
 
@@ -112,7 +112,7 @@ export function useSmartAssistant() {
     });
 
     // 4. Fetch Dismissed IDs from DB
-    const { data: dbDismissedIds = [] } = useQuery<string[]>({
+    const { data: dbDismissedIds = [], isLoading: dismissedIdsLoading } = useQuery<string[]>({
         queryKey: ["assistantDismissedIds", clinic.clinicId],
         queryFn: async () => {
             const token = await getToken();
@@ -124,11 +124,12 @@ export function useSmartAssistant() {
             return json.dismissedIds || [];
         },
         enabled: !!clinic.clinicId,
-        refetchInterval: 60000, // 1 minute auto-sync
+        staleTime: 30000, // 30 seconds cache
+        refetchInterval: 60000, 
     });
 
-    const assistantItems = useMemo(() => {
-        if (!settings) return [];
+    const allItemsObj = useMemo(() => {
+        if (!settings) return { pending: [], dismissed: [] };
         const now = new Date();
         const items: AssistantItem[] = [];
 
@@ -181,7 +182,7 @@ export function useSmartAssistant() {
             const thresholdMins = convertToHours(timing.value, timing.unit) * 60;
 
             appointments.forEach((appt) => {
-                if (appt.status === 'cancelled' || appt.status === 'no_show') return;
+                if (appt.status !== 'completed') return;
 
                 const endsAt = new Date(appt.endsAt);
                 const diffMins = (now.getTime() - endsAt.getTime()) / (1000 * 60);
@@ -313,39 +314,7 @@ export function useSmartAssistant() {
             });
         }
 
-        // 7. FOLLOW UP
-        if (isAllowed("FOLLOWUP")) {
-            const followupTiming = settings.assistant_timings.FOLLOWUP;
-            const followupThresholdDays = followupTiming ? convertToHours(followupTiming.value, followupTiming.unit) / 24 : 1;
-
-            appointments.forEach((appt) => {
-                const needsFollowUp = appt.treatmentType?.toLowerCase().includes("cerrahi") || appt.treatmentType?.toLowerCase().includes("implant");
-                if (needsFollowUp && appt.status === 'confirmed') {
-                    const endsAt = new Date(appt.endsAt);
-                    const diffDays = (now.getTime() - endsAt.getTime()) / (1000 * 60 * 60 * 24);
-                    if (diffDays >= followupThresholdDays && diffDays < followupThresholdDays + 1) {
-                        const message = settings.message_templates.FOLLOWUP
-                            ? replacePlaceholders(settings.message_templates.FOLLOWUP, {
-                                patient_name: appt.patientName,
-                                clinic_name: clinic.clinicName || "Klinik",
-                                treatment_type: appt.treatmentType || "randevu"
-                              })
-                            : `Dün yapılan ${appt.treatmentType} işlemi sonrası ${appt.patientName} aranarak durumu sorulmalıdır.`;
-                        items.push({
-                            id: `fol-${appt.id}`,
-                            type: "FOLLOWUP",
-                            patientName: appt.patientName,
-                            patientId: appt.patientId,
-                            patientPhone: appt.patientPhone || "",
-                            title: "Cerrahi Takip",
-                            timeLabel: `${Math.round(diffDays)} Gün Geçti`,
-                            message,
-                            status: "pending"
-                        });
-                    }
-                }
-            });
-        }
+        // 7. FOLLOW UP — geçmiş günlerdeki takip bildirimleri aşağıdaki pastAppointments bloğunda işlenir
 
         // 8. LAB TRACKING (Generic placeholder logic)
         if (isAllowed("LAB_TRACKING")) {
@@ -489,26 +458,35 @@ export function useSmartAssistant() {
         }
 
         const filteredItems = items.filter(i => !dbDismissedIds.includes(i.id));
+        const dismissedItemsArray = items.filter(i => dbDismissedIds.includes(i.id));
 
         // --- Tekilleştirme (Deduplication) ──────────────────────────────────
         // Aynı hasta için birden fazla "Hatırlatma" veya "Gecikme" varsa sadece en güncelini/ilkini tut.
-        const seen = new Set<string>();
-        const uniqueItems = filteredItems.filter(item => {
-            const key = `${item.patientId}-${item.type}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
+        const deduplicate = (list: AssistantItem[]) => {
+            const seen = new Set<string>();
+            return list.filter(item => {
+                const key = `${item.patientId}-${item.type}-${item.isPastDay ? 'past' : 'today'}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        };
 
-        return uniqueItems;
-    }, [appointments, payments, pastAppointments, overduePayments, allowedTypes, clinic.clinicName, settings, today, dbDismissedIds]);
+        return {
+            pending: deduplicate(filteredItems),
+            dismissed: deduplicate(dismissedItemsArray)
+        };
+    }, [appointments, payments, pastAppointments, overduePayments, allowedTypes, clinic.clinicName, clinic.userRole, settings, today, dbDismissedIds]);
 
-    const missedCount = assistantItems.filter(i => i.isPastDay).length;
+    const s_assistantItems = allItemsObj.pending;
+    const s_dismissedAssistantItems = allItemsObj.dismissed;
+    const missedCount = s_assistantItems.filter(i => i.isPastDay).length;
 
     return {
-        assistantItems,
+        assistantItems: s_assistantItems,
+        dismissedAssistantItems: s_dismissedAssistantItems,
         missedCount,
-        isLoading: apptsLoading || paysLoading
+        isLoading: apptsLoading || paysLoading || allowedTypesLoading || dismissedIdsLoading
     };
 }
 

@@ -112,6 +112,7 @@ export function AuthGuard({ children }: Props) {
     userId: null,
     userName: null,
     userEmail: null,
+    is_clinical_provider: false,
     workingHours: DEFAULT_WORKING_HOURS,
     workingHoursOverrides: [],
     subscriptionStatus: null,
@@ -161,7 +162,7 @@ export function AuthGuard({ children }: Props) {
         // 1. Kullanıcı profilini ve ana kliniğini çek (JOIN'siz)
         const { data: appUser, error: userError } = await supabase
           .from("users")
-          .select("id, full_name, email, role, clinic_id")
+          .select("id, full_name, email, role, clinic_id, is_clinical_provider")
           .eq("id", user.id)
           .single();
 
@@ -172,6 +173,7 @@ export function AuthGuard({ children }: Props) {
         }
 
         const role = appUser.role as UserRole;
+        localStorage.setItem("userRole", role);
         const isSuperAdmin = role === UserRole.SUPER_ADMIN;
         const isAdmin = role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
 
@@ -284,6 +286,7 @@ export function AuthGuard({ children }: Props) {
           userId: appUser.id,
           userName: appUser.full_name,
           userEmail: appUser.email,
+          is_clinical_provider: appUser.is_clinical_provider,
           workingHours: (clinicData?.working_hours as WorkingHours) || DEFAULT_WORKING_HOURS,
           workingHoursOverrides: clinicData?.working_hours_overrides || [],
           subscriptionStatus: (clinicData as unknown as Clinic)?.subscription_status || (isSuperAdmin ? "active" : "trialing"),
@@ -446,6 +449,7 @@ export function AuthGuard({ children }: Props) {
       userId: clinicCtx.userId,
       userName: clinicCtx.userName,
       userEmail: clinicCtx.userEmail,
+      is_clinical_provider: clinicCtx.is_clinical_provider,
       planId: clinicCtx.planId,
     }}>
       <ClinicDataContext.Provider value={{

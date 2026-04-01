@@ -123,7 +123,6 @@ export function AppointmentDetails({
                     className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                 >
                     <option value="confirmed">Planlandı</option>
-                    <option value="scheduled">Taslak</option>
                     <option value="arrived">Geldi</option>
                     <option value="in_treatment">Tedavide</option>
                     <option value="completed">Tamamlandı</option>

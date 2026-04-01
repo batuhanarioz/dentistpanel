@@ -52,7 +52,8 @@ export function AppointmentCard({ event, top, height, slotHeight, onClick }: App
     const timeStr = `${format(startTime, "HH:mm")} - ${format(endTime, "HH:mm")}`;
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-        const rect = e.currentTarget.getBoundingClientRect();
+        const target = e.currentTarget;
+        const rect = target.getBoundingClientRect();
         const offsetY = e.clientY - rect.top;
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData(
@@ -60,7 +61,7 @@ export function AppointmentCard({ event, top, height, slotHeight, onClick }: App
             JSON.stringify({ eventId: event.id, durationMinutes: event.durationMinutes, offsetY })
         );
         setTimeout(() => {
-            e.currentTarget.classList.add("opacity-40");
+            target.classList.add("opacity-40");
         }, 0);
     };
 

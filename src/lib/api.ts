@@ -192,7 +192,7 @@ interface DashboardAppointmentRow {
     status: AppointmentStatus;
     treatment_type: string | null;
     estimated_amount: number | null;
-    patients: { full_name: string; phone: string | null } | null;
+    patients: { full_name: string; phone: string | null; birth_date: string | null } | null;
     doctor: { full_name: string } | null;
 }
 
@@ -202,7 +202,7 @@ export async function getDashboardData(date: string, clinicId: string) {
         .from("appointments")
         .select(`
             id, starts_at, ends_at, patient_id, doctor_id, channel, status, treatment_type, estimated_amount,
-            patients(full_name, phone),
+            patients(full_name, phone, birth_date),
             doctor:doctor_id(full_name)
         `)
         .eq("clinic_id", clinicId)
@@ -222,6 +222,7 @@ export async function getDashboardData(date: string, clinicId: string) {
         patientName: row.patients?.full_name ?? "İsimsiz Hasta",
         patientId: row.patient_id,
         patientPhone: row.patients?.phone ?? null,
+        birthDate: row.patients?.birth_date ?? null,
         doctorName: row.doctor?.full_name ?? "Hekim atanmadı",
         doctorId: row.doctor_id,
         channel: row.channel,
@@ -238,7 +239,7 @@ export async function getDashboardDataRange(startDate: string, endDate: string, 
         .from("appointments")
         .select(`
             id, starts_at, ends_at, patient_id, doctor_id, channel, status, treatment_type, estimated_amount,
-            patients(full_name, phone),
+            patients(full_name, phone, birth_date),
             doctor:doctor_id(full_name)
         `)
         .eq("clinic_id", clinicId)
@@ -255,6 +256,7 @@ export async function getDashboardDataRange(startDate: string, endDate: string, 
         patientName: row.patients?.full_name ?? "İsimsiz Hasta",
         patientId: row.patient_id,
         patientPhone: row.patients?.phone ?? null,
+        birthDate: row.patients?.birth_date ?? null,
         doctorName: row.doctor?.full_name ?? "Hekim atanmadı",
         doctorId: row.doctor_id,
         channel: row.channel,

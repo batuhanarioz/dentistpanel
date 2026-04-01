@@ -66,7 +66,25 @@ export function useUpdateRecallStatus() {
             if (!res.ok) throw new Error(await res.text());
             return res.json();
         },
-        onSuccess: () => {
+        // Optimistic update
+        onMutate: async (newItem) => {
+            await qc.cancelQueries({ queryKey: ["recall-queue", clinicId] });
+            const previousItems = qc.getQueryData<RecallQueueItem[]>(["recall-queue", clinicId]);
+
+            if (previousItems) {
+                qc.setQueryData<RecallQueueItem[]>(["recall-queue", clinicId], (old) => 
+                    old?.map(item => item.id === newItem.id ? { ...item, status: newItem.status } : item)
+                );
+            }
+
+            return { previousItems };
+        },
+        onError: (err, newItem, context) => {
+            if (context?.previousItems) {
+                qc.setQueryData(["recall-queue", clinicId], context.previousItems);
+            }
+        },
+        onSettled: () => {
             qc.invalidateQueries({ queryKey: ["recall-queue", clinicId] });
         },
     });

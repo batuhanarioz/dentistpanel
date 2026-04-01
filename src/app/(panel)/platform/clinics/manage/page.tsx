@@ -9,6 +9,7 @@ import { SummaryCards } from "@/app/components/platform/clinics/SummaryCards";
 import { ClinicList } from "@/app/components/platform/clinics/ClinicList";
 import { ClinicModal } from "@/app/components/platform/clinics/ClinicModal";
 import { ClinicDetailPanel } from "@/app/components/platform/clinics/ClinicDetailPanel";
+import { PlatformClinicQRCodeModal } from "@/app/components/platform/clinics/PlatformClinicQRCodeModal";
 import { usePageHeader } from "@/app/components/AppShell";
 
 export default function PlatformClinicsManagePage() {
@@ -29,6 +30,8 @@ export default function PlatformClinicsManagePage() {
   const [detailClinic, setDetailClinic] = useState<Clinic | null>(null);
   const [showAssignAdminModal, setShowAssignAdminModal] = useState(false);
   const [clinicToAssign, setClinicToAssign] = useState<Clinic | null>(null);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrClinic, setQrClinic] = useState<Clinic | null>(null);
 
   // Form alanları
   const [formName, setFormName] = useState("");
@@ -235,6 +238,11 @@ export default function PlatformClinicsManagePage() {
     setShowAssignAdminModal(true);
   };
 
+  const openQRModal = (clinicItem: Clinic) => {
+    setQrClinic(clinicItem);
+    setShowQRModal(true);
+  };
+
   if (!clinic.isSuperAdmin) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-slate-600">
@@ -286,6 +294,7 @@ export default function PlatformClinicsManagePage() {
             onEditClinic={openEditModal}
             onViewClinic={(c) => { setDetailClinic(c); setShowDetailPanel(true); }}
             onAssignAdmin={openAssignAdminModal}
+            onShowQR={openQRModal}
           />
         </div>
       </div>
@@ -413,6 +422,15 @@ export default function PlatformClinicsManagePage() {
           setDetailClinic(updated);
         }}
       />
+
+      {qrClinic && (
+        <PlatformClinicQRCodeModal
+          isOpen={showQRModal}
+          onClose={() => { setShowQRModal(false); setQrClinic(null); }}
+          clinicName={qrClinic.name}
+          clinicSlug={qrClinic.slug}
+        />
+      )}
     </div>
   );
 }

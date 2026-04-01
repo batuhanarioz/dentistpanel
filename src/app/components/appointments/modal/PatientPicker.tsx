@@ -40,23 +40,6 @@ export function PatientPicker({
                             className="flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             placeholder="Ad soyad veya telefon ile ara..."
                         />
-                        <button
-                            type="button"
-                            onClick={() => {
-                                const qrUrl = `https://dentist-panel.vercel.app/register?clinic=${form.patientName || "new"}`;
-                                window.open(`https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(qrUrl)}&choe=UTF-8`, "_blank");
-                            }}
-                            className="group relative flex items-center justify-center h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md hover:shadow-lg hover:scale-105 transition-all"
-                            title="Hızlı Kayıt QR Kodu"
-                        >
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.875 15.75a1.125 1.125 0 01-1.125 1.125h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a1.125 1.125 0 011.125-1.125h1.5a1.125 1.125 0 011.125 1.125v1.5zM16.875 18.75v.75c0 .621-.504 1.125-1.125 1.125h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a1.125 1.125 0 011.125-1.125h.75m0 3h.75a1.125 1.125 0 001.125-1.125v-1.5a1.125 1.125 0 00-1.125-1.125h-1.5a1.125 1.125 0 00-1.125 1.125v1.5a1.125 1.125 0 001.125 1.125z" />
-                            </svg>
-                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-black px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl border border-slate-700 pointer-events-none uppercase tracking-widest">
-                                HIZLI KAYIT QR
-                            </div>
-                        </button>
                     </div>
                     <div className="max-h-40 overflow-y-auto border rounded-lg bg-white mt-1 shadow-sm">
                         {patientSearchLoading && (

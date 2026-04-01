@@ -138,7 +138,7 @@ export function useReports() {
                     .eq("clinic_id", clinicId!)
                     .gte("created_at", rangeStart)
                     .lte("created_at", rangeEnd),
-                supabase.from("users").select("id, full_name").eq("clinic_id", clinicId!).in("role", [UserRole.DOKTOR]),
+                supabase.from("users").select("id, full_name").eq("clinic_id", clinicId!).or(`role.eq.${UserRole.DOKTOR},is_clinical_provider.eq.true`),
                 supabase.from("treatment_definitions").select("id, name").eq("clinic_id", clinicId!),
                 supabase.from("patients").select("id, gender, birth_date, created_at").eq("clinic_id", clinicId!).gte("created_at", rangeStart).lte("created_at", rangeEnd),
                 supabase.from("patients").select("id").eq("clinic_id", clinicId!).lt("created_at", rangeStart),

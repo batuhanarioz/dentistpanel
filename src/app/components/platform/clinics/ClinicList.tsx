@@ -9,6 +9,7 @@ interface ClinicListProps {
     onEditClinic: (clinic: Clinic) => void;
     onViewClinic: (clinic: Clinic) => void;
     onAssignAdmin: (clinic: Clinic) => void;
+    onShowQR?: (clinic: Clinic) => void;
 }
 
 function getDaysUntilExpiry(clinic: Clinic): number | null {
@@ -16,7 +17,7 @@ function getDaysUntilExpiry(clinic: Clinic): number | null {
     return Math.ceil((new Date(clinic.current_period_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
-export function ClinicList({ clinics, loading, onEditClinic, onViewClinic, onAssignAdmin }: ClinicListProps) {
+export function ClinicList({ clinics, loading, onEditClinic, onViewClinic, onAssignAdmin, onShowQR }: ClinicListProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
     const [currentPage, setCurrentPage] = useState(1);
@@ -227,6 +228,18 @@ export function ClinicList({ clinics, loading, onEditClinic, onViewClinic, onAss
                                             <span className="text-[10px] font-bold text-slate-700">{new Date(c.created_at).toLocaleDateString("tr-TR")}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
+                                            {onShowQR && (
+                                                <button
+                                                    onClick={() => onShowQR(c)}
+                                                    className="h-9 w-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                                    title="QR Kod Yönetimi"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+                                                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
+                                                    </svg>
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => onAssignAdmin(c)}
                                                 className="h-9 w-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-violet-600 hover:text-white transition-all shadow-sm"

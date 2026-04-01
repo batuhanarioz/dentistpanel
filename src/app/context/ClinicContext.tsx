@@ -18,6 +18,7 @@ export interface ClinicIdentityContextValue {
   userId: string | null;
   userName: string | null;
   userEmail: string | null;
+  is_clinical_provider?: boolean;
   planId?: string;
 }
 

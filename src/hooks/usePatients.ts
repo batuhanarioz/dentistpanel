@@ -84,7 +84,7 @@ export function usePatients() {
 
     const error = queryError ? (queryError as Error).message : null;
 
-    // Fetch Patient Details
+    // Fetch Patient Details (Appointments & Payments)
     const { data: detailData, isLoading: appointmentsLoading } = useQuery({
         queryKey: ["patientDetails", selectedPatientId],
         queryFn: () => getPatientDetails(selectedPatientId!),
@@ -92,15 +92,29 @@ export function usePatients() {
         staleTime: 2 * 60 * 1000,
     });
 
+    // Fetch Patient Row (for cases where the patient is not in the current list/page)
+    const { data: fetchedPatientRow } = useQuery({
+        queryKey: ["patient-row", selectedPatientId],
+        queryFn: async () => {
+            const { data, error } = await supabase.from("patients").select("*").eq("id", selectedPatientId!).single();
+            if (error) throw error;
+            return data as PatientRow;
+        },
+        enabled: !!selectedPatientId,
+        staleTime: 5 * 60 * 1000,
+    });
+
     const appointments = detailData?.appointments || [];
     const payments = detailData?.payments || [];
 
     const selectedPatient = useMemo(() => {
         if (!selectedPatientId) return null;
+        // Priority: directly fetched row > list search
+        if (fetchedPatientRow) return fetchedPatientRow;
         return patients.find((p: PatientRow) => p.id === selectedPatientId) || null;
-    }, [patients, selectedPatientId]);
+    }, [patients, selectedPatientId, fetchedPatientRow]);
 
-    // Server-side search is applied; return patients as-is (page-level re-filter removed)
+    // Use current search/page results
     const filteredPatients = patients;
 
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));

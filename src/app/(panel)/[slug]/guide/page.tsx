@@ -225,7 +225,7 @@ function DetailPanel({ item, canEdit, onClose }: DetailPanelProps) {
 
 export default function RehberPage() {
     const { data: items = [], isLoading, error } = useRehber();
-    const { userRole, isSuperAdmin } = useClinic();
+    const { userRole, isSuperAdmin, is_clinical_provider } = useClinic();
 
     const [search, setSearch] = useState("");
     const [activeCategory, setActiveCategory] = useState("Tümü");
@@ -240,11 +240,11 @@ export default function RehberPage() {
         return () => window.removeEventListener("keydown", onKey);
     }, []);
 
-    // Düzenleme yetkisi: admin veya doktor
-    const canEdit = isSuperAdmin ||
+    const canEdit = !!(isSuperAdmin ||
         userRole === UserRole.ADMIN ||
         (userRole as string) === "ADMIN_DOCTOR" ||
-        userRole === UserRole.DOKTOR;
+        userRole === UserRole.DOKTOR ||
+        is_clinical_provider);
 
     // Kategoriler
     const categories = useMemo(() => {

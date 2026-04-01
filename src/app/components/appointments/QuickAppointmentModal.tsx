@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getDoctors, getTreatmentDefinitions } from "@/lib/api";
 import { useClinic } from "@/app/context/ClinicContext";
+import { PremiumDatePicker } from "../PremiumDatePicker";
 import toast from "react-hot-toast";
 
 interface QuickAppointmentModalProps {
@@ -55,9 +56,14 @@ export function QuickAppointmentModal({
         setLoading(true);
         try {
             const startsAt = `${date}T${time}:00+03:00`;
-            const endsAtDate = new Date(`${date}T${time}:00`);
-            endsAtDate.setMinutes(endsAtDate.getMinutes() + duration);
-            const endsAt = endsAtDate.toISOString().replace("Z", "+03:00");
+            
+            // Bitiş zamanını güvenli hesapla (startsAt ile aynı formatta)
+            const [year, month, day] = date.split("-").map(Number);
+            const [hour, min] = time.split(":").map(Number);
+            const endsAtDate = new Date(year, month - 1, day, hour, min + duration);
+            
+            const format = (n: number) => String(n).padStart(2, '0');
+            const endsAt = `${endsAtDate.getFullYear()}-${format(endsAtDate.getMonth() + 1)}-${format(endsAtDate.getDate())}T${format(endsAtDate.getHours())}:${format(endsAtDate.getMinutes())}:00+03:00`;
 
             const { data, error } = await supabase
                 .from("appointments")
@@ -89,8 +95,8 @@ export function QuickAppointmentModal({
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="bg-white rounded-[2.5rem] shadow-2xl border w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-                <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl border w-full max-w-md animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 rounded-t-[2.5rem]">
                     <div>
                         <h3 className="text-lg font-black text-slate-800">Hızlı Randevu</h3>
                         <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">{patientName}</p>
@@ -100,14 +106,12 @@ export function QuickAppointmentModal({
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-5">
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 min-w-0">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Tarih</label>
-                            <input
-                                type="date"
-                                required
+                            <PremiumDatePicker
                                 value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                                onChange={setDate}
+                                compact
                             />
                         </div>
                         <div className="space-y-1.5">

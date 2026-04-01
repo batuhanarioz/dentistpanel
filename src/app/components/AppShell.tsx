@@ -105,8 +105,9 @@ function ClinicNav({
   isAdmin: boolean;
   userRole?: string;
 }) {
+  const clinic = useClinic();
   const base = `/${slug}`;
-  const canSeeFinance = isAdmin || userRole === "FINANS" || userRole === "DOKTOR";
+  const canSeeFinance = isAdmin || userRole === "FINANS" || userRole === "DOKTOR" || clinic.is_clinical_provider;
 
   const handleClick = () => {
     if (onNav) onNav();
@@ -403,32 +404,35 @@ function ShellInner({ children }: Props) {
   return (
     <div className="min-h-screen flex flex-col w-full">
       <Toaster
-        position="bottom-right"
+        position="top-center"
         toastOptions={{
-          duration: 3500,
+          duration: 3000,
           style: {
-            borderRadius: "16px",
-            fontWeight: 600,
-            fontSize: "13px",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-            padding: "12px 16px",
-            maxWidth: "360px",
+            borderRadius: "2rem",
+            fontWeight: 700,
+            fontSize: "12px",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
+            padding: "10px 20px",
+            maxWidth: "400px",
+            background: "#0f172a", // slate-900 match
+            color: "#fff",
+            border: "1px solid rgba(255,255,255,0.1)",
           },
           success: {
             style: {
-              background: "#f0fdf4",
-              color: "#166534",
-              border: "1px solid #bbf7d0",
+              background: "#0f172a",
+              color: "#fff",
+              border: "1px solid rgba(16, 185, 129, 0.2)",
             },
-            iconTheme: { primary: "#22c55e", secondary: "#f0fdf4" },
+            iconTheme: { primary: "#10b981", secondary: "#0f172a" },
           },
           error: {
             style: {
-              background: "#fff1f2",
-              color: "#9f1239",
-              border: "1px solid #fecdd3",
+              background: "#0f172a",
+              color: "#fff",
+              border: "1px solid rgba(244, 63, 94, 0.2)",
             },
-            iconTheme: { primary: "#f43f5e", secondary: "#fff1f2" },
+            iconTheme: { primary: "#f43f5e", secondary: "#0f172a" },
           },
         }}
       />

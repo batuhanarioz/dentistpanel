@@ -5,24 +5,19 @@ import { localDateStr } from "@/lib/dateUtils";
 import { useClinic } from "@/app/context/ClinicContext";
 import { UserRole } from "@/types/database";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAppointmentsForDate } from "@/lib/api";
+import { getAppointmentsForDate, CalendarAppointment } from "@/lib/api";
 import { useChecklist, ControlItem } from "./useChecklist";
 
 export type { ControlItem };
 
-export type DashboardAppointment = {
-    id: string;
+import { ExtendedStatus } from "./useAppointments";
+
+export type DashboardAppointment = CalendarAppointment & {
     startsAt: string;
     endsAt: string;
-    patientName: string;
-    patientPhone: string | null;
     doctorName: string;
-    doctorId: string | null;
-    channel: string;
-    status: "confirmed" | "cancelled" | "no_show" | "completed";
-    treatmentType: string | null;
-    estimatedAmount: number | null;
-    treatmentNote?: string;
+    patientPhone: string | null;
+    status: ExtendedStatus;
 };
 
 export type DoctorOption = {
@@ -30,22 +25,6 @@ export type DoctorOption = {
     full_name: string;
 };
 
-type CalendarAppointmentRaw = {
-    id: string;
-    date: string;
-    startHour: number;
-    startMinute: number;
-    durationMinutes: number;
-    patientName: string;
-    phone: string | null;
-    doctor: string | null;
-    doctorId: string | null;
-    channel: string;
-    dbStatus: string; // AppointmentStatus'ten geniş; map sırasında cast edilir
-    treatmentType: string | null;
-    estimatedAmount?: string | null;
-    treatmentNote?: string;
-};
 
 
 export function useDashboard() {
@@ -72,23 +51,17 @@ export function useDashboard() {
         staleTime: 60 * 1000, // Randevular sık değişir — 1 dk
     });
 
-    const mapCalendarToDashboard = useCallback((ca: CalendarAppointmentRaw): DashboardAppointment => {
+    const mapCalendarToDashboard = useCallback((ca: CalendarAppointment): DashboardAppointment => {
         const start = new Date(`${ca.date}T${ca.startHour.toString().padStart(2, "0")}:${ca.startMinute.toString().padStart(2, "0")}:00`);
         const end = new Date(start.getTime() + ca.durationMinutes * 60000);
 
         return {
-            id: ca.id,
+            ...ca,
             startsAt: start.toISOString(),
             endsAt: end.toISOString(),
-            patientName: ca.patientName,
-            patientPhone: ca.phone,
             doctorName: ca.doctor || "Hekim atanmadı",
-            doctorId: ca.doctorId,
-            channel: ca.channel,
-            status: ca.dbStatus as DashboardAppointment["status"],
-            treatmentType: ca.treatmentType,
-            estimatedAmount: ca.estimatedAmount ? parseFloat(ca.estimatedAmount) : null,
-            treatmentNote: ca.treatmentNote,
+            patientPhone: ca.phone,
+            status: ca.dbStatus as ExtendedStatus,
         };
     }, []);
 
@@ -104,7 +77,7 @@ export function useDashboard() {
             const { data } = await supabase.from("users")
                 .select("id, full_name")
                 .eq("clinic_id", clinic.clinicId)
-                .eq("role", UserRole.DOKTOR);
+                .or(`role.eq.${UserRole.DOKTOR},is_clinical_provider.eq.true`);
             return (data || []) as DoctorOption[];
         },
         enabled: !!clinic.clinicId,
@@ -194,11 +167,13 @@ export function useDashboard() {
     // In-flight koruma: aynı randevu için eş zamanlı duplicate güncelleme engellenir
     const inFlightStatusIds = useRef<Set<string>>(new Set());
 
-    const statusLabels: Record<DashboardAppointment["status"], string> = {
+    const statusLabels: Record<string, string> = {
         completed: "Tamamlandı olarak işaretlendi",
         cancelled: "Randevu iptal edildi",
         no_show: "Gelmedi olarak işaretlendi",
         confirmed: "Randevu onaylandı",
+        arrived: "Geldi olarak işaretlendi",
+        in_treatment: "Tedavide olarak işaretlendi",
     };
 
     const handleStatusChange = async (appointmentId: string, newStatus: DashboardAppointment["status"]) => {

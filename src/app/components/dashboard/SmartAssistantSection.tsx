@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
-import { usePathname } from "next/navigation";
+import React, { useState, useMemo } from "react";
+import { useParams } from "next/navigation";
 import { useSmartAssistant, AssistantItem, AssistantItemType, useDismissAssistantItem, useUndoDismissAssistantItem } from "@/hooks/useSmartAssistant";
 import toast from "react-hot-toast";
 import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
@@ -9,17 +9,17 @@ import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
 type FilterType = 'ALL' | AssistantItemType;
 
 export function SmartAssistantSection() {
-    const pathname = usePathname();
+    const params = useParams();
+    const slug = params?.slug as string ?? "";
     const { assistantItems, isLoading } = useSmartAssistant();
     const { mutate: dismissItem } = useDismissAssistantItem();
     const { mutate: undoDismissItem } = useUndoDismissAssistantItem();
-    const [highlightedId, setHighlightedId] = useState<string | null>(null);
     const [filter, setFilter] = useState<FilterType>('ALL');
+    const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
     const handleDismiss = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         dismissItem(id);
-        toast.success("Bildirim kaldırıldı");
     };
 
     const handleUndoDismiss = (id: string, e: React.MouseEvent) => {
@@ -42,112 +42,38 @@ export function SmartAssistantSection() {
         window.open(url, '_blank');
     };
 
+    const CATEGORY_STYLES: Record<string, any> = {
+        PAYMENT: { icon: "💳", bg: "bg-rose-50/50", border: "border-rose-200/60 group-hover:border-rose-300/50", badge: "bg-rose-100/80 text-rose-700 border-rose-200/50", accent: "text-rose-600", filterActive: "bg-rose-600 text-white shadow-rose-200 shadow-lg ring-rose-500", glow: "hover:shadow-rose-100/40 hover:bg-rose-50/70", btn: "from-rose-500 to-red-600 shadow-rose-200/50 hover:shadow-rose-300/60" },
+        DELAY: { icon: "⏰", bg: "bg-orange-50/50", border: "border-orange-200/60 group-hover:border-orange-300/50", badge: "bg-orange-100/80 text-orange-700 border-orange-200/50", accent: "text-orange-600", filterActive: "bg-orange-600 text-white shadow-orange-200 shadow-lg ring-orange-500", glow: "hover:shadow-orange-100/40 hover:bg-orange-50/70", btn: "from-orange-500 to-amber-600 shadow-orange-200/50 hover:shadow-orange-300/60" },
+        INCOMPLETE: { icon: "⚠️", bg: "bg-amber-50/50", border: "border-amber-200/60 group-hover:border-amber-300/50", badge: "bg-amber-100/80 text-amber-700 border-amber-200/50", accent: "text-amber-600", filterActive: "bg-amber-600 text-white shadow-amber-200 shadow-lg ring-amber-500", glow: "hover:shadow-amber-100/40 hover:bg-amber-50/70", btn: "from-amber-500 to-amber-600 shadow-amber-200/50 hover:shadow-amber-300/60" },
+        SATISFACTION: { icon: "⭐", bg: "bg-yellow-50/50", border: "border-yellow-200/60 group-hover:border-yellow-300/50", badge: "bg-yellow-100/80 text-yellow-700 border-yellow-200/50", accent: "text-yellow-600", filterActive: "bg-yellow-500 text-white shadow-yellow-200 shadow-lg ring-yellow-400", glow: "hover:shadow-yellow-100/40 hover:bg-yellow-50/70", btn: "from-yellow-400 to-orange-400 shadow-yellow-200/50 hover:shadow-yellow-300/60" },
+        BIRTHDAY: { icon: "🎂", bg: "bg-fuchsia-50/50", border: "border-fuchsia-200/60 group-hover:border-fuchsia-300/50", badge: "bg-fuchsia-100/80 text-fuchsia-700 border-fuchsia-200/50", accent: "text-fuchsia-600", filterActive: "bg-fuchsia-600 text-white shadow-fuchsia-200 shadow-lg ring-fuchsia-500", glow: "hover:shadow-fuchsia-100/40 hover:bg-fuchsia-50/70", btn: "from-fuchsia-500 to-pink-600 shadow-fuchsia-200/50 hover:shadow-fuchsia-300/60" },
+        NEW_PATIENT: { icon: "🌟", bg: "bg-emerald-50/50", border: "border-emerald-200/60 group-hover:border-emerald-300/50", badge: "bg-emerald-100/80 text-emerald-700 border-emerald-200/50", accent: "text-emerald-600", filterActive: "bg-emerald-600 text-white shadow-emerald-200 shadow-lg ring-emerald-500", glow: "hover:shadow-emerald-100/40 hover:bg-emerald-50/70", btn: "from-emerald-500 to-green-600 shadow-emerald-200/50 hover:shadow-emerald-300/60" },
+        REMINDER: { icon: "🔔", bg: "bg-blue-50/50", border: "border-blue-200/60 group-hover:border-blue-300/50", badge: "bg-blue-100/80 text-blue-700 border-blue-200/50", accent: "text-blue-600", filterActive: "bg-blue-600 text-white shadow-blue-200 shadow-lg ring-blue-500", glow: "hover:shadow-blue-100/40 hover:bg-blue-50/70", btn: "from-blue-500 to-cyan-600 shadow-blue-200/50 hover:shadow-blue-300/60" },
+        FOLLOWUP: { icon: "🩺", bg: "bg-teal-50/50", border: "border-teal-200/60 group-hover:border-teal-300/50", badge: "bg-teal-100/80 text-teal-700 border-teal-200/50", accent: "text-teal-600", filterActive: "bg-teal-600 text-white shadow-teal-200 shadow-lg ring-teal-500", glow: "hover:shadow-teal-100/40 hover:bg-teal-50/70", btn: "from-teal-500 to-emerald-600 shadow-teal-200/50 hover:shadow-teal-300/60" },
+        LAB_TRACKING: { icon: "🧪", bg: "bg-indigo-50/50", border: "border-indigo-200/60 group-hover:border-indigo-300/50", badge: "bg-indigo-100/80 text-indigo-700 border-indigo-200/50", accent: "text-indigo-600", filterActive: "bg-indigo-600 text-white shadow-indigo-200 shadow-lg ring-indigo-500", glow: "hover:shadow-indigo-100/40 hover:bg-indigo-50/70", btn: "from-indigo-500 to-violet-600 shadow-indigo-200/50 hover:shadow-indigo-300/60" },
+        DEFAULT: { icon: "✨", bg: "bg-slate-50", border: "border-slate-200/60", badge: "bg-slate-100 text-slate-600 border-slate-200", accent: "text-slate-600", filterActive: "bg-slate-800 text-white shadow-lg shadow-slate-200", glow: "hover:shadow-slate-100/40 hover:bg-slate-50", btn: "from-slate-600 to-slate-800 shadow-slate-200/50" },
+    };
+
+    const categoryNames: Record<string, string> = {
+        REMINDER: "Randevu",
+        SATISFACTION: "Memnuniyet",
+        PAYMENT: "Ödeme",
+        DELAY: "Gecikme",
+        BIRTHDAY: "Doğum Günü",
+        FOLLOWUP: "Takip",
+        INCOMPLETE: "Yarım Tedavi",
+        NEW_PATIENT: "Yeni Hasta",
+        LAB_TRACKING: "Laboratuvar"
+    };
+
     const getCategoryStyles = (type: AssistantItemType) => {
-        switch (type) {
-            case 'REMINDER':
-                return {
-                    bg: 'bg-indigo-50/50',
-                    border: 'border-indigo-100',
-                    text: 'text-indigo-700',
-                    iconBg: 'bg-indigo-100',
-                    badge: 'bg-indigo-600',
-                    button: 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200',
-                    dismiss: 'text-indigo-400 hover:bg-indigo-100 hover:text-indigo-600',
-                    gradient: 'from-indigo-50/20 to-transparent',
-                    icon: (
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    )
-                };
-            case 'SATISFACTION':
-                return {
-                    bg: 'bg-emerald-50/50',
-                    border: 'border-emerald-100',
-                    text: 'text-emerald-700',
-                    iconBg: 'bg-emerald-100',
-                    badge: 'bg-emerald-600',
-                    button: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200',
-                    dismiss: 'text-emerald-400 hover:bg-emerald-100 hover:text-emerald-600',
-                    gradient: 'from-emerald-50/20 to-transparent',
-                    icon: (
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.175 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.382-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
-                    )
-                };
-            case 'PAYMENT':
-                return {
-                    bg: 'bg-amber-50/50',
-                    border: 'border-amber-100',
-                    text: 'text-amber-700',
-                    iconBg: 'bg-amber-100',
-                    badge: 'bg-orange-600',
-                    button: 'bg-orange-600 hover:bg-orange-700 shadow-orange-200',
-                    dismiss: 'text-amber-400 hover:bg-amber-100 hover:text-amber-600',
-                    gradient: 'from-amber-50/20 to-transparent',
-                    icon: (
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                    )
-                };
-            case 'DELAY':
-                return {
-                    bg: 'bg-rose-50/50',
-                    border: 'border-rose-100',
-                    text: 'text-rose-700',
-                    iconBg: 'bg-rose-100',
-                    badge: 'bg-rose-600',
-                    button: 'bg-rose-600 hover:bg-rose-700 shadow-rose-200',
-                    dismiss: 'text-rose-400 hover:bg-rose-100 hover:text-rose-600',
-                    gradient: 'from-rose-50/20 to-transparent',
-                    icon: (
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    )
-                };
-            case 'BIRTHDAY':
-                return {
-                    bg: 'bg-fuchsia-50/50',
-                    border: 'border-fuchsia-100',
-                    text: 'text-fuchsia-700',
-                    iconBg: 'bg-fuchsia-100',
-                    badge: 'bg-fuchsia-600',
-                    button: 'bg-fuchsia-600 hover:bg-fuchsia-700 shadow-fuchsia-200',
-                    dismiss: 'text-fuchsia-400 hover:bg-fuchsia-100 hover:text-fuchsia-600',
-                    gradient: 'from-fuchsia-50/20 to-transparent',
-                    icon: (
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 15.75V3H14.85l-3-3H6.15l-3 3H0v12.75h21zm-10.5 1.5c-3.17 0-5.75-2.58-5.75-5.75s2.58-5.75 5.75-5.75 5.75 2.58 5.75 5.75-2.58 5.75-5.75 5.75z" />
-                        </svg>
-                    )
-                };
-            case 'FOLLOWUP':
-                return {
-                    bg: 'bg-teal-50/50',
-                    border: 'border-teal-100',
-                    text: 'text-teal-700',
-                    iconBg: 'bg-teal-100',
-                    badge: 'bg-teal-600',
-                    button: 'bg-teal-600 hover:bg-teal-700 shadow-teal-200',
-                    dismiss: 'text-teal-400 hover:bg-teal-100 hover:text-teal-600',
-                    gradient: 'from-teal-50/20 to-transparent',
-                    icon: (
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                    )
-                };
-            default:
-                return { bg: '', border: '', text: '', iconBg: '', badge: '', button: '', dismiss: '', gradient: '', icon: null };
-        }
+        return CATEGORY_STYLES[type] || CATEGORY_STYLES.DEFAULT;
     };
 
     if (!isLoading && assistantItems.length === 0) {
         return (
-            <section id="smart-assistant" className="group/card rounded-[28px] border border-slate-100 bg-white shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col relative" style={{ height: '416px' }}>
+            <section id="smart-assistant" className="group/card rounded-[24px] border border-slate-100 bg-white hover:border-slate-200 transition-all overflow-hidden flex flex-col relative" style={{ maxHeight: '380px' }}>
                 <div className="absolute -top-20 -right-20 w-40 h-40 bg-teal-50 rounded-full blur-3xl opacity-50 group-hover/card:bg-teal-100 transition-colors pointer-events-none" />
                 <div className="flex items-center gap-2 px-5 py-5 shrink-0 border-b border-slate-50">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-cyan-600 shadow-md shadow-teal-200/60">
@@ -157,7 +83,7 @@ export function SmartAssistantSection() {
                         <h2 className="text-sm font-bold text-slate-900">Akıllı Asistan</h2>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Günlük Görev Paneli</p>
                     </div>
-                    <a href={`/${pathname.split('/')[1]}/communication`} className="text-[10px] font-black text-teal-600 bg-teal-50 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition-colors uppercase tracking-widest">Merkezi Aç &rarr;</a>
+                    <a href={`/${slug}/communication`} className="text-[10px] font-black text-teal-600 bg-teal-50 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition-colors uppercase tracking-widest">Merkezi Aç &rarr;</a>
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/20">
                     <div className="w-20 h-20 bg-emerald-50 rounded-[2rem] flex items-center justify-center mb-5 text-emerald-400 shadow-inner group-hover/card:scale-110 transition-transform">
@@ -170,8 +96,10 @@ export function SmartAssistantSection() {
         );
     }
 
+    const categoryCounts = assistantItems.reduce((acc, item) => ({ ...acc, [item.type]: (acc[item.type] || 0) + 1 }), {} as Record<string, number>);
+
     return (
-        <section id="smart-assistant" className="rounded-[28px] border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col group/card" style={{ height: '416px' }}>
+        <section id="smart-assistant" className="rounded-[24px] border border-slate-100 bg-white overflow-hidden flex flex-col group/card">
             <div className="flex items-center gap-2 px-5 py-5 shrink-0 border-b border-slate-50 bg-gradient-to-r from-white to-slate-50/50">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-cyan-600 shadow-md shadow-teal-200/60">
                     <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -187,21 +115,21 @@ export function SmartAssistantSection() {
                         <select
                             value={filter}
                             onChange={(e) => setFilter(e.target.value as FilterType)}
-                            className="appearance-none bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 pr-8 text-[10px] font-black text-slate-600 cursor-pointer focus:outline-none focus:ring-4 focus:ring-teal-500/10 transition-all hover:bg-white"
+                            className="appearance-none bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 pr-8 text-[10px] font-black text-slate-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all hover:bg-slate-100"
                         >
-                            <option value="ALL">TÜMÜ</option>
-                            <option value="REMINDER">RANDEVULAR</option>
-                            <option value="SATISFACTION">MEMNUNİYET</option>
-                            <option value="PAYMENT">ÖDEMELER</option>
-                            <option value="DELAY">GECİKMELER</option>
-                            <option value="BIRTHDAY">DOĞUM GÜNLERİ</option>
-                            <option value="FOLLOWUP">TAKİPLER</option>
+                            <option className="bg-white text-slate-700 font-bold" value="ALL">TÜMÜ ({assistantItems.length})</option>
+                            <option className="bg-white text-slate-700 font-bold" value="REMINDER">RANDEVULAR ({categoryCounts.REMINDER || 0})</option>
+                            <option className="bg-white text-slate-700 font-bold" value="SATISFACTION">MEMNUNİYET ({categoryCounts.SATISFACTION || 0})</option>
+                            <option className="bg-white text-slate-700 font-bold" value="PAYMENT">ÖDEMELER ({categoryCounts.PAYMENT || 0})</option>
+                            <option className="bg-white text-slate-700 font-bold" value="DELAY">GECİKMELER ({categoryCounts.DELAY || 0})</option>
+                            <option className="bg-white text-slate-700 font-bold" value="BIRTHDAY">DOĞUM GÜNLERİ ({categoryCounts.BIRTHDAY || 0})</option>
+                            <option className="bg-white text-slate-700 font-bold" value="FOLLOWUP">TAKİPLER ({categoryCounts.FOLLOWUP || 0})</option>
                         </select>
                         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                         </div>
                     </div>
-                    <a href={`/${pathname.split('/')[1]}/communication`} className="text-[10px] font-black bg-slate-900 text-white px-3 py-1.5 rounded-xl hover:bg-black transition-all shadow-lg shadow-slate-200">MERKEZ &rarr;</a>
+                    <a href={`/${slug}/communication`} className="text-[10px] font-black bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors">MERKEZ &rarr;</a>
                 </div>
             </div>
 
@@ -215,87 +143,53 @@ export function SmartAssistantSection() {
                     {filteredItems.map((item) => {
                         const styles = getCategoryStyles(item.type);
                         return (
-                            <div
+                            <div 
                                 id={`assist-${item.id}`}
-                                key={item.id}
-                                className={`group/card bg-white p-5 rounded-[24px] border transition-all relative overflow-hidden flex flex-col min-h-[190px] ${highlightedId === item.id
-                                    ? 'animate-highlight-glow ring-2 ring-indigo-500 border-indigo-500 z-10 shadow-2xl scale-[1.02]'
-                                    : `border-slate-100 shadow-sm hover:shadow-xl hover:border-transparent ${styles.border.replace('border-', 'hover:border-')}`
-                                    }`}
+                                key={item.id} 
+                                className={`group p-3 transition-colors border flex flex-col min-h-[140px] rounded-2xl bg-white relative overflow-hidden hover:border-slate-300 ${styles.border.replace('border-', 'border-')} ${highlightedId === item.id ? 'ring-2 ring-indigo-500 scale-[1.02]' : ''}`}
                             >
-                                {/* Arkaplan Süslemeleri */}
-                                <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover/card:opacity-20 transition-opacity pointer-events-none ${styles.badge}`} />
-                                <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${styles.badge} opacity-0 group-hover/card:opacity-100 transition-all duration-500`} />
-
-                                {/* Kategori Rozeti */}
-                                <div className="flex items-center justify-between mb-4 relative z-10">
-                                    <div className={`flex items-center gap-2 px-2.5 py-1 rounded-xl text-[9px] font-black tracking-[0.15em] uppercase border ${styles.bg} ${styles.text} ${styles.border}`}>
-                                        {styles.icon}
-                                        {item.type === 'REMINDER' ? 'RANDEVU' : 
-                                         item.type === 'SATISFACTION' ? 'MEMNUNİYET' : 
-                                         item.type === 'PAYMENT' ? 'ÖDEME' :
-                                         item.type === 'DELAY' ? 'GECİKME' :
-                                         item.type === 'BIRTHDAY' ? 'DOĞUM GÜNÜ' : 'TAKİP'}
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${styles.badge}`}>{styles.icon} {categoryNames[item.type]}</span>
+                                    <button 
+                                        onClick={(e) => handleDismiss(item.id, e)} 
+                                        className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-emerald-500 shrink-0 shadow-sm"
+                                    >✓</button>
+                                </div>
+                                <div className="flex items-center justify-between gap-2 mb-0.5">
+                                    <h3 className="font-black text-slate-800 text-[13px] leading-tight">{item.patientName}</h3>
+                                </div>
+                                <p className={`text-[10px] font-bold uppercase mb-2 ${styles.accent}`}>{item.title}</p>
+                                <div className="flex-1 p-2.5 rounded-xl mb-3 italic text-[10px] bg-slate-50 border border-slate-100 text-slate-500 shrink-0 leading-relaxed">
+                                    {item.message}
+                                </div>
+                                <div className="mt-auto border-t border-slate-50 pt-3 space-y-2">
+                                    <div className="flex items-center gap-1.5 px-1">
+                                        <div className={`w-1.5 h-1.5 rounded-full ${item.isPastDay ? 'bg-rose-500 animate-pulse' : styles.bg.split(' ')[1]?.replace('from-', 'bg-') || 'bg-slate-400'}`} />
+                                        <span className={`text-[10px] font-black uppercase tracking-[0.12em] ${item.isPastDay ? 'text-rose-600' : 'text-slate-600'}`}>
+                                            {item.timeLabel}
+                                        </span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={(e) => handleDismiss(item.id, e)}
-                                            className="group/dismiss flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-slate-50 border-slate-200 text-slate-400 hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all shadow-sm active:scale-95 focus:outline-none"
-                                            title="Gönderildi olarak işaretle"
-                                        >
-                                            <svg className="w-3 h-3 group-hover/dismiss:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            <span className="text-[9px] font-black uppercase tracking-widest leading-none">GÖNDERİLDİ</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Bilgi Kısımı */}
-                                <div className="mb-3 relative z-10">
-                                    <h3 className="text-[13px] font-black text-slate-900 mb-0.5 leading-tight">
-                                        {item.patientName}
-                                    </h3>
-                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.12em]">
-                                        {item.title}
-                                    </p>
-                                </div>
-
-                                {/* Mesaj Alanı */}
-                                <div className="flex-1 mb-5 relative z-10">
-                                    <p className="text-[11px] text-slate-600 font-semibold leading-relaxed pl-3 border-l-2 border-slate-200">
-                                        {item.message}
-                                    </p>
-                                </div>
-
-                                {/* Alt Etkinlik Alanı */}
-                                <div className="mt-auto pt-4 border-t border-slate-50 flex flex-col gap-3 relative z-10">
-                                    <div className="flex items-center justify-between px-1">
-                                        <div className="flex items-center gap-1.5">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${styles.badge} ${item.type === 'REMINDER' ? 'animate-bounce' : 'animate-pulse'}`} />
-                                            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-600">
-                                                {item.timeLabel}
-                                            </span>
-                                        </div>
-                                        {item.patientPhone && (
-                                            <div className="flex items-center gap-1 group/wa cursor-help">
-                                                <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M17.472 14.382c-.3.149-1.777.877-2.045.976-.269.1-.463.149-.657.437-.194.288-.748.941-.917 1.134-.169.194-.338.219-.636.07-.3-.149-1.264-.467-2.41-1.488-.891-.795-1.492-1.777-1.667-2.075-.173-.301-.019-.463.13-.612.134-.133.298-.348.448-.522.152-.174.202-.298.301-.497.1-.199.049-.373-.024-.522-.074-.15-.657-1.583-.902-2.172-.239-.574-.482-.497-.657-.506-.169-.009-.364-.01-.559-.01-.194 0-.51.074-.777.369-.269.299-1.025 1.002-1.025 2.441 0 1.439 1.045 2.829 1.191 3.028.146.199 2.056 3.139 4.979 4.398.694.3 1.237.479 1.661.613.697.221 1.332.189 1.833.114.559-.084 1.717-.7 1.956-1.378.239-.679.239-1.264.168-1.378-.069-.115-.261-.189-.558-.337zM12 2.03c-5.522 0-10 4.477-10 10 0 1.769.463 3.428 1.266 4.87L2.05 22l5.247-1.376c1.118.608 2.396.955 3.703.955 5.518 0 10-4.477 10-10 0-5.522-4.482-10-10-10zM12 20.3c-1.611 0-3.18-.426-4.555-1.233l-.326-.194-3.042.797.81-2.964-.213-.339A8.257 8.257 0 013.75 12.03c0-4.549 3.701-8.25 8.25-8.25s8.25 3.701 8.25 8.25c0 4.551-3.701 8.25-8.25 8.25z" />
+                                    {item.patientPhone ? (
+                                        <div className="grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+                                            <button 
+                                                onClick={() => handleSendMessage(item)} 
+                                                className={`w-full text-white font-black py-2.5 rounded-xl text-[9px] uppercase flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 transition-colors shadow-sm`}
+                                            >
+                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                                                WhatsApp
+                                            </button>
+                                            <a 
+                                                href={`tel:${item.patientPhone}`}
+                                                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-2.5 rounded-xl text-[9px] uppercase flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+                                            >
+                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25V16.72a2.25 2.25 0 0 0-1.509-2.129l-4.14-1.38a2.25 2.25 0 0 0-2.31.543l-2.002 2.002a15.021 15.021 0 0 1-6.6a6.6 6.6 0 0 1-2.002-2.002l2.002-2.002a2.25 2.25 0 0 0 .543-2.31l-1.38-4.14A2.25 2.25 0 0 0 7.63 2.25H5.25a2.25 2.25 0 0 0-2.25 2.25v2.25Z" />
                                                 </svg>
-                                                <span className="text-[9px] text-slate-400 font-black group-hover/wa:text-emerald-600 transition-colors">WHATSAPP</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {item.patientPhone && (
-                                        <button
-                                            onClick={() => handleSendMessage(item)}
-                                            className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-[11px] font-black text-white transition-all active:scale-[0.97] shadow-lg ${styles.button} hover:scale-[1.02]`}
-                                        >
-                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M17.472 14.382c-.3.149-1.777.877-2.045.976-.269.1-.463.149-.657.437-.194.288-.748.941-.917 1.134-.169.194-.338.219-.636.07-.3-.149-1.264-.467-2.41-1.488-.891-.795-1.492-1.777-1.667-2.075-.173-.301-.019-.463.13-.612.134-.133.298-.348.448-.522.152-.174.202-.298.301-.497.1-.199.049-.373-.024-.522-.074-.15-.657-1.583-.902-2.172-.239-.574-.482-.497-.657-.506-.169-.009-.364-.01-.559-.01-.194 0-.51.074-.777.369-.269.299-1.025 1.002-1.025 2.441 0 1.439 1.045 2.829 1.191 3.028.146.199 2.056 3.139 4.979 4.398.694.3 1.237.479 1.661.613.697.221 1.332.189 1.833.114.559-.084 1.717-.7 1.956-1.378.239-.679.239-1.264.168-1.378-.069-.115-.261-.189-.558-.337zM12 2.03c-5.522 0-10 4.477-10 10 0 1.769.463 3.428 1.266 4.87L2.05 22l5.247-1.376c1.118.608 2.396.955 3.703.955 5.518 0 10-4.477 10-10 0-5.522-4.482-10-10-10zM12 20.3c-1.611 0-3.18-.426-4.555-1.233l-.326-.194-3.042.797.81-2.964-.213-.339A8.257 8.257 0 013.75 12.03c0-4.549 3.701-8.25 8.25-8.25s8.25 3.701 8.25 8.25c0 4.551-3.701 8.25-8.25 8.25z" />
-                                            </svg>
-                                            Mesajı Gönder
-                                        </button>
+                                                ARA
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <div className="w-full bg-white border border-slate-200 text-slate-400 font-bold py-3 rounded-2xl text-[10px] uppercase text-center">Telefon Kaydı Yok</div>
                                     )}
                                 </div>
                             </div>

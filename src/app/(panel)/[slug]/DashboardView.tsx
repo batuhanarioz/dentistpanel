@@ -9,7 +9,7 @@ import { usePageHeader } from "@/app/components/AppShell";
 import { StatCards } from "@/app/components/dashboard/StatCards";
 import { AppointmentsSection } from "@/app/components/dashboard/AppointmentsSection";
 import { ControlListSection } from "@/app/components/dashboard/ControlListSection";
-import { AppointmentDetailDrawer } from "@/app/components/dashboard/AppointmentDetailDrawer";
+import { AppointmentDrawer } from "@/app/(panel)/[slug]/appointments/components/AppointmentDrawer";
 import dynamic from "next/dynamic";
 const DashboardAnalytics = dynamic(
     () => import("@/app/components/dashboard/DashboardAnalytics").then(m => m.DashboardAnalytics),
@@ -177,6 +177,8 @@ export default function DashboardView() {
                             onOffsetChange={() => setViewOffsetAppointments((prev: 0 | 1) => (prev === 0 ? 1 : 0))}
                             onReminderClick={handleReminderClick}
                             onAppointmentClick={(id) => setSelectedAppointmentId(id)}
+                            doctors={doctors}
+                            onAssignDoctor={handleAssignDoctor}
                         />
                     </SectionErrorBoundary>
                 </div>
@@ -220,11 +222,14 @@ export default function DashboardView() {
                 )}
             </div>
 
-            <AppointmentDetailDrawer
+            <AppointmentDrawer
                 appointmentId={selectedAppointmentId}
                 onClose={() => setSelectedAppointmentId(null)}
                 onStatusChange={handleStatusChange}
-                onAssignDoctor={handleAssignDoctor}
+                onEditClick={(id) => {
+                    const fullAppt = appointments.find(a => a.id === id);
+                    if (fullAppt) apptMgmt.openEdit(fullAppt as any);
+                }}
                 doctors={doctors}
             />
 

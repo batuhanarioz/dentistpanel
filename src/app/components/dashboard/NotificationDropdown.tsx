@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useChecklist } from "@/hooks/useChecklist";
 import { useAnnouncements } from "@/hooks/useAnnouncements";
 import { AnnouncementModal } from "./AnnouncementModal";
@@ -10,6 +10,7 @@ import { tr } from "date-fns/locale";
 import { supabase } from "@/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
 import { useRouter } from "next/navigation";
+import { useSmartAssistant } from "@/hooks/useSmartAssistant";
 
 type PanelNotification = {
     id: string;
@@ -23,6 +24,7 @@ type PanelNotification = {
 export function NotificationDropdown() {
     const { controlItems, checklistLoading } = useChecklist(0);
     const { announcements, markAsRead } = useAnnouncements();
+    const { assistantItems } = useSmartAssistant();
     const { userId, clinicSlug } = useClinic();
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
@@ -63,7 +65,7 @@ export function NotificationDropdown() {
         setPanelNotifications(prev => prev.filter(n => n.id !== id));
     };
 
-    const pendingCount = (controlItems?.length || 0) + (announcements?.length || 0) + panelNotifications.length;
+    const pendingCount = (controlItems?.length || 0) + (announcements?.length || 0) + panelNotifications.length + (assistantItems?.length || 0);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -120,6 +122,26 @@ export function NotificationDropdown() {
             </div>
         );
     };
+
+    const categoryStyles: Record<string, { icon: string; bg: string; text: string; name: string }> = {
+        PAYMENT: { icon: "💳", bg: "bg-rose-100", text: "text-rose-600", name: "Ödeme Hatırlatma" },
+        REMINDER: { icon: "🔔", bg: "bg-blue-100", text: "text-blue-600", name: "Randevu Hatırlatma" },
+        BIRTHDAY: { icon: "🎂", bg: "bg-fuchsia-100", text: "text-fuchsia-600", name: "Doğum Günü" },
+        SATISFACTION: { icon: "⭐", bg: "bg-yellow-100", text: "text-yellow-600", name: "Memnuniyet Anket" },
+        DELAY: { icon: "⏰", bg: "bg-orange-100", text: "text-orange-600", name: "Hekim Gecikmesi" },
+        FOLLOWUP: { icon: "🩺", bg: "bg-teal-100", text: "text-teal-600", name: "Tedavi Takip" },
+        NEW_PATIENT: { icon: "🌟", bg: "bg-emerald-100", text: "text-emerald-600", name: "Yeni Hasta" },
+        INCOMPLETE: { icon: "⚠️", bg: "bg-amber-100", text: "text-amber-600", name: "Eksik İşlem" },
+        LAB_TRACKING: { icon: "🧪", bg: "bg-indigo-100", text: "text-indigo-600", name: "Laboratuvar" },
+    };
+
+    const assistantGroups = useMemo(() => {
+        const groups: Record<string, number> = {};
+        assistantItems.forEach(item => {
+            groups[item.type] = (groups[item.type] || 0) + 1;
+        });
+        return groups;
+    }, [assistantItems]);
 
     const handleNotificationClick = (id: string) => {
         router.push(`/${clinicSlug}#task-${id}`);
@@ -236,6 +258,31 @@ export function NotificationDropdown() {
                                         </div>
                                     </div>
                                 ))}
+
+                                {/* AKILLI ASİSTAN KATEGORİ GRUPLARI */}
+                                {Object.entries(assistantGroups).map(([type, count]) => {
+                                    const style = categoryStyles[type] || { icon: "✨", bg: "bg-slate-100", text: "text-slate-600", name: type };
+                                    return (
+                                        <div 
+                                            key={`asst-group-${type}`}
+                                            onClick={() => { router.push(`/${clinicSlug}/communication`); setIsOpen(false); }}
+                                            className="p-4 bg-white hover:bg-slate-50 transition-colors group cursor-pointer border-l-4 border-emerald-400"
+                                        >
+                                            <div className="flex gap-3">
+                                                <div className={`shrink-0 p-2 ${style.bg} ${style.text} rounded-xl group-hover:scale-110 transition-transform flex items-center justify-center text-sm`}>
+                                                    {style.icon}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                        <span className="text-xs font-bold text-slate-900">{style.name}</span>
+                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tight shrink-0">{count} Kayıt</span>
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-600 font-medium leading-relaxed">Gönderilmeyi bekleyen {count} adet bildirim mevcut.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

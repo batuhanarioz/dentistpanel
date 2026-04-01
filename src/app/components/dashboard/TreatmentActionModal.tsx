@@ -11,6 +11,7 @@ import { useDentalChart } from "@/hooks/useDentalChart";
 import { AnamnesisSection } from "@/app/components/patients/AnamnesisSection";
 import { useAnamnesis, useAnamnesisMutation } from "@/hooks/useAnamnesis";
 import type { PatientAnamnesis } from "@/types/database";
+import Odontogram3DModal from "@/app/components/dental/Odontogram3DModal";
 import toast from "react-hot-toast";
 
 interface TreatmentActionModalProps {
@@ -61,7 +62,8 @@ export function TreatmentActionModal({
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [appointmentInfo, setAppointmentInfo] = useState<AppointmentInfo | null>(null);
-    const [showDentalChart, setShowDentalChart] = useState(true);
+    const [showDentalChart, setShowDentalChart] = useState(false);
+    const [showOdontogram3D, setShowOdontogram3D] = useState(false);
     const [presentChartModal, setPresentChartModal] = useState(false);
     const [showAnamnesis, setShowAnamnesis] = useState(false);
 
@@ -270,6 +272,19 @@ export function TreatmentActionModal({
                                 </div>
                             )}
 
+                            {/* ── TEDAVİ NOTU ── */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    Tedavi Notu <span className="text-rose-400">*</span>
+                                </label>
+                                <textarea
+                                    value={note}
+                                    onChange={(e) => setNote(e.target.value)}
+                                    placeholder="Yapılan işlemleri, teşhisleri ve kullanılan malzemeleri detaylıca yazın..."
+                                    className="w-full h-28 p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-medium text-slate-700 outline-none focus:border-teal-500 focus:bg-white transition-all resize-none"
+                                />
+                            </div>
+
                             {/* ── ANAMNEZ (collapsible) ── */}
                             <div className="rounded-2xl border border-slate-100 overflow-hidden">
                                 <button
@@ -356,26 +371,10 @@ export function TreatmentActionModal({
                                             patientName={patientName}
                                             presentationOpen={presentChartModal}
                                             onPresentationClose={() => setPresentChartModal(false)}
+                                            on3DOpen={() => setShowOdontogram3D(true)}
                                         />
                                     </div>
                                 )}
-                            </div>
-
-                            {error && (
-                                <div className="p-3 bg-rose-50 border border-rose-100 text-rose-600 text-xs font-bold rounded-xl">{error}</div>
-                            )}
-
-                            {/* ── TEDAVİ NOTU ── */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    Tedavi Notu <span className="text-rose-400">*</span>
-                                </label>
-                                <textarea
-                                    value={note}
-                                    onChange={(e) => setNote(e.target.value)}
-                                    placeholder="Yapılan işlemleri, teşhisleri ve kullanılan malzemeleri detaylıca yazın..."
-                                    className="w-full h-28 p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-medium text-slate-700 outline-none focus:border-teal-500 focus:bg-white transition-all resize-none"
-                                />
                             </div>
 
                             {/* ── TEDAVİ PLANI (isteğe bağlı) ── */}
@@ -633,6 +632,13 @@ export function TreatmentActionModal({
                     </div>
                 </div>
             </div>
+
+            <Odontogram3DModal
+                open={showOdontogram3D}
+                onClose={() => setShowOdontogram3D(false)}
+                patientId={patientId}
+                patientName={patientName}
+            />
         </div>
     );
 }

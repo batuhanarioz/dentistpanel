@@ -79,7 +79,7 @@ export function SchedulerGrid({
         <div className="flex-1 overflow-auto bg-slate-50/30 custom-scrollbar relative">
             <div className="flex min-w-full relative" style={{ minHeight: `${totalHeight + 50}px` }}>
                 {/* LEFT: sticky time column */}
-                <div className="flex-shrink-0 w-16 sticky left-0 z-30 bg-white border-r border-slate-200 shadow-[2px_0_10px_rgba(0,0,0,0.03)]" data-scroll>
+                <div className="flex-shrink-0 w-16 sticky left-0 z-30 bg-white border-r border-slate-200 shadow-[2px_0_10px_rgba(0,0,0,0.03)]">
                     {/* Header spacer */}
                     <div className="h-12 border-b border-slate-200 bg-slate-50/90 flex items-center justify-center sticky top-0 z-40">
                         <svg className="h-4 w-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">

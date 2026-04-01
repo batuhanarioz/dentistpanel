@@ -48,6 +48,7 @@ export interface DoctorOption {
     id: string;
     full_name: string;
     role?: string;
+    is_clinical_provider?: boolean;
 }
 
 // ─── Status Display Helpers ───────────────────────────────────────────────────
@@ -117,7 +118,7 @@ export function useAppointments() {
             if (!clinicId) return [];
             const { data } = await supabase
                 .from("users")
-                .select("id, full_name, role")
+                .select("id, full_name, role, is_clinical_provider")
                 .eq("clinic_id", clinicId)
                 .neq("role", UserRole.SUPER_ADMIN);
             return (data || []) as DoctorOption[];
@@ -213,7 +214,7 @@ export function useAppointments() {
 
         const list: DoctorOption[] = doctors
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .filter(u => medicalRoles.includes(u.role as any))
+            .filter(u => medicalRoles.includes(u.role as any) || u.is_clinical_provider === true)
             .map(d => ({ id: d.id, full_name: d.full_name }));
 
         // Discovery: We ONLY add a non-medical user if they have an appointment 
@@ -303,10 +304,11 @@ export function useAppointments() {
         const newEnd = new Date(newStart.getTime() + durationMinutes * 60000);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        queryClient.setQueryData(["appointments", fetchRange.start, fetchRange.end, clinicId], (old: any) =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (Array.isArray(old) ? old : []).map((row: any) => {
+        queryClient.setQueryData(["appointments", fetchRange.start, fetchRange.end, clinicId], (old: any) => {
+            const list = Array.isArray(old) ? old : [];
+            const result = list.map((row: any) => {
                 if (row.id !== eventId) return row;
+                const newDocObj = allSelectableDoctors.find(d => d.id === newDoctorId);
                 return {
                     ...row,
                     date: targetDate,
@@ -314,9 +316,12 @@ export function useAppointments() {
                     startMinute: newMinute,
                     durationMinutes,
                     doctorId: newDoctorId === "unassigned" ? null : newDoctorId,
+                    doctor: newDocObj?.full_name || row.doctor,
                 };
-            })
-        );
+            });
+            // If moved out of range, remove it from this cache slice
+            return result.filter((row: any) => row.date >= fetchRange.start && row.date <= fetchRange.end);
+        });
 
         try {
             const { error } = await supabase

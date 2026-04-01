@@ -67,10 +67,8 @@ export function DoctorColumn({
         const target = e.target as HTMLElement;
         // Only fire for clicks on the column background or grid lines
         if (target !== columnRef.current && target.dataset.slotBg !== "true") return;
-        const scrollEl = columnRef.current?.closest("[data-scroll]") as HTMLElement | null;
-        const scrollTop = scrollEl?.scrollTop ?? 0;
         const colRect = columnRef.current!.getBoundingClientRect();
-        const rawY = e.clientY - colRect.top + scrollTop;
+        const rawY = e.clientY - colRect.top;
         const clampedY = Math.max(0, Math.min(rawY, totalHeight));
         const slotIdx = Math.floor(clampedY / slotHeight);
         const snappedMinutes = slotIdx * SLOT_DURATION;
@@ -92,14 +90,10 @@ export function DoctorColumn({
 
         const { eventId, durationMinutes, offsetY = 0 } = payload;
 
-        // Find scroll container (data-scroll attribute we set in SchedulerGrid)
-        const scrollEl = columnRef.current?.closest("[data-scroll]") as HTMLElement | null;
-        const scrollTop = scrollEl?.scrollTop ?? 0;
-
         const colRect = columnRef.current!.getBoundingClientRect();
         // Adjust for where within the card the user grabbed
-        const rawY = e.clientY - colRect.top + scrollTop - offsetY;
-
+        const rawY = e.clientY - colRect.top - offsetY;
+        
         // Clamp to valid range
         const clampedY = Math.max(0, Math.min(rawY, totalHeight));
 
