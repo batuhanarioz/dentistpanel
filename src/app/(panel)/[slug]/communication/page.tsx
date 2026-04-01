@@ -8,8 +8,7 @@ import { CheckinQueueView } from "@/app/components/communication/CheckinQueueVie
 import type { RecallQueueItem, RecallStatus } from "@/types/database";
 import toast from "react-hot-toast";
 import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
-import { useRouter, useParams } from "next/navigation";
-import Link from "next/link";
+import { useParams } from "next/navigation";
 import { usePatients, PatientRow } from "@/hooks/usePatients";
 import { PatientDetailModal } from "@/app/components/patients/PatientDetailModal";
 
@@ -70,7 +69,6 @@ function buildRecallWaLink(phone: string | null | undefined, patientName: string
 }
 
 export default function CommunicationHubPage() {
-    const router = useRouter();
     const { slug } = useParams() as { slug: string };
     const [viewMode, setViewMode] = useState<'ASSISTANT' | 'RECALL' | 'CHECKIN'>('ASSISTANT');
     const [searchTerm, setSearchTerm] = useState("");

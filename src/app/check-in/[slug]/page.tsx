@@ -98,7 +98,7 @@ export default function PublicCheckinPage() {
         setStep("FILL_FORM");
     };
 
-    const handleSaveAnamnesis = async (draft: any) => {
+    const handleSaveAnamnesis = async (draft: PatientAnamnesis) => {
         if (!selectedAppointment || !clinic) return;
         try {
             const res = await fetch("/api/checkin/save-anamnesis", {
@@ -116,8 +116,9 @@ export default function PublicCheckinPage() {
 
             setStep("SUCCESS");
             toast.success("Bilgileriniz başarıyla kaydedildi");
-        } catch (error: any) {
-            toast.error(error?.message ?? "Kaydedilirken bir hata oluştu");
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            toast.error(err?.message ?? "Kaydedilirken bir hata oluştu");
         }
     };
 
@@ -368,7 +369,7 @@ export default function PublicCheckinPage() {
                                 </button>
                             </div>
                             <p className="mt-3 text-[10px] text-slate-400 font-medium leading-relaxed">
-                                Tıbbi bilgilerinizi güncelleyebilir veya sağ üstteki "Atla" butonuna basarak formsuz devam edebilirsiniz.
+                                Tıbbi bilgilerinizi güncelleyebilir veya sağ üstteki &quot;Atla&quot; butonuna basarak formsuz devam edebilirsiniz.
                             </p>
                         </div>
 

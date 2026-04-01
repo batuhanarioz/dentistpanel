@@ -228,7 +228,7 @@ export default function DashboardView() {
                 onStatusChange={handleStatusChange}
                 onEditClick={(id) => {
                     const fullAppt = appointments.find(a => a.id === id);
-                    if (fullAppt) apptMgmt.openEdit(fullAppt as any);
+                    if (fullAppt) apptMgmt.openEdit(fullAppt);
                 }}
                 doctors={doctors}
             />
