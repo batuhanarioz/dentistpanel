@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { useSmartAssistant, AssistantItem, AssistantItemType } from "@/hooks/useSmartAssistant";
+import { useSmartAssistant, AssistantItem, AssistantItemType, useDismissAssistantItem, useUndoDismissAssistantItem } from "@/hooks/useSmartAssistant";
 import toast from "react-hot-toast";
 import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
 
@@ -11,34 +11,27 @@ type FilterType = 'ALL' | AssistantItemType;
 export function SmartAssistantSection() {
     const pathname = usePathname();
     const { assistantItems, isLoading } = useSmartAssistant();
+    const { mutate: dismissItem } = useDismissAssistantItem();
+    const { mutate: undoDismissItem } = useUndoDismissAssistantItem();
     const [highlightedId, setHighlightedId] = useState<string | null>(null);
     const [filter, setFilter] = useState<FilterType>('ALL');
-    const [dismissedIds, setDismissedIds] = useState<string[]>(() => {
-        try {
-            const saved = sessionStorage.getItem('dismissedAssistantItems');
-            return saved ? (JSON.parse(saved) as string[]) : [];
-        } catch {
-            return [];
-        }
-    });
 
     const handleDismiss = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        const newDismissed = [...dismissedIds, id];
-        setDismissedIds(newDismissed);
-        sessionStorage.setItem('dismissedAssistantItems', JSON.stringify(newDismissed));
-        window.dispatchEvent(new CustomEvent('assistant-updated'));
-        toast.success("Mesaj atıldı olarak işaretlendi");
+        dismissItem(id);
+        toast.success("Bildirim kaldırıldı");
     };
 
-    const activeItems = useMemo(() => {
-        return assistantItems.filter(item => !dismissedIds.includes(item.id));
-    }, [assistantItems, dismissedIds]);
+    const handleUndoDismiss = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        undoDismissItem(id);
+        toast.success("Bildirim geri getirildi");
+    };
 
     const filteredItems = useMemo(() => {
-        if (filter === 'ALL') return activeItems;
-        return activeItems.filter(item => item.type === filter);
-    }, [activeItems, filter]);
+        if (filter === 'ALL') return assistantItems;
+        return assistantItems.filter(item => item.type === filter);
+    }, [assistantItems, filter]);
 
     const handleSendMessage = (item: AssistantItem) => {
         if (!item.patientPhone) {
@@ -152,7 +145,7 @@ export function SmartAssistantSection() {
         }
     };
 
-    if (!isLoading && activeItems.length === 0) {
+    if (!isLoading && assistantItems.length === 0) {
         return (
             <section id="smart-assistant" className="group/card rounded-[28px] border border-slate-100 bg-white shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col relative" style={{ height: '416px' }}>
                 <div className="absolute -top-20 -right-20 w-40 h-40 bg-teal-50 rounded-full blur-3xl opacity-50 group-hover/card:bg-teal-100 transition-colors pointer-events-none" />
@@ -187,7 +180,7 @@ export function SmartAssistantSection() {
                 </div>
                 <div className="flex-1">
                     <h2 className="text-sm font-bold text-slate-900 tracking-tight">Akıllı Asistan</h2>
-                    <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest">{activeItems.length} BEKLEYEN GÖREV</p>
+                    <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest">{assistantItems.length} BEKLEYEN GÖREV</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="relative">
@@ -221,7 +214,6 @@ export function SmartAssistantSection() {
                     )}
                     {filteredItems.map((item) => {
                         const styles = getCategoryStyles(item.type);
-                        const isDismissed = dismissedIds.includes(item.id);
                         return (
                             <div
                                 id={`assist-${item.id}`}
@@ -248,22 +240,13 @@ export function SmartAssistantSection() {
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={(e) => handleDismiss(item.id, e)}
-                                            className={`group/dismiss flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all shadow-sm active:scale-95 focus:outline-none ${isDismissed
-                                                ? "bg-rose-50 border-rose-100 text-rose-500 hover:bg-rose-500 hover:text-white"
-                                                : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-emerald-500 hover:border-emerald-500 hover:text-white"
-                                                }`}
-                                            title={isDismissed ? "Geri yükle" : "Gönderildi olarak işaretle"}
+                                            className="group/dismiss flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-slate-50 border-slate-200 text-slate-400 hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all shadow-sm active:scale-95 focus:outline-none"
+                                            title="Gönderildi olarak işaretle"
                                         >
                                             <svg className="w-3 h-3 group-hover/dismiss:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                                                {isDismissed ? (
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-                                                ) : (
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                )}
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                             </svg>
-                                            <span className="text-[9px] font-black uppercase tracking-widest leading-none">
-                                                {isDismissed ? "GERİ AL" : "GÖNDERİLDİ"}
-                                            </span>
+                                            <span className="text-[9px] font-black uppercase tracking-widest leading-none">GÖNDERİLDİ</span>
                                         </button>
                                     </div>
                                 </div>
@@ -294,7 +277,7 @@ export function SmartAssistantSection() {
                                                 {item.timeLabel}
                                             </span>
                                         </div>
-                                        {item.patientPhone && !isDismissed && (
+                                        {item.patientPhone && (
                                             <div className="flex items-center gap-1 group/wa cursor-help">
                                                 <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
                                                     <path d="M17.472 14.382c-.3.149-1.777.877-2.045.976-.269.1-.463.149-.657.437-.194.288-.748.941-.917 1.134-.169.194-.338.219-.636.07-.3-.149-1.264-.467-2.41-1.488-.891-.795-1.492-1.777-1.667-2.075-.173-.301-.019-.463.13-.612.134-.133.298-.348.448-.522.152-.174.202-.298.301-.497.1-.199.049-.373-.024-.522-.074-.15-.657-1.583-.902-2.172-.239-.574-.482-.497-.657-.506-.169-.009-.364-.01-.559-.01-.194 0-.51.074-.777.369-.269.299-1.025 1.002-1.025 2.441 0 1.439 1.045 2.829 1.191 3.028.146.199 2.056 3.139 4.979 4.398.694.3 1.237.479 1.661.613.697.221 1.332.189 1.833.114.559-.084 1.717-.7 1.956-1.378.239-.679.239-1.264.168-1.378-.069-.115-.261-.189-.558-.337zM12 2.03c-5.522 0-10 4.477-10 10 0 1.769.463 3.428 1.266 4.87L2.05 22l5.247-1.376c1.118.608 2.396.955 3.703.955 5.518 0 10-4.477 10-10 0-5.522-4.482-10-10-10zM12 20.3c-1.611 0-3.18-.426-4.555-1.233l-.326-.194-3.042.797.81-2.964-.213-.339A8.257 8.257 0 013.75 12.03c0-4.549 3.701-8.25 8.25-8.25s8.25 3.701 8.25 8.25c0 4.551-3.701 8.25-8.25 8.25z" />
@@ -311,7 +294,7 @@ export function SmartAssistantSection() {
                                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                                 <path d="M17.472 14.382c-.3.149-1.777.877-2.045.976-.269.1-.463.149-.657.437-.194.288-.748.941-.917 1.134-.169.194-.338.219-.636.07-.3-.149-1.264-.467-2.41-1.488-.891-.795-1.492-1.777-1.667-2.075-.173-.301-.019-.463.13-.612.134-.133.298-.348.448-.522.152-.174.202-.298.301-.497.1-.199.049-.373-.024-.522-.074-.15-.657-1.583-.902-2.172-.239-.574-.482-.497-.657-.506-.169-.009-.364-.01-.559-.01-.194 0-.51.074-.777.369-.269.299-1.025 1.002-1.025 2.441 0 1.439 1.045 2.829 1.191 3.028.146.199 2.056 3.139 4.979 4.398.694.3 1.237.479 1.661.613.697.221 1.332.189 1.833.114.559-.084 1.717-.7 1.956-1.378.239-.679.239-1.264.168-1.378-.069-.115-.261-.189-.558-.337zM12 2.03c-5.522 0-10 4.477-10 10 0 1.769.463 3.428 1.266 4.87L2.05 22l5.247-1.376c1.118.608 2.396.955 3.703.955 5.518 0 10-4.477 10-10 0-5.522-4.482-10-10-10zM12 20.3c-1.611 0-3.18-.426-4.555-1.233l-.326-.194-3.042.797.81-2.964-.213-.339A8.257 8.257 0 013.75 12.03c0-4.549 3.701-8.25 8.25-8.25s8.25 3.701 8.25 8.25c0 4.551-3.701 8.25-8.25 8.25z" />
                                             </svg>
-                                            {isDismissed ? "İletişime Geç" : "Mesajı Gönder"}
+                                            Mesajı Gönder
                                         </button>
                                     )}
                                 </div>
