@@ -224,7 +224,12 @@ export default function CommunicationHubPage() {
     // Memoized Data
     const filteredAssistantItems = useMemo(() => {
         let list = assistantItems;
-        if (assistantFilter !== "ALL") list = list.filter((i: AssistantItem) => i.type === assistantFilter);
+        if (assistantFilter === "INCOMPLETE") {
+            list = list.filter((i: AssistantItem) => !i.patientPhone);
+        } else if (assistantFilter !== "ALL") {
+            list = list.filter((i: AssistantItem) => i.type === assistantFilter);
+        }
+        
         if (searchTerm) list = list.filter((i: AssistantItem) => i.patientName.toLowerCase().includes(searchTerm.toLowerCase()));
         return [...list].sort((a, b) => (b.isPastDay ? 1 : 0) - (a.isPastDay ? 1 : 0));
     }, [assistantItems, assistantFilter, searchTerm]);
@@ -237,7 +242,10 @@ export default function CommunicationHubPage() {
 
     // Kategori sayaçları
     const assistantCategoryCounts = useMemo(() => {
-        const counts: Record<string, number> = { ALL: assistantItems.length };
+        const counts: Record<string, number> = { 
+            ALL: assistantItems.length,
+            INCOMPLETE: assistantItems.filter(i => !i.patientPhone).length
+        };
         assistantItems.forEach(item => {
             counts[item.type] = (counts[item.type] || 0) + 1;
         });

@@ -62,6 +62,7 @@ export function useSmartAssistant() {
         queryKey: ["assistantAppointments", today, clinic.clinicId],
         queryFn: () => getDashboardData(today, clinic.clinicId || ""),
         enabled: !!clinic.clinicId,
+        refetchInterval: 60000,
     });
 
     // 2. Fetch Payments for today
@@ -69,6 +70,7 @@ export function useSmartAssistant() {
         queryKey: ["assistantPayments", today, clinic.clinicId],
         queryFn: () => getTodayPayments(clinic.clinicId || "", today),
         enabled: !!clinic.clinicId,
+        refetchInterval: 60000,
     });
 
     // 3b. Geçmiş 3 günün randevuları (kaçırılmış FOLLOWUP / BIRTHDAY / SATISFACTION için)
@@ -77,6 +79,7 @@ export function useSmartAssistant() {
         queryFn: () => getDashboardDataRange(lookbackStart, localDateStr(new Date(new Date(today + "T00:00:00").getTime() - 86400000)), clinic.clinicId || ""),
         enabled: !!clinic.clinicId,
         staleTime: 5 * 60 * 1000,
+        refetchInterval: 60000 * 5, // Past data can refresh slower
     });
 
     // 4b. Vadesi geçmiş bekleyen ödemeler
@@ -85,6 +88,7 @@ export function useSmartAssistant() {
         queryFn: () => getOverduePendingPayments(clinic.clinicId || "", today),
         enabled: !!clinic.clinicId,
         staleTime: 2 * 60 * 1000,
+        refetchInterval: 60000 * 2, // Overdue payments slow refresh
     });
 
     // 3. Fetch Task/Role Permissions for the current user

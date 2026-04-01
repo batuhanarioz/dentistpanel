@@ -18,6 +18,7 @@ export function useRecallQueue() {
         queryKey: ["recall-queue", clinicId],
         enabled: !!clinicId,
         staleTime: 30_000,
+        refetchInterval: 60000, // 1 minute auto-sync
         queryFn: async () => {
             const token = await getToken();
             const res = await fetch("/api/recall?all=1", {
