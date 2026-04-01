@@ -8,6 +8,8 @@ import { AnamnesisSection } from "@/app/components/patients/AnamnesisSection";
 import { PatientAnamnesis, EMPTY_ANAMNESIS } from "@/types/database";
 import toast from "react-hot-toast";
 
+type Draft = Omit<PatientAnamnesis, "id" | "clinic_id" | "patient_id" | "updated_at" | "updated_by">;
+
 type Step = "CONSENT" | "IDENTIFY" | "SELECT_APPOINTMENT" | "FILL_FORM" | "SUCCESS" | "ERROR";
 
 export default function PublicCheckinPage() {
@@ -98,7 +100,7 @@ export default function PublicCheckinPage() {
         setStep("FILL_FORM");
     };
 
-    const handleSaveAnamnesis = async (draft: PatientAnamnesis) => {
+    const handleSaveAnamnesis = async (draft: Draft) => {
         if (!selectedAppointment || !clinic) return;
         try {
             const res = await fetch("/api/checkin/save-anamnesis", {

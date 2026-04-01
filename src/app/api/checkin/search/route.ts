@@ -85,11 +85,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Sadece gerekli minimum alanları döndür
-    const results = (data ?? []).map((a: any) => ({
+    const results = (data || []).map((a: any) => ({
         id: a.id,
         patientId: a.patients?.id,
         patientName: a.patients?.full_name ?? "Bilinmiyor",
-        doctorName: a.users?.full_name ?? null,
+        doctorName: Array.isArray(a.users) ? a.users[0]?.full_name : (a.users as any)?.full_name ?? null,
         appointmentTime: a.starts_at
             ? new Date(a.starts_at).toLocaleTimeString("tr-TR", {
                   hour: "2-digit",
