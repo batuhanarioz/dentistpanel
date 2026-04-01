@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useSmartAssistant, AssistantItem, AssistantItemType } from "@/hooks/useSmartAssistant";
+import { useSmartAssistant, AssistantItem, AssistantItemType, useDismissAssistantItem } from "@/hooks/useSmartAssistant";
 import { useRecallQueue, useUpdateRecallStatus } from "@/hooks/useRecallQueue";
+import { QuickAppointmentModal } from "@/app/components/appointments/QuickAppointmentModal";
 import type { RecallQueueItem, RecallStatus } from "@/types/database";
 import toast from "react-hot-toast";
 import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
+import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 
 // --- Kategori renk & ikon tanımları ---
 type CategoryStyle = {
@@ -167,15 +170,25 @@ function buildRecallWaLink(phone: string | null | undefined, patientName: string
 
 // --- Main Page Component ---
 export default function CommunicationHubPage() {
+    const router = useRouter();
+    const { slug } = useParams() as { slug: string };
     const [viewMode, setViewMode] = useState<'ASSISTANT' | 'RECALL'>('ASSISTANT');
     const [searchTerm, setSearchTerm] = useState("");
-    
+
     // Hooks
     const { assistantItems, missedCount, isLoading: assistantLoading } = useSmartAssistant();
     const { data: recallItems = [], isLoading: recallLoading } = useRecallQueue();
     const { mutate: updateRecallStatus } = useUpdateRecallStatus();
+    const { mutate: dismissAssistant } = useDismissAssistantItem();
 
-    // Assistant States
+    // Quick Appointment Modal State
+    const [quickAppt, setQuickAppt] = useState<{
+        open: boolean;
+        patientId: string;
+        patientName: string;
+        recallId?: string;
+        treatment?: string;
+    }>({ open: false, patientId: "", patientName: "" });
     const [assistantFilter, setAssistantFilter] = useState<AssistantItemType | 'ALL'>('ALL');
     const [dismissedIds, setDismissedIds] = useState<string[]>([]);
 
@@ -204,19 +217,26 @@ export default function CommunicationHubPage() {
 
     // Memoized Data
     const filteredAssistantItems = useMemo(() => {
-        let list = assistantItems.filter(item => !dismissedIds.includes(item.id));
-        if (assistantFilter !== 'ALL') list = list.filter(i => i.type === assistantFilter);
-        if (searchTerm) list = list.filter(i => i.patientName.toLowerCase().includes(searchTerm.toLowerCase()));
-        // Kaçırılanlar üste gelsin
+        let list = assistantItems;
+        if (assistantFilter !== "ALL") list = list.filter((i: AssistantItem) => i.type === assistantFilter);
+        if (searchTerm) list = list.filter((i: AssistantItem) => i.patientName.toLowerCase().includes(searchTerm.toLowerCase()));
         return [...list].sort((a, b) => (b.isPastDay ? 1 : 0) - (a.isPastDay ? 1 : 0));
-    }, [assistantItems, assistantFilter, dismissedIds, searchTerm]);
+    }, [assistantItems, assistantFilter, searchTerm]);
 
     const filteredRecallItems = useMemo(() => {
-        let list = recallItems.filter(i => i.status === recallTab);
-        if (searchTerm) list = list.filter(i => i.patients?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()));
-        // Gecikmiş olanlar üste
+        let list = recallItems.filter((i: RecallQueueItem) => i.status === recallTab);
+        if (searchTerm) list = list.filter((i: RecallQueueItem) => i.patients?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()));
         return [...list].sort((a, b) => new Date(a.recall_due_at).getTime() - new Date(b.recall_due_at).getTime());
     }, [recallItems, recallTab, searchTerm]);
+
+    // Kategori sayaçları
+    const assistantCategoryCounts = useMemo(() => {
+        const counts: Record<string, number> = { ALL: assistantItems.length };
+        assistantItems.forEach(item => {
+            counts[item.type] = (counts[item.type] || 0) + 1;
+        });
+        return counts;
+    }, [assistantItems]);
 
     // Recall istatistikleri
     const recallStats = useMemo(() => {
@@ -234,14 +254,23 @@ export default function CommunicationHubPage() {
         };
     }, [recallItems]);
 
-    const handleDismissAssistant = (id: string) => {
-        setDismissedIds(prev => [...prev, id]);
-        toast.success("Mesaj gönderildi olarak işaretlendi");
+    const handleDismissAssistant = (id: string, silent = false) => {
+        dismissAssistant(id);
+        if (!silent) toast.success("Bildirim kaldırıldı");
     };
 
-    const handleSendWhatsApp = (phone: string, message: string) => {
+    const handleSendWhatsApp = (id: string, phone: string, message: string) => {
         if (!phone) return toast.error("Telefon numarası bulunamadı");
-        window.open(`https://wa.me/${formatPhoneForWhatsApp(phone)}?text=${encodeURIComponent(message)}`, '_blank');
+        window.open(`https://wa.me/${formatPhoneForWhatsApp(phone)}?text=${encodeURIComponent(message)}`, "_blank");
+        // WhatsApp açıldığında kartı otomatik kaldır (One-click Send & Dismiss)
+        handleDismissAssistant(id, true);
+    };
+
+    const handleQuickAppointmentSuccess = (appointmentId: string) => {
+        if (quickAppt.recallId) {
+            updateRecallStatus({ id: quickAppt.recallId, status: "booked" });
+            toast.success("Recall durumu güncellendi: Randevu Alındı");
+        }
     };
 
     return (
@@ -249,31 +278,28 @@ export default function CommunicationHubPage() {
             {/* Elegant Mode Switcher & Search */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="bg-white p-1.5 rounded-[2rem] shadow-xl border border-slate-100 flex items-center relative overflow-hidden group">
-                    <div 
-                        className={`absolute inset-y-1.5 rounded-[1.75rem] bg-gradient-to-r from-teal-500 to-emerald-600 transition-all duration-500 ease-out shadow-lg ${
-                            viewMode === 'ASSISTANT' ? 'left-1.5 w-[160px]' : 'left-[168px] w-[160px]'
-                        }`}
+                    <div
+                        className={`absolute inset-y-1.5 rounded-[1.75rem] bg-gradient-to-r from-teal-500 to-emerald-600 transition-all duration-500 ease-out shadow-lg ${viewMode === 'ASSISTANT' ? 'left-1.5 w-[160px]' : 'left-[168px] w-[160px]'
+                            }`}
                     />
-                    <button 
+                    <button
                         onClick={() => setViewMode('ASSISTANT')}
-                        className={`relative z-10 w-[160px] py-3 text-xs font-black tracking-widest uppercase transition-colors duration-300 ${
-                            viewMode === 'ASSISTANT' ? 'text-white' : 'text-slate-400 hover:text-slate-600'
-                        }`}
+                        className={`relative z-10 w-[160px] py-3 text-xs font-black tracking-widest uppercase transition-colors duration-300 ${viewMode === 'ASSISTANT' ? 'text-white' : 'text-slate-400 hover:text-slate-600'
+                            }`}
                     >
                         Akıllı Asistan
                     </button>
-                    <button 
+                    <button
                         onClick={() => setViewMode('RECALL')}
-                        className={`relative z-10 w-[160px] py-3 text-xs font-black tracking-widest uppercase transition-colors duration-300 ${
-                            viewMode === 'RECALL' ? 'text-white' : 'text-slate-400 hover:text-slate-600'
-                        }`}
+                        className={`relative z-10 w-[160px] py-3 text-xs font-black tracking-widest uppercase transition-colors duration-300 ${viewMode === 'RECALL' ? 'text-white' : 'text-slate-400 hover:text-slate-600'
+                            }`}
                     >
                         Recall Listesi
                     </button>
                 </div>
 
                 <div className="relative w-full md:w-80">
-                    <input 
+                    <input
                         type="text"
                         placeholder="İsimle hasta ara..."
                         value={searchTerm}
@@ -318,18 +344,22 @@ export default function CommunicationHubPage() {
                             {(['ALL', 'REMINDER', 'BIRTHDAY', 'DELAY', 'FOLLOWUP', 'PAYMENT', 'SATISFACTION', 'NEW_PATIENT', 'LAB_TRACKING', 'INCOMPLETE'] as const).map((f) => {
                                 const cs = f === 'ALL' ? CATEGORY_STYLES.DEFAULT : (CATEGORY_STYLES[f] ?? CATEGORY_STYLES.DEFAULT);
                                 const isActive = assistantFilter === f;
+                                const count = assistantCategoryCounts[f] || 0;
                                 return (
                                     <button
                                         key={f}
                                         onClick={() => setAssistantFilter(f as AssistantItemType | "ALL")}
-                                        className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all duration-300 flex items-center gap-2 ${
+                                        className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all duration-300 flex items-center gap-2 group/btn ${
                                             isActive
                                                 ? `${cs.filterActive} scale-105`
                                                 : "text-slate-400 hover:text-slate-600 hover:bg-white"
-                                        }`}
+                                        } ${count === 0 ? "opacity-40 grayscale" : ""}`}
                                     >
                                         {f !== 'ALL' && <span>{cs.icon}</span>}
                                         {categoryNames[f]}
+                                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
+                                            {count}
+                                        </span>
                                     </button>
                                 );
                             })}
@@ -346,53 +376,77 @@ export default function CommunicationHubPage() {
                             filteredAssistantItems.map((item) => {
                                 const cs = getCategoryStyle(item.type, item.isPastDay);
                                 return (
-                                <div key={item.id} className={`group p-6 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border ${cs.bg} ${cs.border} ${cs.glow}`}>
-                                    {/* Kategori satırı */}
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${cs.badge}`}>
-                                                {cs.icon} {categoryNames[item.type] || item.type}
-                                            </span>
-                                            {item.isPastDay && (
-                                                <span className="px-2.5 py-1 bg-rose-100 rounded-full text-[9px] font-black text-rose-600 uppercase tracking-widest border border-rose-300">
-                                                    Kaçırıldı
+                                    <div key={item.id} className={`group p-6 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border ${cs.bg} ${cs.border} ${cs.glow}`}>
+                                        {/* Kategori satırı */}
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${cs.badge}`}>
+                                                    {cs.icon} {categoryNames[item.type] || item.type}
                                                 </span>
-                                            )}
+                                                {item.isPastDay && (
+                                                    <span className="px-2.5 py-1 bg-rose-100 rounded-full text-[9px] font-black text-rose-600 uppercase tracking-widest border border-rose-300">
+                                                        Kaçırıldı
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => handleDismissAssistant(item.id)}
+                                                className="h-8 w-8 rounded-full bg-white/70 flex items-center justify-center text-slate-400 hover:bg-white hover:text-emerald-500 transition-colors shrink-0 shadow-sm"
+                                            >✓</button>
                                         </div>
-                                        <button
-                                            onClick={() => handleDismissAssistant(item.id)}
-                                            className="h-8 w-8 rounded-full bg-white/70 flex items-center justify-center text-slate-400 hover:bg-white hover:text-emerald-500 transition-colors shrink-0 shadow-sm"
-                                        >✓</button>
+
+                                        {/* İsim + başlık */}
+                                        <Link 
+                                            href={`/${slug}/patients?q=${encodeURIComponent(item.patientName)}`}
+                                            className="block group/name"
+                                        >
+                                            <h3 className="font-black text-slate-800 text-base mb-1 group-hover/name:text-indigo-600 transition-colors flex items-center gap-2">
+                                                {item.patientName}
+                                                <svg className="w-3 h-3 opacity-0 group-hover/name:opacity-100 transition-all translate-x-[-4px] group-hover/name:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                                </svg>
+                                            </h3>
+                                        </Link>
+                                        <p className={`text-[11px] font-bold uppercase tracking-tighter mb-3 ${cs.accent}`}>{item.title}</p>
+
+                                        {/* Kaçırıldı tarihi */}
+                                        {item.isPastDay && item.pastDate && (
+                                            <p className="text-[10px] text-rose-500 font-bold mb-2">
+                                                📅 {new Date(item.pastDate + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} tarihinden kalmış
+                                            </p>
+                                        )}
+
+                                        {/* Mesaj kutusu */}
+                                        <div className={`p-4 rounded-2xl mb-5 italic text-[11px] leading-relaxed border-l-4 bg-white/60 text-slate-600 ${cs.border}`}>
+                                            {item.message}
+                                        </div>
+
+                                        {/* Saat etiketi */}
+                                        <p className={`text-[10px] font-bold uppercase tracking-widest mb-3 ${cs.accent} opacity-70`}>{item.timeLabel}</p>
+
+                                        {/* Buton */}
+                                        {item.patientPhone ? (
+                                            <button
+                                                onClick={() => handleSendWhatsApp(item.id, item.patientPhone || "", item.message)}
+                                                className={`w-full text-white font-black py-3 rounded-2xl text-xs shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 bg-gradient-to-r ${cs.btn}`}
+                                            >
+                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.135.561 4.14 1.541 5.875L.057 23.543a.5.5 0 0 0 .6.6l5.668-1.484A11.942 11.942 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.518-5.188-1.424l-.372-.22-3.862 1.012 1.012-3.705-.242-.385A9.944 9.944 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                                                Gönder ve Kaldır
+                                            </button>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-50 rounded-2xl text-[10px] font-bold text-slate-400 border border-dashed border-slate-200">
+                                                    <span>⚠️</span> Telefon Bilgisi Eksik
+                                                </div>
+                                                <button 
+                                                    onClick={() => router.push(`/${slug}/patients?q=${encodeURIComponent(item.patientName)}`)}
+                                                    className="w-full bg-white border border-slate-200 text-slate-600 font-bold py-3 rounded-2xl text-[10px] hover:bg-slate-50 transition-colors uppercase tracking-tight"
+                                                >
+                                                    Hasta Kartını Düzenle
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
-
-                                    {/* İsim + başlık */}
-                                    <h3 className="font-black text-slate-800 text-base mb-1">{item.patientName}</h3>
-                                    <p className={`text-[11px] font-bold uppercase tracking-tighter mb-3 ${cs.accent}`}>{item.title}</p>
-
-                                    {/* Kaçırıldı tarihi */}
-                                    {item.isPastDay && item.pastDate && (
-                                        <p className="text-[10px] text-rose-500 font-bold mb-2">
-                                            📅 {new Date(item.pastDate + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} tarihinden kalmış
-                                        </p>
-                                    )}
-
-                                    {/* Mesaj kutusu */}
-                                    <div className={`p-4 rounded-2xl mb-5 italic text-[11px] leading-relaxed border-l-4 bg-white/60 text-slate-600 ${cs.border}`}>
-                                        {item.message}
-                                    </div>
-
-                                    {/* Saat etiketi */}
-                                    <p className={`text-[10px] font-bold uppercase tracking-widest mb-3 ${cs.accent} opacity-70`}>{item.timeLabel}</p>
-
-                                    {/* Buton */}
-                                    <button
-                                        onClick={() => handleSendWhatsApp(item.patientPhone || "", item.message)}
-                                        className={`w-full text-white font-black py-3 rounded-2xl text-xs shadow-lg hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 bg-gradient-to-r ${cs.btn}`}
-                                    >
-                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.135.561 4.14 1.541 5.875L.057 23.543a.5.5 0 0 0 .6.6l5.668-1.484A11.942 11.942 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.518-5.188-1.424l-.372-.22-3.862 1.012 1.012-3.705-.242-.385A9.944 9.944 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-                                        WhatsApp ile Gönder
-                                    </button>
-                                </div>
                                 );
                             })
                         )}
@@ -431,9 +485,8 @@ export default function CommunicationHubPage() {
                                     <button
                                         key={t}
                                         onClick={() => setRecallTab(t)}
-                                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all flex items-center gap-1.5 ${
-                                            recallTab === t ? "bg-white text-amber-600 shadow-md ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
-                                        }`}
+                                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all flex items-center gap-1.5 ${recallTab === t ? "bg-white text-amber-600 shadow-md ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
+                                            }`}
                                     >
                                         {statusNames[t]}
                                         <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${isOverduePending ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-500"}`}>
@@ -459,9 +512,19 @@ export default function CommunicationHubPage() {
                                     <div key={item.id} className={`bg-white p-6 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all duration-300 ${label.isOverdue && item.status === 'pending' ? "border-2 border-rose-200" : "border border-slate-100"}`}>
                                         <div className="flex justify-between items-start mb-4">
                                             <span className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${label.cls}`}>{label.text}</span>
-                                            <span className="text-[10px] font-bold text-slate-400 font-mono italic">#{item.id.slice(0,4)}</span>
+                                            <span className="text-[10px] font-bold text-slate-400 font-mono italic">#{item.id.slice(0, 4)}</span>
                                         </div>
-                                        <h3 className="font-black text-slate-800 text-base mb-1">{item.patients?.full_name}</h3>
+                                        <Link 
+                                            href={`/${slug}/patients?q=${encodeURIComponent(item.patients?.full_name || "")}`}
+                                            className="block group/name"
+                                        >
+                                            <h3 className="font-black text-slate-800 text-base mb-1 group-hover/name:text-indigo-600 transition-colors flex items-center gap-2">
+                                                {item.patients?.full_name}
+                                                <svg className="w-3 h-3 opacity-0 group-hover/name:opacity-100 transition-all translate-x-[-4px] group-hover/name:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                                </svg>
+                                            </h3>
+                                        </Link>
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-4">{item.treatment_type}</p>
 
                                         <div className="space-y-2 mb-6">
@@ -495,7 +558,13 @@ export default function CommunicationHubPage() {
                                                     className="bg-slate-50 text-slate-500 font-black py-2.5 rounded-xl text-[10px] hover:bg-slate-100"
                                                 >ATLA</button>
                                                 <button
-                                                    onClick={() => updateRecallStatus({ id: item.id, status: 'booked' })}
+                                                    onClick={() => setQuickAppt({
+                                                        open: true,
+                                                        patientId: item.patient_id,
+                                                        patientName: item.patients?.full_name || "Hasta",
+                                                        recallId: item.id,
+                                                        treatment: item.treatment_type || ""
+                                                    })}
                                                     className="bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-black py-2.5 rounded-xl text-[10px] shadow-lg shadow-teal-50"
                                                 >📅 RANDEVU</button>
                                             </div>
@@ -509,7 +578,13 @@ export default function CommunicationHubPage() {
                                                             className="bg-emerald-500 text-white font-black py-2.5 rounded-xl text-[10px] flex items-center justify-center gap-1.5 hover:bg-emerald-600"
                                                         >WHATSAPP</a>
                                                         <button
-                                                            onClick={() => updateRecallStatus({ id: item.id, status: 'booked' })}
+                                                            onClick={() => setQuickAppt({
+                                                                open: true,
+                                                                patientId: item.patient_id,
+                                                                patientName: item.patients?.full_name || "Hasta",
+                                                                recallId: item.id,
+                                                                treatment: item.treatment_type || ""
+                                                            })}
                                                             className="bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-black py-2.5 rounded-xl text-[10px] shadow-lg shadow-teal-50"
                                                         >📅 RANDEVU</button>
                                                     </div>
@@ -526,6 +601,17 @@ export default function CommunicationHubPage() {
                         )}
                     </div>
                 </div>
+            )}
+
+            {quickAppt.open && (
+                <QuickAppointmentModal
+                    isOpen={quickAppt.open}
+                    onClose={() => setQuickAppt(p => ({ ...p, open: false }))}
+                    patientId={quickAppt.patientId}
+                    patientName={quickAppt.patientName}
+                    initialTreatment={quickAppt.treatment}
+                    onSuccess={handleQuickAppointmentSuccess}
+                />
             )}
         </div>
     );

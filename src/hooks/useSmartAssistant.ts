@@ -1,9 +1,14 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useClinic } from "@/app/context/ClinicContext";
 import { getDashboardData, getTodayPayments, getDashboardDataRange, getOverduePendingPayments } from "@/lib/api";
 import { localDateStr } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabaseClient";
+
+async function getToken(): Promise<string> {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? "";
+}
 
 export type AssistantItemType = "REMINDER" | "SATISFACTION" | "PAYMENT" | "DELAY" | "BIRTHDAY" | "FOLLOWUP" | "INCOMPLETE" | "NEW_PATIENT" | "LAB_TRACKING";
 
@@ -11,6 +16,7 @@ export interface AssistantItem {
     id: string;
     type: AssistantItemType;
     patientName: string;
+    patientId: string;
     patientPhone: string;
     title: string;
     message: string;
@@ -101,6 +107,21 @@ export function useSmartAssistant() {
         enabled: !!clinic.clinicId,
     });
 
+    // 4. Fetch Dismissed IDs from DB
+    const { data: dbDismissedIds = [] } = useQuery<string[]>({
+        queryKey: ["assistantDismissedIds", clinic.clinicId],
+        queryFn: async () => {
+            const token = await getToken();
+            const res = await fetch("/api/assistant/dismiss", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) return [];
+            const json = await res.json();
+            return json.dismissedIds || [];
+        },
+        enabled: !!clinic.clinicId,
+    });
+
     const assistantItems = useMemo(() => {
         if (!settings) return [];
         const now = new Date();
@@ -138,6 +159,7 @@ export function useSmartAssistant() {
                         id: `rem-${appt.id}`,
                         type: "REMINDER",
                         patientName: appt.patientName,
+                        patientId: appt.patientId,
                         patientPhone: appt.patientPhone || "",
                         title: "Randevu Hatırlatma",
                         timeLabel: timeStr,
@@ -170,6 +192,7 @@ export function useSmartAssistant() {
                         id: `sat-${appt.id}`,
                         type: "SATISFACTION",
                         patientName: appt.patientName,
+                        patientId: appt.patientId,
                         patientPhone: appt.patientPhone || "",
                         title: "Randevu Memnuniyet",
                         timeLabel: "Tamamlandı",
@@ -193,6 +216,7 @@ export function useSmartAssistant() {
                     id: `pay-${pay.id}`,
                     type: "PAYMENT",
                     patientName: pay.patientName,
+                    patientId: pay.patientId,
                     patientPhone: pay.patientPhone || "",
                     title: "Ödeme Hatırlatma",
                     timeLabel: "Vadesi Bugün",
@@ -219,6 +243,7 @@ export function useSmartAssistant() {
                             id: `bdy-${appt.id}`,
                             type: "BIRTHDAY",
                             patientName: appt.patientName,
+                            patientId: appt.patientId,
                             patientPhone: appt.patientPhone || "",
                             title: "Doğum Günü Kutlama",
                             timeLabel: "Bugün",
@@ -252,6 +277,7 @@ export function useSmartAssistant() {
                         id: `del-${appt.id}`,
                         type: "DELAY",
                         patientName: appt.patientName,
+                        patientId: appt.patientId,
                         patientPhone: appt.patientPhone || "",
                         title: "Hekim Gecikmesi",
                         timeLabel: `${Math.round(diffMins)} DK GECİKTİ`,
@@ -271,6 +297,7 @@ export function useSmartAssistant() {
                         id: `new-${appt.id}`,
                         type: "NEW_PATIENT",
                         patientName: appt.patientName,
+                        patientId: appt.patientId,
                         patientPhone: appt.patientPhone || "",
                         title: "Yeni Hasta Kayıt",
                         timeLabel: "Randevusu Var",
@@ -303,6 +330,7 @@ export function useSmartAssistant() {
                             id: `fol-${appt.id}`,
                             type: "FOLLOWUP",
                             patientName: appt.patientName,
+                            patientId: appt.patientId,
                             patientPhone: appt.patientPhone || "",
                             title: "Cerrahi Takip",
                             timeLabel: `${Math.round(diffDays)} Gün Geçti`,
@@ -323,6 +351,7 @@ export function useSmartAssistant() {
                         id: `lab-${appt.id}`,
                         type: "LAB_TRACKING",
                         patientName: appt.patientName,
+                        patientId: appt.patientId,
                         patientPhone: appt.patientPhone || "",
                         title: "Laboratuvar Takip",
                         timeLabel: "İşlem Bekliyor",
@@ -349,6 +378,7 @@ export function useSmartAssistant() {
                     id: `sat-past-${appt.id}`,
                     type: "SATISFACTION",
                     patientName: appt.patientName,
+                    patientId: appt.patientId,
                     patientPhone: appt.patientPhone || "",
                     title: "Memnuniyet (Kaçırıldı)",
                     timeLabel: new Date(appt.endsAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short" }),
@@ -384,6 +414,7 @@ export function useSmartAssistant() {
                         id: `fol-past-${appt.id}`,
                         type: "FOLLOWUP",
                         patientName: appt.patientName,
+                        patientId: appt.patientId,
                         patientPhone: appt.patientPhone || "",
                         title: "Cerrahi Takip (Kaçırıldı)",
                         timeLabel: `${Math.round(diffDays)} gün önce`,
@@ -415,6 +446,7 @@ export function useSmartAssistant() {
                         id: `bdy-past-${appt.id}`,
                         type: "BIRTHDAY",
                         patientName: appt.patientName,
+                        patientId: appt.patientId,
                         patientPhone: appt.patientPhone || "",
                         title: "Doğum Günü (Kaçırıldı)",
                         timeLabel: new Date(appt.startsAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short" }),
@@ -439,6 +471,7 @@ export function useSmartAssistant() {
                     id: `pay-overdue-${pay.id}`,
                     type: "PAYMENT",
                     patientName: pay.patientName,
+                    patientId: pay.patientId,
                     patientPhone: pay.patientPhone || "",
                     title: "Gecikmiş Ödeme",
                     timeLabel: `Vadesi: ${new Date((pay.dueDate || "") + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}`,
@@ -450,8 +483,10 @@ export function useSmartAssistant() {
             });
         }
 
-        return items;
-    }, [appointments, payments, pastAppointments, overduePayments, allowedTypes, clinic.clinicName, settings, today]);
+        const filteredItems = items.filter(i => !dbDismissedIds.includes(i.id));
+
+        return filteredItems;
+    }, [appointments, payments, pastAppointments, overduePayments, allowedTypes, clinic.clinicName, settings, today, dbDismissedIds]);
 
     const missedCount = assistantItems.filter(i => i.isPastDay).length;
 
@@ -460,4 +495,28 @@ export function useSmartAssistant() {
         missedCount,
         isLoading: apptsLoading || paysLoading
     };
+}
+
+export function useDismissAssistantItem() {
+    const qc = useQueryClient();
+    const { clinicId } = useClinic();
+
+    return useMutation({
+        mutationFn: async (itemId: string) => {
+            const token = await getToken();
+            const res = await fetch("/api/assistant/dismiss", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}` 
+                },
+                body: JSON.stringify({ itemId })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            return res.json();
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["assistantDismissedIds", clinicId] });
+        }
+    });
 }
