@@ -76,8 +76,7 @@ export const STATUS_BADGE_COLORS: Record<ExtendedStatus, string> = {
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useAppointments() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { clinicId, workingHours: clinicWorkingHours, workingHoursOverrides } = useClinic() as any;
+    const { clinicId, workingHours: clinicWorkingHours, workingHoursOverrides } = useClinic() as { clinicId: string; workingHours: any; workingHoursOverrides: any[] };
     const queryClient = useQueryClient();
 
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -174,13 +173,12 @@ export function useAppointments() {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     patientId: (row.patients as any)?.id,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    doctor: (row.doctor as any)?.full_name,
+                    doctor: (row.doctor as unknown as { full_name: string })?.full_name,
                     doctorId: row.doctor_id,
                     treatmentType: row.treatment_type || "",
-                    status: row.status,
+                    status: row.status as ExtendedStatus,
                     patientNote: row.patient_note,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    treatmentNote: (row as any).treatment_note,
+                    treatmentNote: (row as unknown as { treatment_note: string }).treatment_note,
                 };
             });
         },
@@ -188,8 +186,7 @@ export function useAppointments() {
     });
 
     const allEvents = useMemo<AppEvent[]>(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return rawAppointments.map((ca: any) => ({
+        return rawAppointments.map((ca) => ({
             id: ca.id,
             date: ca.date,
             startHour: ca.startHour,
@@ -303,10 +300,9 @@ export function useAppointments() {
         newStart.setHours(newHour, newMinute, 0, 0);
         const newEnd = new Date(newStart.getTime() + durationMinutes * 60000);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        queryClient.setQueryData(["appointments", fetchRange.start, fetchRange.end, clinicId], (old: any) => {
+        queryClient.setQueryData(["appointments", fetchRange.start, fetchRange.end, clinicId], (old: unknown) => {
             const list = Array.isArray(old) ? old : [];
-            const result = list.map((row: any) => {
+            const result = list.map((row: AppEvent) => {
                 if (row.id !== eventId) return row;
                 const newDocObj = allSelectableDoctors.find(d => d.id === newDoctorId);
                 return {
@@ -316,11 +312,11 @@ export function useAppointments() {
                     startMinute: newMinute,
                     durationMinutes,
                     doctorId: newDoctorId === "unassigned" ? null : newDoctorId,
-                    doctor: newDocObj?.full_name || row.doctor,
+                    doctorName: newDocObj?.full_name || row.doctorName,
                 };
             });
             // If moved out of range, remove it from this cache slice
-            return result.filter((row: any) => row.date >= fetchRange.start && row.date <= fetchRange.end);
+            return result.filter((row: AppEvent) => row.date >= fetchRange.start && row.date <= fetchRange.end);
         });
 
         try {

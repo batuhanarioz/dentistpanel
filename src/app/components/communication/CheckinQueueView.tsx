@@ -147,11 +147,11 @@ export function CheckinQueueView() {
                 const isPast = (now.getTime() - startsAt.getTime()) > (30 * 60 * 1000); // 30+ dakikadır bekliyor mu?
 
                 return {
-                    id: a.id,
-                    patient_name: a.patients?.full_name || "Bilinmiyor",
-                    patient_phone: a.patients?.phone || "No Yok",
-                    appointment_time: a.starts_at ? startsAt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", hour12: false }) : "--:--",
-                    starts_at: a.starts_at,
+                    id: item.id,
+                    patient_name: item.patients?.full_name || "Bilinmiyor",
+                    patient_phone: item.patients?.phone || "No Yok",
+                    appointment_time: item.starts_at ? startsAt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", hour12: false }) : "--:--",
+                    starts_at: item.starts_at,
                     anamnesis_status: (anamMap.get(item.patient_id) === 'PATIENT' ? 'PATIENT_FILLED' : anamMap.has(item.patient_id) ? 'FILLED' : 'EMPTY') as "FILLED" | "EMPTY" | "PATIENT_FILLED",
                     checkin_code: codeMap.get(item.id),
                     patient_id: item.patient_id,
