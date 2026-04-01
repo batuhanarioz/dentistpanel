@@ -85,21 +85,24 @@ export async function POST(req: NextRequest) {
     }
 
     // Sadece gerekli minimum alanları döndür
-    const results = (data || []).map((a: any) => ({
-        id: a.id,
-        patientId: a.patients?.id,
-        patientName: a.patients?.full_name ?? "Bilinmiyor",
-        doctorName: Array.isArray(a.users) ? a.users[0]?.full_name : (a.users as any)?.full_name ?? null,
-        appointmentTime: a.starts_at
-            ? new Date(a.starts_at).toLocaleTimeString("tr-TR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: false,
-                  timeZone: "Asia/Istanbul",
-              })
-            : "--:--",
-        treatmentType: a.treatment_type ?? null,
-    }));
+    const results = (data || []).map((a: unknown) => {
+        const item = a as { id: string; starts_at: string; treatment_type: string | null; status: string; patients: { id: string; full_name: string | null }; users: { full_name: string | null }[] | { full_name: string | null } };
+        return {
+            id: item.id,
+            patientId: item.patients?.id,
+            patientName: item.patients?.full_name ?? "Bilinmiyor",
+            doctorName: Array.isArray(item.users) ? item.users[0]?.full_name : (item.users as { full_name: string | null })?.full_name ?? null,
+            appointmentTime: item.starts_at
+                ? new Date(item.starts_at).toLocaleTimeString("tr-TR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                      timeZone: "Asia/Istanbul",
+                  })
+                : "--:--",
+            treatmentType: item.treatment_type ?? null,
+        };
+    });
 
     return NextResponse.json({ appointments: results });
 }

@@ -42,7 +42,7 @@ export function SmartAssistantSection() {
         window.open(url, '_blank');
     };
 
-    const CATEGORY_STYLES: Record<string, any> = {
+    const CATEGORY_STYLES: Record<string, { icon: string; bg: string; border: string; badge: string; accent: string; filterActive: string; glow: string; btn: string }> = {
         PAYMENT: { icon: "💳", bg: "bg-rose-50/50", border: "border-rose-200/60 group-hover:border-rose-300/50", badge: "bg-rose-100/80 text-rose-700 border-rose-200/50", accent: "text-rose-600", filterActive: "bg-rose-600 text-white shadow-rose-200 shadow-lg ring-rose-500", glow: "hover:shadow-rose-100/40 hover:bg-rose-50/70", btn: "from-rose-500 to-red-600 shadow-rose-200/50 hover:shadow-rose-300/60" },
         DELAY: { icon: "⏰", bg: "bg-orange-50/50", border: "border-orange-200/60 group-hover:border-orange-300/50", badge: "bg-orange-100/80 text-orange-700 border-orange-200/50", accent: "text-orange-600", filterActive: "bg-orange-600 text-white shadow-orange-200 shadow-lg ring-orange-500", glow: "hover:shadow-orange-100/40 hover:bg-orange-50/70", btn: "from-orange-500 to-amber-600 shadow-orange-200/50 hover:shadow-orange-300/60" },
         INCOMPLETE: { icon: "⚠️", bg: "bg-amber-50/50", border: "border-amber-200/60 group-hover:border-amber-300/50", badge: "bg-amber-100/80 text-amber-700 border-amber-200/50", accent: "text-amber-600", filterActive: "bg-amber-600 text-white shadow-amber-200 shadow-lg ring-amber-500", glow: "hover:shadow-amber-100/40 hover:bg-amber-50/70", btn: "from-amber-500 to-amber-600 shadow-amber-200/50 hover:shadow-amber-300/60" },

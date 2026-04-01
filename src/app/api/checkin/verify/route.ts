@@ -90,7 +90,14 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const appt = checkin.appointments as any;
+    const appt = checkin.appointments as unknown as { 
+        id: string; 
+        status: string; 
+        starts_at: string; 
+        treatment_type: string | null; 
+        patients: { id: string; full_name: string | null } | null; 
+        users: { full_name: string | null } | null;
+    };
 
     // Randevu durumu geçerli mi? (iptal/tamamlanmış randevular için check-in yapılamaz)
     const blockedStatuses = ["cancelled", "completed", "no_show"];

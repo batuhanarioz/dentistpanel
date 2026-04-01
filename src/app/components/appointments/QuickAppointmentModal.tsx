@@ -85,8 +85,9 @@ export function QuickAppointmentModal({
             toast.success("Randevu başarıyla oluşturuldu");
             onSuccess(data.id);
             onClose();
-        } catch (err: any) {
-            console.error(err);
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            console.error(error);
             toast.error("Randevu oluşturulurken bir hata oluştu");
         } finally {
             setLoading(false);

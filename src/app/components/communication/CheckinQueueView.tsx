@@ -141,8 +141,9 @@ export function CheckinQueueView() {
                 if (codesRes.data) codeMap = new Map(codesRes.data.map(c => [c.appointment_id, c.code]));
             }
 
-            const merged = (appts || []).map((a: any) => {
-                const startsAt = new Date(a.starts_at);
+            const merged = (appts || []).map((a: unknown) => {
+                const item = a as { id: string; starts_at: string; patient_id: string; status: string; patients: { full_name: string; phone: string } };
+                const startsAt = new Date(item.starts_at);
                 const isPast = (now.getTime() - startsAt.getTime()) > (30 * 60 * 1000); // 30+ dakikadır bekliyor mu?
 
                 return {
@@ -151,15 +152,16 @@ export function CheckinQueueView() {
                     patient_phone: a.patients?.phone || "No Yok",
                     appointment_time: a.starts_at ? startsAt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", hour12: false }) : "--:--",
                     starts_at: a.starts_at,
-                    anamnesis_status: (anamMap.get(a.patient_id) === 'PATIENT' ? 'PATIENT_FILLED' : anamMap.has(a.patient_id) ? 'FILLED' : 'EMPTY') as any,
-                    checkin_code: codeMap.get(a.id),
-                    patient_id: a.patient_id,
+                    anamnesis_status: (anamMap.get(item.patient_id) === 'PATIENT' ? 'PATIENT_FILLED' : anamMap.has(item.patient_id) ? 'FILLED' : 'EMPTY') as "FILLED" | "EMPTY" | "PATIENT_FILLED",
+                    checkin_code: codeMap.get(item.id),
+                    patient_id: item.patient_id,
                     isPast
                 };
             });
 
             setAppointments(merged);
-        } catch (error: any) {
+        } catch (err: unknown) {
+            const error = err as { message?: string };
             console.error("Queue load error details:", error?.message || error);
             toast.error("Bekleyen listesi yüklenemedi");
         } finally {

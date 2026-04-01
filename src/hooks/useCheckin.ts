@@ -58,7 +58,8 @@ export function useCheckin(clinicId?: string | null) {
                 { duration: 8000, icon: "🔑" }
             );
             return data as CheckinCode;
-        } catch (error: any) {
+        } catch (err: unknown) {
+            const error = err as { message?: string };
             const msg = error?.message ?? "Bilinmeyen hata";
             toast.error(`Kod üretilemedi: ${msg}`);
         } finally {
