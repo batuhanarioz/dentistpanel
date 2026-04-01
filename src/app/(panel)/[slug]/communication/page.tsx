@@ -352,8 +352,8 @@ export default function CommunicationHubPage() {
                                         className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all duration-300 flex items-center gap-2 group/btn ${
                                             isActive
                                                 ? `${cs.filterActive} scale-105`
-                                                : "text-slate-400 hover:text-slate-600 hover:bg-white"
-                                        } ${count === 0 ? "opacity-40 grayscale" : ""}`}
+                                                : `${cs.accent} bg-white/60 hover:bg-white border-transparent hover:border-slate-200 border`
+                                        }`}
                                     >
                                         {f !== 'ALL' && <span>{cs.icon}</span>}
                                         {categoryNames[f]}
