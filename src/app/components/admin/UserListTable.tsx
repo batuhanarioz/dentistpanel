@@ -10,6 +10,7 @@ interface UserListTableProps {
     users: UserRow[];
     loading: boolean;
     isAdmin: boolean;
+    currentUserId: string | null;
     onEditUser: (user: UserRow) => void;
 }
 
@@ -52,7 +53,7 @@ function getInitials(name: string | null, email: string | null): string {
     return (email?.[0] ?? "?").toUpperCase();
 }
 
-export function UserListTable({ users, loading, isAdmin, onEditUser }: UserListTableProps) {
+export function UserListTable({ users, loading, isAdmin, currentUserId, onEditUser }: UserListTableProps) {
     const { themeColorFrom: brandFrom = '#4f46e5' } = useClinic();
     const [search, setSearch] = useState("");
     const [roleFilter, setRoleFilter] = useState("");
@@ -70,8 +71,12 @@ export function UserListTable({ users, loading, isAdmin, onEditUser }: UserListT
                 );
             }
             return true;
+        }).sort((a, b) => {
+            if (a.id === currentUserId) return -1;
+            if (b.id === currentUserId) return 1;
+            return 0;
         });
-    }, [users, search, roleFilter, showInactive]);
+    }, [users, search, roleFilter, showInactive, currentUserId]);
 
     const inactiveCount = users.filter(u => !u.is_active).length;
 
@@ -88,49 +93,55 @@ export function UserListTable({ users, loading, isAdmin, onEditUser }: UserListT
 
     return (
         <div className="space-y-4">
-            {/* Filtreler */}
-            <div className="flex flex-wrap items-center gap-2">
-                <div className="relative flex-1 min-w-[180px]">
-                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                    </svg>
+            {/* Search & Filter - Modernized UI */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-8 shrink-0">
+                <div className="relative group flex-1">
                     <input
-                        type="text"
+                        type="search"
                         placeholder="İsim veya e-posta ara..."
                         value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-white outline-none transition-all"
-                        style={{ boxShadow: `0 0 0 0 ${brandFrom}20` }}
-                        onFocus={e => e.currentTarget.style.boxShadow = `0 0 0 4px ${brandFrom}20`}
-                        onBlur={e => e.currentTarget.style.boxShadow = `0 0 0 0 ${brandFrom}20`}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full bg-white border-2 border-slate-100 rounded-2xl px-12 py-3.5 text-sm font-bold text-slate-800 transition-all outline-none group-hover:border-slate-200 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 placeholder:text-slate-400 placeholder:font-medium"
                     />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none">
+                        <svg className="w-5 h-5 transition-transform group-focus-within:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+                    </div>
                 </div>
-                <select
-                    value={roleFilter}
-                    onChange={e => setRoleFilter(e.target.value)}
-                    className="py-2.5 pl-3 pr-8 text-sm rounded-xl border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 text-slate-700 transition-all"
-                >
-                    {ROLE_FILTER_OPTIONS.map(o => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                </select>
-                {inactiveCount > 0 && (
-                    <button
-                        onClick={() => setShowInactive(v => !v)}
-                        className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
-                            showInactive
-                                ? "bg-slate-800 text-white border-slate-800"
-                                : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
-                        }`}
-                    >
-                        <span>Pasif</span>
-                        <span className={`inline-flex items-center justify-center h-4 w-4 rounded-full text-[10px] font-bold ${
-                            showInactive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
-                        }`}>
-                            {inactiveCount}
-                        </span>
-                    </button>
-                )}
+
+                <div className="flex gap-2">
+                    <div className="relative group min-w-[160px]">
+                        <select
+                            value={roleFilter}
+                            onChange={(e) => setRoleFilter(e.target.value)}
+                            className="w-full appearance-none bg-white border-2 border-slate-100 rounded-2xl px-5 py-3.5 pr-12 text-sm font-black text-slate-600 outline-none transition-all group-hover:border-slate-200 focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 cursor-pointer"
+                        >
+                            {ROLE_FILTER_OPTIONS.map(o => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-focus-within:text-teal-500 transition-colors">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                        </div>
+                    </div>
+
+                    {inactiveCount > 0 && (
+                        <button
+                            onClick={() => setShowInactive(v => !v)}
+                            className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest border-2 transition-all active:scale-95 whitespace-nowrap ${
+                                showInactive
+                                    ? "bg-slate-900 text-white border-slate-900 shadow-xl shadow-slate-200"
+                                    : "bg-white text-slate-500 border-slate-100 hover:border-slate-200 hover:text-slate-700"
+                            }`}
+                        >
+                            <span>Pasif</span>
+                            <span className={`inline-flex items-center justify-center h-4 w-4 rounded-full text-[9px] font-black italic ${
+                                showInactive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                            }`}>
+                                {inactiveCount}
+                            </span>
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Kart Listesi */}
@@ -148,7 +159,8 @@ export function UserListTable({ users, loading, isAdmin, onEditUser }: UserListT
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                     {filtered.map(u => {
-                        const avatarColor = AVATAR_COLORS[u.role] ?? "bg-slate-100 text-slate-600";
+                        const isMe = u.id === currentUserId;
+                        const avatarColor = isMe ? "bg-slate-900 text-white" : (AVATAR_COLORS[u.role] ?? "bg-slate-100 text-slate-600");
                         const badgeColor = ROLE_BADGE_COLORS[u.role] ?? "bg-slate-100 text-slate-600 border-slate-200";
                         const initials = getInitials(u.full_name, u.email);
 
@@ -169,13 +181,24 @@ export function UserListTable({ users, loading, isAdmin, onEditUser }: UserListT
                                             <div className="min-w-0">
                                                 <p className="font-black text-slate-900 text-[13px] leading-tight truncate">
                                                     {u.full_name || "İsimsiz"}
+                                                    {isMe && (
+                                                        <span className="ml-1.5 text-[9px] font-black uppercase text-white bg-slate-900 px-1.5 py-0.5 rounded-md align-middle shadow-sm">Siz</span>
+                                                    )}
                                                     {!u.is_active && (
                                                         <span className="ml-1.5 text-[9px] font-bold uppercase text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md align-middle">Pasif</span>
                                                     )}
                                                 </p>
-                                                <p className="text-[11px] text-slate-400 font-medium truncate">{u.email}</p>
+                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                                                    <span className="text-[11px] text-slate-400 font-medium truncate shrink-1">{u.email}</span>
+                                                    {u.phone && (
+                                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-teal-50 border border-teal-100/30 shadow-sm transition-all group/phone hover:bg-white hover:border-teal-200 shrink-0">
+                                                            <svg className="w-2.5 h-2.5 text-teal-500 group-hover/phone:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg>
+                                                            <span className="text-teal-700 text-[10px] font-black tracking-tight">{u.phone}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            {isAdmin && (
+                                            {(isAdmin || isMe) && (
                                                 <button
                                                     onClick={() => onEditUser(u)}
                                                     className="shrink-0 h-7 px-3 rounded-lg border border-slate-200 bg-white text-[10px] font-black text-slate-600 transition-all active:scale-95"
@@ -191,7 +214,7 @@ export function UserListTable({ users, loading, isAdmin, onEditUser }: UserListT
                                                         e.currentTarget.style.color = '';
                                                     }}
                                                 >
-                                                    Düzenle
+                                                    {isMe ? "Profilimi Düzenle" : "Düzenle"}
                                                 </button>
                                             )}
                                         </div>

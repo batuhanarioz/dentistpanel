@@ -23,7 +23,7 @@ export default function SatisPolitikasiPage() {
           <ul className="space-y-1">
             <li><strong>Ticari Unvan:</strong> NextGency Yapay Zeka ve Otomasyon Ajansı</li>
             <li><strong>Marka Adı:</strong> NextGency OS</li>
-            <li><strong>Konum:</strong> İstanbul, Türkiye</li>
+            <li><strong>Konum:</strong> Ankara, Türkiye</li>
             <li><strong>E-posta:</strong> <a href="mailto:clinic@nextgency360.com" className="text-teal-600 hover:underline">clinic@nextgency360.com</a></li>
             <li><strong>Telefon:</strong> <a href="tel:+905444412180" className="text-teal-600 hover:underline">+90 544 441 21 80</a></li>
           </ul>

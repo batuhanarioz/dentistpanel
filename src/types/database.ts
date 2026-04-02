@@ -154,6 +154,7 @@ export interface User {
   is_clinical_provider: boolean;
   theme_color_from?: string | null;
   theme_color_to?: string | null;
+  phone: string | null;
   created_at: string;
 }
 

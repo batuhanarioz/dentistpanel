@@ -9,6 +9,7 @@ export const createUserSchema = z.object({
     clinicId: z.string().optional().nullable(),
     invite: z.boolean().optional().default(false),
     isClinicalProvider: z.boolean().optional().default(false),
+    phone: z.string().optional().nullable(),
 });
 
 export const updateUserSchema = z.object({
@@ -18,6 +19,7 @@ export const updateUserSchema = z.object({
     isActive: z.boolean().optional(),
     isClinicalProvider: z.boolean().optional(),
     specialtyCode: z.string().optional().nullable(),
+    phone: z.string().optional().nullable(),
     workingHours: z.record(z.string(), z.any()).optional().nullable(),
 });
 

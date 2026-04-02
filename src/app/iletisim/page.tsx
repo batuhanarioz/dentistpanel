@@ -41,7 +41,7 @@ export default function IletisimPage() {
 
         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Konum</p>
-          <p className="text-base font-black text-slate-900">İstanbul, Türkiye</p>
+          <p className="text-base font-black text-slate-900">Ankara, Türkiye</p>
           <p className="text-xs text-slate-400 font-medium mt-2">Tüm hizmetler dijital olarak sunulmaktadır</p>
         </div>
 

@@ -22,10 +22,10 @@ export default function PanelError({
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
           </svg>
         </div>
-        
+
         <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-4">Bu sayfa şu an yüklenemedi</h2>
         <p className="text-slate-500 font-medium text-sm mb-10 px-4">
-          Panelin bu bölümünde geçici bir sorun oluştu. Diğer bölümlere yan menüden erişebilirsiniz veya bu sayfayı tekrar denetebilirsiniz.
+          Sistemin bu bölümünde geçici bir sorun oluştu. Diğer bölümlere yan menüden erişebilirsiniz veya bu sayfayı tekrar yüklemeyi deneyebilirsiniz.
         </p>
 
         <div className="flex flex-col gap-3 max-w-[240px] mx-auto">
@@ -35,7 +35,7 @@ export default function PanelError({
           >
             Sayfayı Tekrar Dene
           </button>
-          
+
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-2">
             Hata Kodu: {error.digest || 'PANEL_SEC_ERR'}
           </p>

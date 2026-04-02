@@ -80,7 +80,7 @@ export default function AdminUsersPage() {
     saving, newEmail, setNewEmail, newFullName, setNewFullName, newPassword, setNewPassword,
     newRole, setNewRole, newInvite, setNewInvite, newIsClinicalProvider, setNewIsClinicalProvider,
     editFullName, setEditFullName, editRole, setEditRole, editIsClinicalProvider, setEditIsClinicalProvider,
-    editIsActive, setEditIsActive, editSpecialtyCode, setEditSpecialtyCode,
+    editIsActive, setEditIsActive, editSpecialtyCode, setEditSpecialtyCode, editPhone, setEditPhone,
     editWorkingHours, setEditWorkingHours, editSaving,
     resetPassword, setResetPassword, resetSaving, resetError, resetSuccess, setResetSuccess,
     handleCreateUser, handleUpdateUser, handleResetPassword, executeDeleteUser, openEditModal, openDeleteModal
@@ -297,6 +297,7 @@ export default function AdminUsersPage() {
                 users={users}
                 loading={loading}
                 isAdmin={isAdmin}
+                currentUserId={currentUserId}
                 onEditUser={openEditModal}
               />
             </div>
@@ -469,6 +470,8 @@ export default function AdminUsersPage() {
           setIsActive={setEditIsActive}
           specialtyCode={editSpecialtyCode}
           setSpecialtyCode={setEditSpecialtyCode}
+          phone={editPhone}
+          setPhone={setEditPhone}
           workingHours={editWorkingHours}
           setWorkingHours={setEditWorkingHours}
           isSuperAdmin={isAdmin}

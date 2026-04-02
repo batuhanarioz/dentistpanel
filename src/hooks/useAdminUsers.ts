@@ -28,6 +28,7 @@ export type UserRow = {
     is_active: boolean;
     is_clinical_provider: boolean;
     specialty_code: string | null;
+    phone: string | null;
     working_hours: WorkingHours | null;
     last_sign_in_at: string | null;
 };
@@ -86,6 +87,7 @@ export function useAdminUsers() {
     const [editIsActive, setEditIsActive] = useState(true);
     const [editIsClinicalProvider, setEditIsClinicalProvider] = useState(false);
     const [editSpecialtyCode, setEditSpecialtyCode] = useState<string>("");
+    const [editPhone, setEditPhone] = useState<string>("");
     const [editWorkingHours, setEditWorkingHours] = useState<WorkingHours | null>(null);
     const [editSaving, setEditSaving] = useState(false);
 
@@ -191,6 +193,7 @@ export function useAdminUsers() {
                 isActive: editIsActive,
                 isClinicalProvider: editRole === UserRole.DOKTOR ? true : editIsClinicalProvider,
                 specialtyCode: editSpecialtyCode || null,
+                phone: editPhone || null,
                 workingHours: editWorkingHours,
             })
         });
@@ -262,6 +265,7 @@ export function useAdminUsers() {
         setEditIsActive(user.is_active);
         setEditIsClinicalProvider(user.is_clinical_provider || false);
         setEditSpecialtyCode(user.specialty_code || "");
+        setEditPhone(user.phone || "");
         setEditWorkingHours(user.working_hours);
         setShowEditModal(true);
     };
@@ -279,7 +283,7 @@ export function useAdminUsers() {
         saving, newEmail, setNewEmail, newFullName, setNewFullName, newPassword, setNewPassword,
         newRole, setNewRole, newClinicId, setNewClinicId, newInvite, setNewInvite, newIsClinicalProvider, setNewIsClinicalProvider,
         editFullName, setEditFullName, editRole, setEditRole, editIsActive, setEditIsActive, editIsClinicalProvider, setEditIsClinicalProvider,
-        editSpecialtyCode, setEditSpecialtyCode, editWorkingHours, setEditWorkingHours, editSaving,
+        editSpecialtyCode, setEditSpecialtyCode, editPhone, setEditPhone, editWorkingHours, setEditWorkingHours, editSaving,
         resetPassword, setResetPassword, resetSaving, resetError, resetSuccess, setResetSuccess,
         selfNewEmail, setSelfNewEmail, selfOldPassword, setSelfOldPassword, selfNewPassword, setSelfNewPassword,
         selfNewPasswordRepeat, setSelfNewPasswordRepeat, selfSaving, selfMessage,

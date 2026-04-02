@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
   if (signInError) {
     return NextResponse.json(
-      { error: "Mevcut şifreniz hatalı. Şifrenizi hatırlamıyorsanız panel yöneticinize başvurun." },
+      { error: "Mevcut şifreniz hatalı. Şifrenizi hatırlamıyorsanız klinik yöneticinize başvurun." },
       { status: 400 }
     );
   }

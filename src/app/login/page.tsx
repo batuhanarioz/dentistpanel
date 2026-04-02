@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { UserRole } from "@/types/database";
 import { PricingModal } from "@/app/components/PricingModal";
 import nextgencyLogo from "../nextgency-logo-yatay.png";
+import { Lock } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -21,7 +22,6 @@ function LoginForm() {
   const [resendSuccess, setResendSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
-  const isDemoMode = searchParams.get("demo") === "true";
 
   const togglePassword = useCallback(() => setShowPassword((v) => !v), []);
 
@@ -58,7 +58,7 @@ function LoginForm() {
   useEffect(() => {
     if (urlError === "unauthorized") {
       setError(
-        "Bu e-posta ile kayıtlı bir panel kullanıcısı bulunamadı. Lütfen yetkili ile iletişime geçin."
+        "Bu e-posta ile kayıtlı bir kullanıcı bulunamadı. Lütfen yetkili ile iletişime geçin."
       );
     } else if (urlError === "inactive") {
       setError(
@@ -124,7 +124,7 @@ function LoginForm() {
       } else if (msg.includes("invalid login credentials") || msg.includes("invalid_credentials") || msg.includes("invalid email or password")) {
         setError("E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.");
       } else if (msg.includes("user not found") || msg.includes("no user found")) {
-        setError("Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.");
+        setError("Bu e-posta adresiyla kayıtlı bir hesap bulunamadı.");
       } else if (msg.includes("password should be at least") || msg.includes("password is too short")) {
         setError("Şifreniz en az 6 karakter olmalıdır.");
       } else if (msg.includes("too many requests") || msg.includes("rate limit")) {
@@ -184,9 +184,9 @@ function LoginForm() {
       {/* Left Column - Branding (Desktop) */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative flex-col justify-between overflow-hidden bg-black p-12 xl:p-20 shadow-2xl">
         {/* Dynamic Abstract Background */}
-        <div className="absolute top-0 -left-1/4 w-[150%] h-[150%] bg-teal-500/10 rounded-full mix-blend-overlay filter blur-[100px] animate-pulse duration-1000"></div>
-        <div className="absolute bottom-0 -right-1/4 w-[120%] h-[120%] bg-emerald-400/10 rounded-full mix-blend-overlay filter blur-[100px] animate-pulse duration-1000" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-1/2 left-1/4 w-full h-[50%] bg-cyan-600/10 rounded-full mix-blend-screen filter blur-[120px]"></div>
+        <div className="absolute top-0 -left-1/4 w-[150%] h-[150%] bg-indigo-500/10 rounded-full mix-blend-overlay filter blur-[100px] animate-pulse duration-1000"></div>
+        <div className="absolute bottom-0 -right-1/4 w-[120%] h-[120%] bg-teal-400/10 rounded-full mix-blend-overlay filter blur-[100px] animate-pulse duration-1000" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-1/2 left-1/4 w-full h-[50%] bg-blue-600/10 rounded-full mix-blend-screen filter blur-[120px]"></div>
 
         <div className="relative z-10 w-full max-w-lg mb-16 lg:mb-0">
           <div className="mb-12 block">
@@ -202,12 +202,12 @@ function LoginForm() {
           </div>
           <h1 className="text-4xl xl:text-5xl font-black tracking-tight text-white mb-6 leading-[1.1] uppercase">
             NextGency OS <br />
-            <span className="text-2xl xl:text-3xl font-bold block text-teal-100/40 normal-case mb-2">Diş Klinikleri Yönetim Merkezi</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-200 to-emerald-200 normal-case">
+            <span className="text-2xl xl:text-3xl font-bold block text-indigo-100/40 normal-case mb-2">Diş Klinikleri Yönetim Merkezi</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-teal-200 normal-case leading-relaxed">
               Hoş Geldiniz
             </span>
           </h1>
-          <p className="text-lg text-teal-100/70 max-w-md leading-relaxed font-light">
+          <p className="text-lg text-indigo-100/70 max-w-md leading-relaxed font-light mt-4">
             Kliniğinizin tüm süreçlerini tek bir platformdan, en modern teknoloji ile güvenle ve hızla yönetin.
           </p>
         </div>
@@ -238,16 +238,21 @@ function LoginForm() {
         </div>
 
         <div className="w-full max-w-[420px] relative z-10">
-          <div className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-xl shadow-2xl shadow-slate-200/50 overflow-hidden">
-            <div className="hidden lg:block px-8 pt-10 pb-2 text-center">
-              <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">Giriş Yap</h2>
-              <p className="mt-2 text-sm text-slate-500">Hesabınıza erişmek için bilgilerinizi girin</p>
+          {/* Floating Icon Box - Moved outside overflow-hidden */}
+          <div className="hidden lg:flex absolute -top-6 left-1/2 -translate-x-1/2 w-14 h-14 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] items-center justify-center border border-slate-100 animate-in slide-in-from-top-4 duration-700 z-20">
+            <Lock className="w-6 h-6 text-indigo-600" />
+          </div>
+
+          <div className="rounded-3xl border border-slate-200/60 bg-white/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.06)] overflow-hidden">
+            <div className="hidden lg:block px-8 pt-12 pb-2 text-center relative">
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight mt-2">Giriş Yap</h2>
+              <p className="mt-2 text-sm text-slate-500 font-medium">Hesabınıza erişmek için bilgilerinizi girin</p>
             </div>
 
-            <div className="p-6 sm:p-8 pt-8 lg:pt-6">
+            <div className="p-6 sm:p-8 pt-8 lg:pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-1.5">
-                  <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <label htmlFor="email" className="block text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
                     E-posta
                   </label>
                   <input
@@ -257,14 +262,16 @@ function LoginForm() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     autoComplete="username"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-4 focus:ring-teal-500/10 transition-all shadow-sm"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-inner"
                     placeholder="ornek@klinik.com"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Şifre
-                  </label>
+                  <div className="flex items-center justify-between ml-1">
+                    <label htmlFor="password" className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Şifre
+                    </label>
+                  </div>
                   <div className="relative">
                     <input
                       id="password"
@@ -273,13 +280,13 @@ function LoginForm() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       autoComplete="current-password"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-4 focus:ring-teal-500/10 transition-all shadow-sm"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-inner"
                       placeholder="••••••••"
                     />
                     <button
                       type="button"
                       onClick={togglePassword}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-teal-600 transition-colors"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-indigo-600 transition-colors"
                       tabIndex={-1}
                     >
                       {showPassword ? (
@@ -297,36 +304,36 @@ function LoginForm() {
                 </div>
 
                 {error && (
-                  <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-                    <p className="text-sm font-medium text-rose-700">{error}</p>
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 animate-in shake duration-300">
+                    <p className="text-xs font-bold text-rose-700">{error}</p>
                   </div>
                 )}
 
                 {unconfirmedEmail && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 space-y-3">
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 space-y-3 animate-in slide-in-from-top-2 duration-300">
                     <div className="flex items-start gap-3">
                       <svg className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
                       </svg>
                       <div>
-                        <p className="text-sm font-semibold text-amber-800">E-posta doğrulanmamış</p>
-                        <p className="text-xs text-amber-600 mt-0.5">
-                          <span className="font-medium">{unconfirmedEmail}</span> adresine gönderilen doğrulama linkine tıklayın.
+                        <p className="text-xs font-bold text-amber-800 uppercase tracking-tight">E-posta doğrulanmamış</p>
+                        <p className="text-[11px] text-amber-600 mt-0.5 font-medium leading-relaxed">
+                          <span className="font-bold text-amber-700">{unconfirmedEmail}</span> adresine gönderilen linki kontrol edin.
                         </p>
                       </div>
                     </div>
                     {resendSuccess ? (
-                      <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
-                        Doğrulama e-postası tekrar gönderildi.
+                      <p className="text-[10px] font-black text-emerald-700 bg-emerald-50 rounded-xl px-3 py-2 uppercase tracking-widest text-center">
+                        Tekrar gönderildi!
                       </p>
                     ) : (
                       <button
                         type="button"
                         onClick={handleResendConfirmation}
                         disabled={resendLoading}
-                        className="w-full rounded-lg bg-amber-100 border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-200 transition-colors disabled:opacity-60"
+                        className="w-full rounded-xl bg-amber-100 border border-amber-200 px-3 py-2.5 text-[10px] font-black text-amber-800 hover:bg-amber-200 transition-all uppercase tracking-widest disabled:opacity-60"
                       >
-                        {resendLoading ? "Gönderiliyor..." : "Doğrulama e-postasını tekrar gönder"}
+                        {resendLoading ? "Gönderiliyor..." : "Linki Tekrar Gönder"}
                       </button>
                     )}
                   </div>
@@ -335,9 +342,9 @@ function LoginForm() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-700 via-teal-600 to-emerald-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:from-teal-800 hover:via-teal-700 hover:to-emerald-700 active:scale-[0.98] disabled:opacity-60"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-700 via-indigo-600 to-teal-600 px-4 py-4 text-xs font-black text-white shadow-xl shadow-indigo-100 uppercase tracking-widest transition-all hover:shadow-indigo-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-60"
                 >
-                  {loading ? "Giriş yapılıyor..." : "Giriş yap"}
+                  {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
                 </button>
 
                 <div className="pt-2">
@@ -345,29 +352,29 @@ function LoginForm() {
                     type="button"
                     onClick={handleDemoLogin}
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-white border-2 border-amber-400/80 text-amber-600 px-4 py-3 text-sm font-bold shadow-sm transition-all hover:bg-amber-50 active:scale-[0.98] disabled:opacity-60"
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-white border-2 border-indigo-500/20 text-indigo-600 px-4 py-3.5 text-xs font-black uppercase tracking-widest shadow-sm transition-all hover:bg-indigo-50 hover:border-indigo-500/40 active:scale-[0.98] disabled:opacity-60 group"
                   >
-                    🧪 Canlı Demo
+                    <span className="group-hover:scale-125 transition-transform">🧪</span> Canlı Demo Deneyin
                   </button>
-                  <p className="mt-2 text-[10px] text-center text-slate-400 font-medium italic">
-                    Bilgi girmeden sistemi hemen deneyimleyin
+                  <p className="mt-3 text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest leading-relaxed opacity-60 italic">
+                    Bilgi girmeden sistemi anında keşfedin
                   </p>
                 </div>
               </form>
 
-              <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
+              <div className="mt-8 pt-6 border-t border-slate-100 space-y-5">
                 <button
                   type="button"
                   onClick={() => setIsPricingOpen(true)}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98]"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-[10px] font-black text-slate-500 shadow-sm uppercase tracking-[0.15em] transition-all hover:bg-slate-50 hover:text-slate-700 active:scale-[0.98]"
                 >
-                  Paketleri ve Fiyatları Gör
+                  Paketler & Fiyatlandırma
                 </button>
                 <div className="text-center">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Henüz bir kliniğiniz yok mu?{" "}
-                    <Link href="/register" className="text-teal-600 hover:text-teal-700 transition-colors">
-                      Hemen Kayıt Olun
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                    Henüz kliniğiniz yok mu?{" "}
+                    <Link href="/register" className="text-indigo-600 hover:text-teal-500 transition-colors underline underline-offset-4">
+                      Hemen Oluşturun
                     </Link>
                   </p>
                 </div>

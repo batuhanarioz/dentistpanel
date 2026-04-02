@@ -12,13 +12,17 @@ export const GET = withAuth(
 
     const { data: users, error } = await supabaseAdmin
       .from("users")
-      .select("id, full_name, email, role, created_at, is_active, is_clinical_provider, specialty_code, working_hours")
+      .select("id, full_name, email, role, created_at, is_active, is_clinical_provider, specialty_code, phone, working_hours")
       .eq("clinic_id", auth.clinicId)
       .neq("role", UserRole.SUPER_ADMIN)
       .order("created_at", { ascending: true });
 
     if (error || !users) {
-      return NextResponse.json({ error: error?.message ?? "Kullanıcılar alınamadı" }, { status: 400 });
+      console.error("[API/admin/users] Fetch error:", error);
+      return NextResponse.json({ 
+        error: error?.message ?? "Kullanıcılar alınamadı",
+        details: error
+      }, { status: 400 });
     }
 
     // Enrich with last_sign_in_at from auth — sadece mevcut kullanıcıların ID'leri sorgulanır
@@ -151,37 +155,25 @@ export const PATCH = withAuth(
       );
     }
 
-    const { id, fullName, role, isActive, isClinicalProvider, specialtyCode, workingHours } = validation.data;
+    const { id, fullName, role, isActive, isClinicalProvider, specialtyCode, phone, workingHours } = validation.data;
+    const isSelfUpdate = auth.user.id === id;
 
-    if (!auth.isSuperAdmin) {
-      const { data: target } = await supabaseAdmin
-        .from("users")
-        .select("clinic_id")
-        .eq("id", id)
-        .maybeSingle();
-
-      if (!target || target.clinic_id !== auth.clinicId) {
-        return NextResponse.json(
-          { error: "Bu kullanıcıyı güncelleme yetkiniz yok" },
-          { status: 403 }
-        );
-      }
+    if (!auth.isSuperAdmin && !auth.isAdmin && !isSelfUpdate) {
+      return NextResponse.json(
+        { error: "Bu kullanıcıyı güncelleme yetkiniz yok" },
+        { status: 403 }
+      );
     }
 
     const updateData: Record<string, unknown> = {};
     if (typeof fullName === "string") updateData.full_name = fullName;
-    if (role) {
-      if (role === UserRole.SUPER_ADMIN && !auth.isSuperAdmin) {
-        return NextResponse.json(
-          { error: "SUPER_ADMIN rolünü yalnızca SUPER_ADMIN atayabilir" },
-          { status: 403 }
-        );
-      }
+    if (role && auth.isAdmin) {
       updateData.role = role;
     }
-    if (typeof isActive === "boolean") updateData.is_active = isActive;
-    if (typeof isClinicalProvider === "boolean") updateData.is_clinical_provider = isClinicalProvider;
+    if (typeof isActive === "boolean" && auth.isAdmin) updateData.is_active = isActive;
+    if (typeof isClinicalProvider === "boolean" && auth.isAdmin) updateData.is_clinical_provider = isClinicalProvider;
     if (specialtyCode !== undefined) updateData.specialty_code = specialtyCode;
+    if (phone !== undefined) updateData.phone = phone;
     if (workingHours !== undefined) updateData.working_hours = workingHours;
 
     if (Object.keys(updateData).length === 0) {
@@ -192,7 +184,7 @@ export const PATCH = withAuth(
       .from("users")
       .update(updateData)
       .eq("id", id)
-      .select("id, full_name, email, role, clinic_id, created_at, is_active, is_clinical_provider, specialty_code, working_hours")
+      .select("id, full_name, email, role, clinic_id, created_at, is_active, is_clinical_provider, specialty_code, phone, working_hours")
       .maybeSingle();
 
     if (error || !data) {
@@ -203,8 +195,7 @@ export const PATCH = withAuth(
     }
 
     return NextResponse.json({ user: data });
-  },
-  { requiredRole: "ADMIN_OR_SUPER" }
+  }
 );
 
 export const DELETE = withAuth(
