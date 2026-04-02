@@ -3,7 +3,12 @@ import { UserRole } from "@/types/database";
 
 export const createUserSchema = z.object({
     email: z.string().email("Geçersiz e-posta adresi"),
-    password: z.string().min(6, "Şifre en az 6 karakter olmalıdır").optional(),
+    password: z.string()
+        .min(8, "Şifre en az 8 karakter olmalıdır")
+        .regex(/[A-Z]/, "En az bir büyük harf içermelidir")
+        .regex(/[a-z]/, "En az bir küçük harf içermelidir")
+        .regex(/[0-9!@#$%^&*]/, "En az bir rakam veya özel karakter içermelidir")
+        .optional(),
     fullName: z.string().optional().nullable(),
     role: z.nativeEnum(UserRole).default(UserRole.SEKRETER),
     clinicId: z.string().optional().nullable(),
@@ -29,5 +34,9 @@ export const deleteUserSchema = z.object({
 
 export const resetPasswordSchema = z.object({
     id: z.string().min(1, "ID zorunludur"),
-    password: z.string().min(6, "Şifre en az 6 karakter olmalıdır"),
+    password: z.string()
+        .min(8, "Şifre en az 8 karakter olmalıdır")
+        .regex(/[A-Z]/, "En az bir büyük harf içermelidir")
+        .regex(/[a-z]/, "En az bir küçük harf içermelidir")
+        .regex(/[0-9!@#$%^&*]/, "En az bir rakam veya özel karakter içermelidir"),
 });

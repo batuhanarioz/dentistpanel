@@ -27,7 +27,11 @@ export const createClinicSchema = z.object({
     billing_cycle: z.string().default("monthly"),
     current_period_end: z.string().optional().nullable(),
     last_payment_date: z.string().optional().nullable(),
-    adminPassword: z.string().min(6, "Şifre en az 6 karakter olmalıdır"),
+    adminPassword: z.string()
+        .min(8, "Şifre en az 8 karakter olmalıdır")
+        .regex(/[A-Z]/, "En az bir büyük harf içermelidir")
+        .regex(/[a-z]/, "En az bir küçük harf içermelidir")
+        .regex(/[0-9!@#$%^&*]/, "En az bir rakam veya özel karakter içermelidir"),
 });
 
 export const toggleClinicAutomationSchema = z.object({

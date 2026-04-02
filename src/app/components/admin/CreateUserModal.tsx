@@ -113,6 +113,7 @@ export function CreateUserModal({
                         <input
                             type="email"
                             required
+                            autoComplete="email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
@@ -124,6 +125,7 @@ export function CreateUserModal({
                         <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">İsim</label>
                         <input
                             type="text"
+                            autoComplete="name"
                             value={fullName}
                             onChange={e => setFullName(e.target.value)}
                             className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
@@ -161,10 +163,11 @@ export function CreateUserModal({
                             <input
                                 type="password"
                                 required
+                                autoComplete="new-password"
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
                                 className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                                placeholder="En az 6 karakter"
+                                placeholder="En az 8 karakter (A-z, 0-9, @)"
                             />
                         </div>
                     )}

@@ -48,7 +48,7 @@ export function ResetPasswordModal({
                     <form onSubmit={onSubmit} className="px-6 py-5 space-y-4 text-sm">
                         <div className="space-y-1">
                             <label className="block text-xs font-medium text-slate-700">Yeni Şifre</label>
-                            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500" placeholder="Yeni şifreyi girin" />
+                            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500" placeholder="En az 8 karakter (A-z, 0-9, @)" />
                         </div>
                         {error && <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">{error}</p>}
                         <div className="flex justify-end gap-2 pt-1">

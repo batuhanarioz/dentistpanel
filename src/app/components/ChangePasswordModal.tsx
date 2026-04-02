@@ -61,8 +61,13 @@ export function ChangePasswordModal({ open, onClose }: Props) {
     e.preventDefault();
     setError(null);
 
-    if (newPassword.length < 6) {
-      setError("Yeni şifre en az 6 karakter olmalıdır.");
+    if (newPassword.length < 8) {
+      setError("Yeni şifre en az 8 karakter olmalıdır.");
+      return;
+    }
+    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9!@#$%^&*])/;
+    if (!complexityRegex.test(newPassword)) {
+      setError("Şifre en az bir büyük harf, bir küçük harf ve bir rakam/özel karakter içermelidir.");
       return;
     }
     if (newPassword !== newPasswordConfirm) {
@@ -169,6 +174,7 @@ export function ChangePasswordModal({ open, onClose }: Props) {
                 <input
                   type={showOld ? "text" : "password"}
                   required
+                  autoComplete="current-password"
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
                   className="w-full rounded-2xl border-slate-200 bg-slate-50/50 px-4 py-3.5 pr-11 text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 placeholder:text-slate-300"
@@ -187,10 +193,11 @@ export function ChangePasswordModal({ open, onClose }: Props) {
                   <input
                     type={showNew ? "text" : "password"}
                     required
+                    autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     className="w-full rounded-2xl border-slate-200 bg-slate-50/50 px-4 py-3.5 pr-11 text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 placeholder:text-slate-300"
-                    placeholder="En az 6 karakter"
+                    placeholder="En az 8 karakter (A-z, 0-9)"
                   />
                   <EyeIcon show={showNew} toggle={() => setShowNew((v) => !v)} />
                 </div>
@@ -204,6 +211,7 @@ export function ChangePasswordModal({ open, onClose }: Props) {
                   <input
                     type={showConfirm ? "text" : "password"}
                     required
+                    autoComplete="new-password"
                     value={newPasswordConfirm}
                     onChange={(e) => setNewPasswordConfirm(e.target.value)}
                     className="w-full rounded-2xl border-slate-200 bg-slate-50/50 px-4 py-3.5 pr-11 text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 placeholder:text-slate-300"

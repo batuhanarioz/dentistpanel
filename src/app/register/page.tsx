@@ -225,8 +225,14 @@ function RegisterForm() {
 
         setError(null);
 
-        if (formData.adminPassword.length < 6) {
-            setError("Şifreniz en az 6 karakterden oluşmalıdır.");
+        if (formData.adminPassword.length < 8) {
+            setError("Şifreniz en az 8 karakterden oluşmalıdır.");
+            return;
+        }
+
+        const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9!@#$%^&*])/;
+        if (!complexityRegex.test(formData.adminPassword)) {
+            setError("Şifre en az bir büyük harf, bir küçük harf ve bir rakam/özel karakter içermelidir.");
             return;
         }
 
@@ -653,7 +659,7 @@ function RegisterForm() {
                                                 className="w-full h-12 rounded-2xl bg-slate-50 border-none px-12 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner"
                                             />
                                         </div>
-                                        <p className="text-[10px] text-slate-400 font-medium ml-1">En az 6 karakter, harf ve rakam içermesi önerilir.</p>
+                                        <p className="text-[10px] text-slate-400 font-medium ml-1">En az 8 karakter; büyük harf, küçük harf ve rakam içermelidir.</p>
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Şifre Tekrar *</label>

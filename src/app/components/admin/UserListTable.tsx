@@ -24,10 +24,10 @@ const ROLE_FILTER_OPTIONS = [
 
 const AVATAR_COLORS: Record<string, string> = {
     [UserRole.SUPER_ADMIN]: "bg-purple-100 text-purple-700",
-    [UserRole.ADMIN]:       "bg-teal-100 text-teal-700",
-    [UserRole.DOKTOR]:      "bg-blue-100 text-blue-700",
-    [UserRole.SEKRETER]:    "bg-amber-100 text-amber-700",
-    [UserRole.FINANS]:      "bg-emerald-100 text-emerald-700",
+    [UserRole.ADMIN]: "bg-teal-100 text-teal-700",
+    [UserRole.DOKTOR]: "bg-blue-100 text-blue-700",
+    [UserRole.SEKRETER]: "bg-amber-100 text-amber-700",
+    [UserRole.FINANS]: "bg-emerald-100 text-emerald-700",
 };
 
 function formatLastSeen(dateStr: string | null): string {
@@ -83,8 +83,8 @@ export function UserListTable({ users, loading, isAdmin, currentUserId, onEditUs
     if (loading) {
         return (
             <div className="flex h-48 items-center justify-center">
-                <div 
-                    className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" 
+                <div
+                    className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"
                     style={{ borderColor: brandFrom }}
                 />
             </div>
@@ -127,16 +127,14 @@ export function UserListTable({ users, loading, isAdmin, currentUserId, onEditUs
                     {inactiveCount > 0 && (
                         <button
                             onClick={() => setShowInactive(v => !v)}
-                            className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest border-2 transition-all active:scale-95 whitespace-nowrap ${
-                                showInactive
+                            className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest border-2 transition-all active:scale-95 whitespace-nowrap ${showInactive
                                     ? "bg-slate-900 text-white border-slate-900 shadow-xl shadow-slate-200"
                                     : "bg-white text-slate-500 border-slate-100 hover:border-slate-200 hover:text-slate-700"
-                            }`}
+                                }`}
                         >
                             <span>Pasif</span>
-                            <span className={`inline-flex items-center justify-center h-4 w-4 rounded-full text-[9px] font-black italic ${
-                                showInactive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
-                            }`}>
+                            <span className={`inline-flex items-center justify-center h-4 w-4 rounded-full text-[9px] font-black italic ${showInactive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                                }`}>
                                 {inactiveCount}
                             </span>
                         </button>
