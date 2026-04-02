@@ -205,16 +205,19 @@ export function NewPaymentModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xl p-4" onClick={onClose}>
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
-                <div className="px-6 py-5 bg-gradient-to-r from-emerald-600 to-teal-500 text-white shrink-0 relative">
+                <div 
+                    style={{ background: `linear-gradient(to right, var(--brand-from), var(--brand-to))` }}
+                    className="px-6 py-5 text-white shrink-0 relative"
+                >
                     <button onClick={onClose} className="absolute right-4 top-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                     <h2 className="text-xl font-bold">Yeni Ödeme Planı</h2>
-                    <p className="text-emerald-100 text-xs mt-0.5">Randevu seçerek taksitli ödeme planı oluşturun</p>
+                    <p className="opacity-80 text-xs mt-0.5">Randevu seçerek taksitli ödeme planı oluşturun</p>
                 </div>
 
                 {/* Body */}
@@ -548,7 +551,11 @@ export function NewPaymentModal({
                         <button
                             onClick={handleSave}
                             disabled={saving || !selectedAppointmentId || amount <= 0}
-                            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-xs flex items-center gap-2 disabled:opacity-50"
+                            style={{ 
+                                backgroundColor: 'var(--brand-from)',
+                                boxShadow: `0 10px 15px -3px var(--brand-from)33`
+                            }}
+                            className="px-6 py-2.5 hover:brightness-110 active:scale-95 text-white font-bold rounded-xl transition-all text-xs flex items-center gap-2 disabled:opacity-50"
                         >
                             {saving ? (
                                 <><svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Kaydediliyor...</>
@@ -583,10 +590,11 @@ interface DetailModalProps {
 type SiblingPayment = { id: string; amount: number; status: string | null; due_date: string | null; installment_number: number | null; };
 
 export function PaymentDetailModal({ isOpen, onClose, payment, status, setStatus, amount, setAmount, method, setMethod, onUpdate, onCancel, operationError, onClearError }: DetailModalProps) {
-    const { clinicId } = useClinic();
+    const clinic = useClinic();
     const [saving, setSaving] = React.useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = React.useState(false);
     const [siblings, setSiblings] = React.useState<SiblingPayment[]>([]);
+    const clinicId = clinic.clinicId;
     const [localDueDate, setLocalDueDate] = React.useState("");
     const [localNote, setLocalNote] = React.useState("");
 
@@ -663,11 +671,14 @@ export function PaymentDetailModal({ isOpen, onClose, payment, status, setStatus
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xl p-4" onClick={onClose}>
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
-                <div className="px-6 py-5 bg-gradient-to-r from-teal-600 to-emerald-500 text-white relative shrink-0">
+                <div 
+                    style={{ background: `linear-gradient(to right, var(--brand-from), var(--brand-to))` }}
+                    className="px-6 py-5 text-white relative shrink-0"
+                >
                     <button onClick={onClose} className="absolute right-4 top-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
@@ -780,14 +791,16 @@ export function PaymentDetailModal({ isOpen, onClose, payment, status, setStatus
                             <div className="relative">
                                 <input type="number" min="0" value={amount}
                                     onChange={e => setAmount(String(Math.max(0, Number(e.target.value))))}
-                                    className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 pr-7 text-sm font-extrabold focus:border-teal-500 outline-none transition-all" />
+                                    style={{ '--focus-border-color': 'var(--brand-from)' } as React.CSSProperties}
+                                    className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 pr-7 text-sm font-extrabold focus:border-[var(--focus-border-color)] outline-none transition-all" />
                                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 font-bold text-sm">₺</span>
                             </div>
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Yöntem</label>
                             <select value={method} onChange={e => setMethod(e.target.value)}
-                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-teal-500 outline-none transition-all">
+                                style={{ '--focus-border-color': 'var(--brand-from)' } as React.CSSProperties}
+                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-[var(--focus-border-color)] outline-none transition-all">
                                 {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                         </div>

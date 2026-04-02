@@ -30,7 +30,7 @@ interface CustomTooltipProps {
 }
 
 export function DashboardAnalytics() {
-    const { clinicId } = useClinic();
+    const { clinicId, themeColorFrom } = useClinic();
     const gradientPrefix = useId().replace(/:/g, "");
 
     const { data: appointments = [], isLoading: loading } = useQuery({
@@ -112,7 +112,7 @@ export function DashboardAnalytics() {
     const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800 p-3 rounded-2xl shadow-2xl">
+                <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 p-3 rounded-2xl shadow-2xl">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
                         {payload[0].name || payload[0].payload.day}
                     </p>
@@ -139,7 +139,10 @@ export function DashboardAnalytics() {
                         <p className="text-xs font-bold text-slate-900">Tamamlanan Tedaviler</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">Son 7 günde tamamlanan randevuların tedavi türü dağılımı</p>
                     </div>
-                    <div className="h-8 w-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500">
+                    <div 
+                        className="h-8 w-8 rounded-xl flex items-center justify-center shadow-sm"
+                        style={{ backgroundColor: `${themeColorFrom}15`, color: 'var(--brand-from)' }}
+                    >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
@@ -205,7 +208,10 @@ export function DashboardAnalytics() {
                         <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Haftalık Yoğunluk</h3>
                         <p className="text-xs font-bold text-slate-900">Önümüzdeki 7 Günlük Projeksiyon</p>
                     </div>
-                    <div className="h-8 w-8 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600">
+                    <div 
+                        className="h-8 w-8 rounded-xl flex items-center justify-center shadow-sm"
+                        style={{ backgroundColor: `${themeColorFrom}15`, color: 'var(--brand-from)' }}
+                    >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                         </svg>
@@ -217,8 +223,8 @@ export function DashboardAnalytics() {
                         <BarChart data={weeklyVolume} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#0d9488" stopOpacity={1} />
-                                    <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.4} />
+                                    <stop offset="0%" stopColor="var(--brand-from)" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="var(--brand-to)" stopOpacity={0.4} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />

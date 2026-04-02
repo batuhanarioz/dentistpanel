@@ -182,7 +182,7 @@ export function AddonCard({ addon, clinic }: AddonCardProps) {
             {/* Özet — kapalı durumda */}
             {!expanded && (
                 <div className="relative px-7 pb-7 mt-auto">
-                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex items-center justify-between">
+                    <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/10 flex items-center justify-between">
                         {priceLabel ? (
                             <>
                                 <span className="text-white/70 text-[10px] font-black uppercase tracking-widest">Fiyat</span>

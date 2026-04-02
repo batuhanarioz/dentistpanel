@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { format, isSameDay } from "date-fns";
 import { tr } from "date-fns/locale";
 import type { AppEvent, DoctorOption } from "@/hooks/useAppointments";
+import { useClinic } from "@/app/context/ClinicContext";
 
 interface WeekViewProps {
     weekDays: Date[];
@@ -26,6 +27,7 @@ export function WeekView({
     onEventClick,
     onDayClick,
 }: WeekViewProps) {
+    const { themeColorFrom } = useClinic();
     const isSingleDoctor = selectedDoctorIds.length === 1;
     const hourHeight = 60; // 1px per minute
     const totalHours = endHour - startHour;
@@ -64,14 +66,25 @@ export function WeekView({
                                 style={{ minWidth: DAY_COL_MIN_W }}
                                 className="flex-1 py-3 flex flex-col items-center border-r border-slate-100 relative"
                             >
-                                <span className={`text-[10px] font-bold uppercase tracking-widest ${isToday ? "text-teal-600" : "text-slate-400"}`}>
+                                <span 
+                                    className={`text-[10px] font-bold uppercase tracking-widest`}
+                                    style={isToday ? { color: 'var(--brand-from)' } : { color: '#94a3b8' }}
+                                >
                                     {format(day, "EEE", { locale: tr })}
                                 </span>
-                                <span className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${isToday ? "bg-teal-600 text-white shadow-md shadow-teal-100" : "text-slate-700"}`}>
+                                <span 
+                                    className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors`}
+                                    style={isToday 
+                                        ? { background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))`, color: '#fff', boxShadow: `0 4px 12px ${themeColorFrom}30` } 
+                                        : { color: '#334155' }}
+                                >
                                     {format(day, "d")}
                                 </span>
                                 {dayCount > 0 && (
-                                    <span className="absolute bottom-1.5 right-1.5 text-[9px] font-black px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 leading-none">
+                                    <span 
+                                        className="absolute bottom-1.5 right-1.5 text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none border"
+                                        style={{ backgroundColor: `${themeColorFrom}10`, color: 'var(--brand-from)', borderColor: `${themeColorFrom}20` }}
+                                    >
                                         {dayCount}
                                     </span>
                                 )}

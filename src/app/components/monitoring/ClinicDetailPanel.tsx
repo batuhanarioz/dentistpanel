@@ -46,7 +46,7 @@ export function ClinicDetailPanel({ clinicId, onClose }: Props) {
     return (
         <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${clinicId ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             {/* Overlay */}
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xl transition-opacity" onClick={onClose} />
 
             {/* Panel */}
             <div

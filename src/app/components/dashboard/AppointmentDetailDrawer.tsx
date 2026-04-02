@@ -10,6 +10,7 @@ import { AnamnesisSection } from "@/app/components/patients/AnamnesisSection";
 import { useAnamnesis, useAnamnesisMutation } from "@/hooks/useAnamnesis";
 import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
 import type { PatientAnamnesis } from "@/types/database";
+import { useUI, useClinic } from "@/app/context/ClinicContext";
 
 interface AppointmentDetailDrawerProps {
     appointmentId: string | null;
@@ -35,6 +36,7 @@ export function AppointmentDetailDrawer({
     const [appointment, setAppointment] = useState<DrawerAppointment | null>(null);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const { setOverlayActive } = useUI();
     const [statusChanging, setStatusChanging] = useState(false);
     const [saving, setSaving] = useState(false);
     const [localTreatmentNote, setLocalTreatmentNote] = useState("");
@@ -78,11 +80,13 @@ export function AppointmentDetailDrawer({
         if (appointmentId) {
             setIsOpen(true);
             fetchDetail(appointmentId);
+            setOverlayActive(true);
         } else {
             setIsOpen(false);
             setAppointment(null);
+            setOverlayActive(false);
         }
-    }, [appointmentId, fetchDetail]);
+    }, [appointmentId, fetchDetail, setOverlayActive]);
 
     if (!appointmentId && !isOpen) return null;
 
@@ -102,13 +106,13 @@ export function AppointmentDetailDrawer({
         <>
             {/* Backdrop */}
             <div
-                className={`fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm transition-all duration-500 ease-out ${appointmentId ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+                className={`fixed inset-0 z-[30] bg-black/30 backdrop-blur-xl transition-all duration-500 ease-out ${appointmentId ? "opacity-100" : "opacity-0 pointer-events-none"}`}
                 onClick={onClose}
             />
 
             {/* Drawer */}
             <div
-                className={`fixed inset-y-0 right-0 z-[70] w-full max-w-[400px] bg-white shadow-2xl transition-all duration-500 ease-out transform ${appointmentId ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"}`}
+                className={`fixed inset-y-0 right-0 z-[60] w-full max-w-[400px] bg-white shadow-2xl transition-all duration-500 ease-out transform ${appointmentId ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"}`}
             >
                 {loading ? (
                     <div className="flex h-full items-center justify-center">

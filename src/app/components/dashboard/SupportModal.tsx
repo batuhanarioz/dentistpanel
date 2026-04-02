@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, Send, LifeBuoy, CheckCircle2, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useUI } from "@/app/context/ClinicContext";
 
 interface SupportModalProps {
     isOpen: boolean;
@@ -13,9 +14,16 @@ interface SupportModalProps {
 export function SupportModal({ isOpen, onClose, clinicId }: SupportModalProps) {
     const [subject, setSubject] = useState("");
     const [message, setMessage] = useState("");
-    const [priority, setPriority] = useState("normal");
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+    const { setOverlayActive } = useUI();
+
+    React.useEffect(() => {
+        setOverlayActive(isOpen);
+        return () => {
+            if (isOpen) setOverlayActive(false);
+        };
+    }, [isOpen, setOverlayActive]);
 
     if (!isOpen) return null;
 
@@ -47,9 +55,9 @@ export function SupportModal({ isOpen, onClose, clinicId }: SupportModalProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[320] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xl" onClick={onClose}>
             <div
-                className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200"
+                className="bg-white rounded-[2.5rem] shadow-2xl border border-white/20 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -113,8 +121,8 @@ export function SupportModal({ isOpen, onClose, clinicId }: SupportModalProps) {
                                             type="button"
                                             onClick={() => setPriority(p)}
                                             className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${priority === p
-                                                    ? 'bg-slate-900 border-slate-900 text-white shadow-lg'
-                                                    : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'
+                                                ? 'bg-slate-900 border-slate-900 text-white shadow-lg'
+                                                : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'
                                                 }`}
                                         >
                                             {p === 'normal' ? 'Normal' : p === 'high' ? 'Yüksek' : 'Acil'}

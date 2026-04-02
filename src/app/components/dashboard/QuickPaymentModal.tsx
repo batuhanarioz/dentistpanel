@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
 import { createPayments } from "@/lib/api";
-import { useClinic } from "@/app/context/ClinicContext";
+import { useClinic, useUI } from "@/app/context/ClinicContext";
 import { localDateStr } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabaseClient";
 import type { PaymentStatus } from "@/types/database";
@@ -66,6 +66,14 @@ export function QuickPaymentModal({
     const [agreedTotal, setAgreedTotal] = useState<number>(initialAmount);
     const [appointmentDetails, setAppointmentDetails] = useState<AppointmentInfo | null>(null);
     const [matchedPaymentId, setMatchedPaymentId] = useState<string | null>(null);
+    const { setOverlayActive } = useUI();
+
+    useEffect(() => {
+        setOverlayActive(open);
+        return () => {
+            if (open) setOverlayActive(false);
+        };
+    }, [open, setOverlayActive]);
 
     useEffect(() => {
         if (!open || !appointmentId) return;
@@ -285,7 +293,7 @@ export function QuickPaymentModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[320] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xl">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
                 {/* Header */}
                 <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shrink-0">

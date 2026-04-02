@@ -34,16 +34,19 @@ export function StatCards({
             <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none md:grid md:grid-cols-3 lg:grid-cols-5 md:overflow-visible md:pb-0">
 
                 {/* Bugün / Toplam */}
-                <div className="relative rounded-2xl overflow-hidden px-4 py-3.5 bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 shadow-lg shadow-indigo-200/60 hover:shadow-indigo-300/70 hover:-translate-y-0.5 transition-all duration-300 cursor-default shrink-0 w-36 md:w-auto">
+                <div 
+                    className="relative rounded-2xl overflow-hidden px-4 py-3.5 shadow-lg shadow-black/10 hover:-translate-y-0.5 transition-all duration-300 cursor-default shrink-0 w-36 md:w-auto"
+                    style={{ background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` }}
+                >
                     <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10" />
-                    <div className="absolute right-2 bottom-2 opacity-[0.12]">
+                    <div className="absolute right-2 bottom-2 opacity-[0.14]">
                         <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                         </svg>
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-indigo-200 mb-1">{isToday ? "Bugün" : "Yarın"}</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/70 mb-1">{isToday ? "Bugün" : "Yarın"}</p>
                     <p className="text-3xl font-black text-white leading-none">{loading ? "—" : totalToday}</p>
-                    <p className="text-[10px] text-indigo-200 font-semibold mt-1.5">randevu</p>
+                    <p className="text-[10px] text-white/70 font-semibold mt-1.5">randevu</p>
                 </div>
 
                 {/* Planlı */}

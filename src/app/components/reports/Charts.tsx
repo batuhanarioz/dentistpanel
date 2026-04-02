@@ -6,6 +6,7 @@ import {
     PieChart, Pie, Cell, CartesianGrid,
     AreaChart, Area, LineChart, Line
 } from "recharts";
+import { useClinic } from "@/app/context/ClinicContext";
 
 const CHART_COLORS = ["#6366f1", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#0ea5e9"];
 
@@ -13,7 +14,7 @@ const CHART_COLORS = ["#6366f1", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#0
 const CustomTooltip = ({ active, payload, label, prefix = "", suffix = "" }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-white/95 backdrop-blur-sm border border-slate-100 shadow-xl p-4 rounded-2xl">
+            <div className="bg-white/95 backdrop-blur-xl border border-slate-100 shadow-xl p-4 rounded-2xl">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{label}</p>
                 <div className="space-y-1.5">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -33,13 +34,15 @@ const CustomTooltip = ({ active, payload, label, prefix = "", suffix = "" }: any
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function RevenueTrendChart({ data }: { data: any[] }) {
+    const { themeColorFrom: brandFrom = '#6366f1' } = useClinic();
+    
     return (
         <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data}>
                 <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                        <stop offset="5%" stopColor={brandFrom} stopOpacity={0.1} />
+                        <stop offset="95%" stopColor={brandFrom} stopOpacity={0} />
                     </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -62,7 +65,7 @@ export function RevenueTrendChart({ data }: { data: any[] }) {
                     type="monotone"
                     dataKey="revenue"
                     name="Gelir"
-                    stroke="#6366f1"
+                    stroke={brandFrom}
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorRevenue)"

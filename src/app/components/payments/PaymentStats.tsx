@@ -27,8 +27,8 @@ export function PaymentStats({ stats }: PaymentStatsProps) {
                     label="Toplam Tutar"
                     description="toplam tutar"
                     value={stats.total}
-                    gradient="from-emerald-500 via-emerald-600 to-teal-600"
-                    shadowClass="shadow-emerald-200/60 hover:shadow-emerald-300/70"
+                    gradient="brand"
+                    shadowClass="shadow-indigo-200/40 hover:shadow-indigo-300/50"
                     icon={
                         <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -40,8 +40,8 @@ export function PaymentStats({ stats }: PaymentStatsProps) {
                     label="Tahsil Edilen"
                     description="ödeme alındı"
                     value={stats.paid}
-                    gradient="from-green-400 via-emerald-500 to-teal-500"
-                    shadowClass="shadow-emerald-200/60 hover:shadow-emerald-300/70"
+                    gradient="brand-alt"
+                    shadowClass="shadow-purple-200/40 hover:shadow-purple-300/50"
                     icon={
                         <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
@@ -88,14 +88,20 @@ export function PaymentStats({ stats }: PaymentStatsProps) {
                                 className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-slate-50/60 transition-colors"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className={`flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br shadow-sm shrink-0 ${stats.collectionRate! >= 80 ? "from-emerald-400 to-teal-500" : stats.collectionRate! >= 50 ? "from-amber-400 to-orange-400" : "from-rose-400 to-red-500"}`}>
+                                    <div
+                                        style={{ background: stats.collectionRate! >= 80 ? `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` : undefined }}
+                                        className={`flex h-8 w-8 items-center justify-center rounded-xl shadow-sm shrink-0 ${stats.collectionRate! >= 80 ? "" : stats.collectionRate! >= 50 ? "from-amber-400 to-orange-400 bg-gradient-to-br" : "from-rose-400 to-red-500 bg-gradient-to-br"}`}
+                                    >
                                         <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
                                         </svg>
                                     </div>
                                     <div className="text-left">
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tahsilat Oranı</p>
-                                        <p className={`text-sm font-black ${stats.collectionRate! >= 80 ? "text-emerald-600" : stats.collectionRate! >= 50 ? "text-amber-600" : "text-rose-600"}`}>
+                                        <p
+                                            style={{ color: stats.collectionRate! >= 80 ? 'var(--brand-from)' : undefined }}
+                                            className={`text-sm font-black ${stats.collectionRate! >= 80 ? "" : stats.collectionRate! >= 50 ? "text-amber-600" : "text-rose-600"}`}
+                                        >
                                             %{stats.collectionRate}
                                         </p>
                                     </div>
@@ -108,8 +114,11 @@ export function PaymentStats({ stats }: PaymentStatsProps) {
                                 <div className="px-4 pb-4 border-t pt-3 space-y-2">
                                     <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
                                         <div
-                                            className={`h-full rounded-full transition-all duration-700 ${stats.collectionRate! >= 80 ? "bg-gradient-to-r from-emerald-400 to-teal-500" : stats.collectionRate! >= 50 ? "bg-gradient-to-r from-amber-400 to-orange-400" : "bg-gradient-to-r from-rose-400 to-red-500"}`}
-                                            style={{ width: `${stats.collectionRate}%` }}
+                                            className={`h-full rounded-full transition-all duration-700 ${stats.collectionRate! >= 80 ? "" : stats.collectionRate! >= 50 ? "bg-gradient-to-r from-amber-400 to-orange-400" : "bg-gradient-to-r from-rose-400 to-red-500"}`}
+                                            style={{
+                                                width: `${stats.collectionRate}%`,
+                                                background: stats.collectionRate! >= 80 ? `linear-gradient(to right, var(--brand-from), var(--brand-to))` : undefined,
+                                            }}
                                         />
                                     </div>
                                     <p className="text-[10px] text-slate-400 font-medium">
@@ -149,8 +158,11 @@ export function PaymentStats({ stats }: PaymentStatsProps) {
                                             <span className="text-[11px] font-bold text-slate-600 w-24 shrink-0 truncate">{method}</span>
                                             <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
                                                 <div
-                                                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 transition-all duration-500"
-                                                    style={{ width: `${percent}%` }}
+                                                    className="h-full rounded-full transition-all duration-500"
+                                                    style={{
+                                                        width: `${percent}%`,
+                                                        backgroundColor: 'var(--brand-from)'
+                                                    }}
                                                 />
                                             </div>
                                             <span className="text-[10px] font-black text-slate-500 w-8 text-right shrink-0">{percent}%</span>
@@ -197,8 +209,22 @@ interface StatCardProps {
 }
 
 function StatCard({ label, description, value, gradient, shadowClass, icon, isNumber, hasAlert }: StatCardProps) {
+    const isBrand = gradient === 'brand';
+    const isBrandAlt = gradient === 'brand-alt';
+
+    const bgStyle = isBrand
+        ? { background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` }
+        : isBrandAlt
+            ? { background: `linear-gradient(to bottom right, var(--brand-to), var(--brand-from))` }
+            : {};
+
+    const gradientClass = (isBrand || isBrandAlt) ? "" : `bg-gradient-to-br ${gradient}`;
+
     return (
-        <div className={`relative rounded-2xl overflow-hidden px-4 py-3.5 bg-gradient-to-br ${gradient} shadow-lg ${shadowClass} hover:-translate-y-0.5 transition-all duration-300 cursor-default shrink-0 w-44 md:w-auto`}>
+        <div
+            style={bgStyle}
+            className={`relative rounded-2xl overflow-hidden px-4 py-3.5 ${gradientClass} shadow-lg ${shadowClass} hover:-translate-y-0.5 transition-all duration-300 cursor-default shrink-0 w-44 md:w-auto`}
+        >
             <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10" />
             <div className="absolute right-2 bottom-2 opacity-[0.12]">
                 {icon}

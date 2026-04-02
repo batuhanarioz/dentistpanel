@@ -181,7 +181,7 @@ export function ClinicDetailPanel({ clinic, isOpen, onClose, onClinicUpdated }: 
     return (
         <>
             {/* Backdrop */}
-            <div className="fixed inset-0 z-[50] bg-black/30 backdrop-blur-sm" onClick={onClose} />
+            <div className="fixed inset-0 z-[50] bg-black/30 backdrop-blur-xl" onClick={onClose} />
 
             {/* Panel */}
             <div className="fixed right-0 top-0 bottom-0 z-[51] w-full max-w-lg bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">

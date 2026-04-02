@@ -54,7 +54,7 @@ export function CreateUserModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/40 backdrop-blur-xl p-4" onClick={onClose}>
             <div className="bg-white rounded-2xl shadow-xl border w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
                 <div className="bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-500 px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">

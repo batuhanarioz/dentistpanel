@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { ClinicIdentityContext, ClinicDataContext, type ClinicContextValue } from "../context/ClinicContext";
+import { ClinicIdentityContext, ClinicDataContext, UIContext, type ClinicContextValue } from "../context/ClinicContext";
+import * as Sentry from "@sentry/nextjs";
 import { UserRole, type WorkingHours, type Clinic, type ClinicAddon, type ClinicSettings } from "@/types/database";
 import { DEFAULT_WORKING_HOURS } from "@/constants/days";
 import { SYSTEM_AUTOMATIONS, type ClinicAutomation } from "@/constants/automations";
@@ -23,23 +24,40 @@ const STEP_LABELS: Record<LoadingStep, string> = {
   ready: "NextGency OS hazırlanıyor...",
 };
 
-function LoadingScreen({ step }: { step: LoadingStep }) {
+function LoadingScreen({ step, colors }: { step: LoadingStep, colors?: { from: string, to: string } }) {
   const steps: LoadingStep[] = ["auth", "profile", "clinic", "ready"];
   const currentIndex = steps.indexOf(step);
 
+  const from = colors?.from || "#0d9488";
+  const to = colors?.to || "#10b981";
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
-      <div className="flex flex-col items-center gap-6 px-6">
+    <div className="flex min-h-screen items-center justify-center bg-white">
+      <div 
+        className="fixed inset-0 pointer-events-none opacity-[0.03]"
+        style={{ background: `radial-gradient(circle at center, ${from}, transparent)` }}
+      />
+      <div className="flex flex-col items-center gap-6 px-6 relative z-10">
         {/* Logo / Spinner */}
         <div className="relative">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
+          <div 
+            className="h-16 w-16 rounded-2xl flex items-center justify-center shadow-lg shadow-black/5"
+            style={{ background: `linear-gradient(to bottom right, ${from}, ${to})` }}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
           {/* Dönen halka */}
           <div className="absolute -inset-2">
-            <div className="h-20 w-20 rounded-2xl border-2 border-teal-200/50 border-t-teal-500 animate-spin" style={{ animationDuration: "1.5s" }} />
+            <div 
+                className="h-20 w-20 rounded-2xl border-2 border-transparent animate-spin" 
+                style={{ 
+                    animationDuration: "1.5s",
+                    borderTopColor: from,
+                    borderLeftColor: `${from}30`
+                }} 
+            />
           </div>
         </div>
 
@@ -57,16 +75,18 @@ function LoadingScreen({ step }: { step: LoadingStep }) {
             return (
               <div key={s} className="flex items-center gap-3">
                 {/* İkon */}
-                <div className={[
-                  "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-all duration-300",
-                  isDone ? "bg-emerald-100" : isCurrent ? "bg-teal-100" : "bg-slate-100",
-                ].join(" ")}>
+                <div 
+                    className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-all duration-300"
+                    style={{
+                        backgroundColor: isDone ? `${from}15` : isCurrent ? `${from}10` : "#f1f5f9"
+                    }}
+                >
                   {isDone ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" style={{ color: from }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   ) : isCurrent ? (
-                    <div className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
+                    <div className="h-2 w-2 rounded-full animate-pulse" style={{ backgroundColor: from }} />
                   ) : (
                     <div className="h-2 w-2 rounded-full bg-slate-300" />
                   )}
@@ -74,8 +94,10 @@ function LoadingScreen({ step }: { step: LoadingStep }) {
                 {/* Label */}
                 <span className={[
                   "text-xs transition-all duration-300",
-                  isDone ? "text-emerald-600 font-medium" : isCurrent ? "text-teal-700 font-medium" : "text-slate-400",
-                ].join(" ")}>
+                  isDone ? "font-bold" : isCurrent ? "font-bold" : "text-slate-400",
+                ].join(" ")}
+                style={{ color: isDone || isCurrent ? from : undefined }}
+                >
                   {STEP_LABELS[s]}
                 </span>
               </div>
@@ -86,8 +108,11 @@ function LoadingScreen({ step }: { step: LoadingStep }) {
         {/* Progress bar */}
         <div className="w-64 h-1 bg-slate-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${((currentIndex + 1) / steps.length) * 100}%` }}
+            className="h-full transition-all duration-500 ease-out"
+            style={{ 
+                width: `${((currentIndex + 1) / steps.length) * 100}%`,
+                background: `linear-gradient(to right, ${from}, ${to})`
+            }}
           />
         </div>
       </div>
@@ -123,7 +148,35 @@ export function AuthGuard({ children }: Props) {
     clinicSettings: null,
     clinicAddons: [],
     planId: "starter",
+    themeColorFrom: undefined,
+    themeColorTo: undefined,
   });
+
+  const [isOverlayActive, setIsOverlayActive] = useState(false);
+  const [isFullOverlay, setIsFullOverlay] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+
+  // İnternet bağlantısını izle
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Initial check
+    if (!navigator.onLine) setIsOffline(true);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  const setOverlayActive = (active: boolean, full?: boolean) => {
+    setIsOverlayActive(active);
+    setIsFullOverlay(active ? !!full : false);
+  };
 
   // Sayfa değiştiğinde yükleme ekranını otomatik kapat
   useEffect(() => {
@@ -157,16 +210,35 @@ export function AuthGuard({ children }: Props) {
       }
 
       try {
-        setLoadingStep("profile");
+        // 1. Kullanıcı profilini ve ana kliniğini çek (Tekrar deneme mekanizmalı)
+        let appUser = null;
+        let userError = null;
+        let retries = 0;
+        const maxRetries = 2;
 
-        // 1. Kullanıcı profilini ve ana kliniğini çek (JOIN'siz)
-        const { data: appUser, error: userError } = await supabase
-          .from("users")
-          .select("id, full_name, email, role, clinic_id, is_clinical_provider")
-          .eq("id", user.id)
-          .single();
+        while (retries <= maxRetries) {
+          const { data, error } = await supabase
+            .from("users")
+            .select("id, full_name, email, role, clinic_id, is_clinical_provider, theme_color_from, theme_color_to")
+            .eq("id", user.id)
+            .single();
+          
+          if (data) {
+            appUser = data;
+            break;
+          }
+          
+          userError = error;
+          console.warn(`Profil çekme denemesi ${retries + 1} başarısız...`);
+          retries++;
+          if (retries <= maxRetries) {
+            await new Promise((resolve) => setTimeout(resolve, 1500)); // 1.5 sn bekle ve tekrar dene
+          }
+        }
 
         if (userError || !appUser) {
+          console.error("AuthGuard initialization error (Final):", userError);
+          Sentry.captureException(userError || new Error("Profile not found after retries"));
           await supabase.auth.signOut();
           router.replace("/login?error=unauthorized");
           return;
@@ -176,6 +248,9 @@ export function AuthGuard({ children }: Props) {
         localStorage.setItem("userRole", role);
         const isSuperAdmin = role === UserRole.SUPER_ADMIN;
         const isAdmin = role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
+        
+        if (appUser.theme_color_from) localStorage.setItem("themeColorFrom", appUser.theme_color_from);
+        if (appUser.theme_color_to) localStorage.setItem("themeColorTo", appUser.theme_color_to);
 
         // 2. Ek klinikleri metadata'dan al ve birleştir
         const additionalClinicIds = user.app_metadata?.additional_clinics as string[] || [];
@@ -297,6 +372,8 @@ export function AuthGuard({ children }: Props) {
           clinicSettings: clinicSettingsData,
           clinicAddons: clinicAddonsData,
           planId: (clinicData as unknown as { planId?: string })?.planId || "starter",
+          themeColorFrom: appUser.theme_color_from || (clinicData as any)?.theme_color_from,
+          themeColorTo: appUser.theme_color_to || (clinicData as any)?.theme_color_to,
         });
 
         setLoadingStep("ready");
@@ -431,7 +508,18 @@ export function AuthGuard({ children }: Props) {
   }, [pathname, allowed, clinicCtx.clinicSlug, clinicCtx.isSuperAdmin, router]);
 
   if (checking) {
-    return <LoadingScreen step={loadingStep} />;
+    const isSuper = localStorage.getItem("userRole") === "super_admin";
+    const storedFrom = localStorage.getItem("themeColorFrom");
+    const storedTo = localStorage.getItem("themeColorTo");
+
+    return <LoadingScreen 
+        step={loadingStep} 
+        colors={isSuper 
+          ? { from: "#0d9488", to: "#10b981" } 
+          : (clinicCtx.themeColorFrom && clinicCtx.themeColorTo ? { from: clinicCtx.themeColorFrom, to: clinicCtx.themeColorTo } 
+            : (storedFrom && storedTo ? { from: storedFrom, to: storedTo } 
+              : { from: "#f43f5e", to: "#8b5cf6" }))} 
+    />;
   }
 
   if (!allowed) {
@@ -451,7 +539,18 @@ export function AuthGuard({ children }: Props) {
       userEmail: clinicCtx.userEmail,
       is_clinical_provider: clinicCtx.is_clinical_provider,
       planId: clinicCtx.planId,
+      themeColorFrom: clinicCtx.isSuperAdmin ? "#0d9488" : (clinicCtx.themeColorFrom || "#f43f5e"), 
+      themeColorTo: clinicCtx.isSuperAdmin ? "#10b981" : (clinicCtx.themeColorTo || "#8b5cf6"),
     }}>
+      {isOffline && (
+        <div 
+          className="fixed top-0 left-0 right-0 z-[1000] flex items-center justify-center gap-3 h-8 text-[11px] font-black uppercase tracking-widest text-white shadow-2xl animate-in slide-in-from-top duration-500"
+          style={{ background: `linear-gradient(to right, ${clinicCtx.themeColorFrom || "#f43f5e"}, ${clinicCtx.themeColorTo || "#8b5cf6"})` }}
+        >
+          <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+          Bağlantı bekleniyor...
+        </div>
+      )}
       <ClinicDataContext.Provider value={{
         workingHours: clinicCtx.workingHours,
         workingHoursOverrides: clinicCtx.workingHoursOverrides,
@@ -463,7 +562,9 @@ export function AuthGuard({ children }: Props) {
         clinicSettings: clinicCtx.clinicSettings,
         clinicAddons: clinicCtx.clinicAddons,
       }}>
-        {children}
+        <UIContext.Provider value={{ isOverlayActive, isFullOverlay, setOverlayActive }}>
+          {children}
+        </UIContext.Provider>
       </ClinicDataContext.Provider>
     </ClinicIdentityContext.Provider>
   );

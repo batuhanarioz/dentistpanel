@@ -24,6 +24,18 @@ const PLACEHOLDERS = [
 ];
 
 type MessageType = "REMINDER" | "SATISFACTION" | "PAYMENT" | "BIRTHDAY" | "DELAY" | "FOLLOWUP" | "INCOMPLETE" | "NEW_PATIENT" | "LAB_TRACKING";
+
+const DEFAULT_TEMPLATES: Record<MessageType, string> = {
+    REMINDER: "Sayın {patient_name}, bugün saat {appointment_time}'da {clinic_name} bünyesinde Dr. {doctor_name} ile randevunuz bulunmaktadır. Lütfen randevu saatinizden 10 dakika önce klinikte olunuz.",
+    SATISFACTION: "Sayın {patient_name}, kliniğimizdeki bugünkü tedaviniz tamamlanmıştır. Deneyiminizi iyileştirmemize yardımcı olmak için lütfen kısa anketimizi doldurur musunuz? Teşekkürler.",
+    PAYMENT: "Sayın {patient_name}, {appointment_date} tarihli tedaviniz için kalan ödemeniz {amount} TL'dir. En kısa sürede kliniğimizle iletişime geçmenizi rica ederiz.",
+    BIRTHDAY: "Sayın {patient_name}, {clinic_name} ailesi olarak yeni yaşınızı kutlar, sağlıklı ve mutlu yıllar dileriz. Doğum gününüz kutlu olsun! 🎉",
+    DELAY: "Sayın {patient_name}, kliniğimizdeki yoğunluk nedeniyle randevu saatinizde {appointment_time} dakikalık bir gecikme yaşanacaktır. Anlayışınız için teşekkür ederiz.",
+    FOLLOWUP: "Sayın {patient_name}, operasyon sonrası durumunuzu merak ediyoruz. Herhangi bir ağrı veya beklenmedik bir durum yaşamanız halinde lütfen kliniğimizi arayınız.",
+    INCOMPLETE: "Hoş geldiniz Sayın {patient_name}, profil bilgilerinizde eksiklik bulunmaktadır. Daha iyi hizmet verebilmemiz için lütfen kayıt birimine uğrayınız.",
+    NEW_PATIENT: "Hoş geldiniz Sayın {patient_name}! {clinic_name} ailesine katıldığınız için teşekkür ederiz. Randevularınız ve tedavileriniz için her zaman yanınızdayız.",
+    LAB_TRACKING: "Sayın {patient_name}, laboratuvar işlemleriniz tamamlanmıştır. Randevu oluşturmak için kliniğimizle iletişime geçebilirsiniz."
+};
 type SubSection = "profile" | "general" | "checklist" | "assistant" | "treatments" | "channels" | "doctor-hours" | "check-in";
 
 type TaskDefinition = {
@@ -46,15 +58,20 @@ interface WorkingHoursOverride {
     note?: string;
 }
 
-export function ClinicSettingsTab() {
+export function ClinicSettingsTab({ section, hideTabBar = false }: { section?: SubSection; hideTabBar?: boolean } = {}) {
     const clinic = useClinic();
-    const [activeSub, setActiveSub] = useState<SubSection>("assistant");
+    const [activeSub, setActiveSub] = useState<SubSection>(section ?? "assistant");
+
+    useEffect(() => {
+        if (section) setActiveSub(section);
+    }, [section]);
     const [isLoading, setIsLoading] = useState(false);
     const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     // Assistant Settings State
     const [localSettings, setLocalSettings] = useState<ClinicSettings | null>(clinic.clinicSettings);
     const [activeMessage, setActiveMessage] = useState<MessageType>("REMINDER");
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
 
     // Checklist State
     const [taskDefs, setTaskDefs] = useState<TaskDefinition[]>([]);
@@ -658,165 +675,45 @@ export function ClinicSettingsTab() {
     };
 
     return (
-        <div className="flex flex-col lg:flex-row gap-8 pb-24 lg:pb-0 relative">
-            {/* Mobile Sticky Header/Select */}
-            <div className="lg:hidden sticky top-[72px] z-[80] -mx-4 px-4 py-3 bg-slate-50/90 backdrop-blur-2xl border-b border-slate-200/60 shadow-lg shadow-black/5 animate-in slide-in-from-top-4 duration-500">
-                <div className="relative isolate">
-                    <select
-                        value={activeSub}
-                        onChange={(e) => {
-                            setActiveSub(e.target.value as SubSection);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className="w-full h-15 bg-white border-2 border-indigo-100/80 rounded-[24px] pl-6 pr-12 text-[14px] font-black text-indigo-900 outline-none appearance-none shadow-xl shadow-indigo-500/5 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/5 transition-all cursor-pointer relative z-20"
-                    >
-                        <option value="profile">🏢 Klinik Profili</option>
-                        <option value="assistant">🤖 Akıllı Asistan Ayarları</option>
-                        <option value="checklist">🛡️ Görev & İzin Yönetimi</option>
-                        <option value="general">⏰ Çalışma Saatleri</option>
-                        <option value="doctor-hours">👨‍⚕️ Hekim Müsaitliği</option>
-                        <option value="treatments">🦷 Tedavi Ayarları</option>
-                        <option value="channels">📱 Kanal Yönetimi</option>
-                        <option value="check-in">🔲 QR Check-in Yönetimi</option>
-                    </select>
-                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-500 z-30">
-                        <svg className="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                        </svg>
-                    </div>
+        <div className="w-full space-y-8 pb-24 lg:pb-0 relative">
+            {/* Ultra-Compact Horizontal Settings Navigation */}
+            {!hideTabBar && <div className="bg-white/60 backdrop-blur-xl rounded-2xl border border-slate-200/60 p-1.5 shadow-xl shadow-slate-200/5 sticky top-[52px] lg:top-0 z-30 ring-4 ring-slate-100/30 overflow-hidden">
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-none snap-x px-0.5 py-0.5">
+                    {[
+                        { id: 'profile', label: 'Profil', icon: '🏢' },
+                        { id: 'assistant', label: 'Asistan', icon: '🤖' },
+                        { id: 'checklist', label: 'Görev', icon: '🛡️' },
+                        { id: 'general', label: 'Saatler', icon: '⏰' },
+                        { id: 'doctor-hours', label: 'Hekim', icon: '👨‍⚕️' },
+                        { id: 'treatments', label: 'Tedavi', icon: '🦷' },
+                        { id: 'channels', label: 'Kanal', icon: '📱' },
+                        { id: 'check-in', label: 'QR', icon: '🔲' },
+                    ].map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => {
+                                setActiveSub(item.id as SubSection);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[9px] font-black transition-all shrink-0 snap-center ${activeSub === item.id
+                                ? "bg-slate-900 text-white shadow-md shadow-slate-200 scale-[1.02]"
+                                : "text-slate-500 hover:bg-white hover:shadow-sm"
+                                }`}
+                        >
+                            <span className={`text-sm transition-transform ${activeSub === item.id ? "scale-110" : "grayscale opacity-70"}`}>
+                                {item.icon}
+                            </span>
+                            <span className="uppercase tracking-widest">{item.label}</span>
+                            {activeSub === item.id && (
+                                <div className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
+                            )}
+                        </button>
+                    ))}
                 </div>
-            </div>
-
-            {/* Sidebar Navigation - Hidden on Mobile, Shown on LG */}
-            <aside className="hidden lg:block w-64 shrink-0">
-                <div className="bg-white rounded-[32px] border border-slate-200/60 p-2 shadow-xl shadow-slate-200/10 sticky top-24 ring-4 ring-slate-50/50 transition-all duration-500 hover:shadow-2xl">
-                    <button
-                        onClick={() => setActiveSub("profile")}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all ${activeSub === "profile"
-                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                            : "text-slate-500 hover:bg-slate-50"
-                            }`}
-                    >
-                        <div className={`p-1.5 rounded-lg ${activeSub === 'profile' ? 'bg-white/20' : 'bg-rose-50 text-rose-600'}`}>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
-                            </svg>
-                        </div>
-                        <span>Klinik Profili</span>
-                    </button>
-
-
-                    <button
-                        onClick={() => setActiveSub("assistant")}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "assistant"
-                            ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-100"
-                            : "text-slate-500 hover:bg-slate-50"
-                            }`}
-                    >
-                        <div className={`p-1.5 rounded-lg ${activeSub === 'assistant' ? 'bg-white/20' : 'bg-indigo-50 text-indigo-600'}`}>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a.75.75 0 0 1-1.074-.765 4.99 4.99 0 0 1 .63-1.536C3.908 17.204 3 15.204 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
-                            </svg>
-                        </div>
-                        <span>Akıllı Asistan Ayarları</span>
-                    </button>
-
-                    <button
-                        onClick={() => setActiveSub("checklist")}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "checklist"
-                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                            : "text-slate-500 hover:bg-slate-50"
-                            }`}
-                    >
-                        <div className={`p-1.5 rounded-lg ${activeSub === 'checklist' ? 'bg-white/20' : 'bg-violet-50 text-violet-600'}`}>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
-                            </svg>
-                        </div>
-                        <span>Görev & İzin Yönetimi</span>
-                    </button>
-
-                    <button
-                        onClick={() => setActiveSub("general")}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "general"
-                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                            : "text-slate-500 hover:bg-slate-50"
-                            }`}
-                    >
-                        <div className={`p-1.5 rounded-lg ${activeSub === 'general' ? 'bg-white/20' : 'bg-slate-50 text-slate-600'}`}>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                            </svg>
-                        </div>
-                        <span>Çalışma Saatleri</span>
-                    </button>
-
-                    <button
-                        onClick={() => setActiveSub("doctor-hours")}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "doctor-hours"
-                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                            : "text-slate-500 hover:bg-slate-50"
-                            }`}
-                    >
-                        <div className={`p-1.5 rounded-lg ${activeSub === 'doctor-hours' ? 'bg-white/20' : 'bg-violet-50 text-violet-600'}`}>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                            </svg>
-                        </div>
-                        <span>Hekim Müsaitliği</span>
-                    </button>
-
-                    <button
-                        onClick={() => setActiveSub("treatments")}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "treatments"
-                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                            : "text-slate-500 hover:bg-slate-50"
-                            }`}
-                    >
-                        <div className={`p-1.5 rounded-lg ${activeSub === 'treatments' ? 'bg-white/20' : 'bg-teal-50 text-teal-600'}`}>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.659A2.25 2.25 0 0 0 9.568 3Z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
-                            </svg>
-                        </div>
-                        <span>Tedavi Ayarları</span>
-                    </button>
-
-
-                    <button
-                        onClick={() => setActiveSub("channels")}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "channels"
-                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                            : "text-slate-500 hover:bg-slate-50"
-                            }`}
-                    >
-                        <div className={`p-1.5 rounded-lg ${activeSub === 'channels' ? 'bg-white/20' : 'bg-sky-50 text-sky-600'}`}>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
-                            </svg>
-                        </div>
-                        <span>Kanal Yönetimi</span>
-                    </button>
-                    <button
-                        onClick={() => setActiveSub("check-in")}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-black transition-all mt-1 ${activeSub === "check-in"
-                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                            : "text-slate-500 hover:bg-slate-50"
-                            }`}
-                    >
-                        <div className={`p-1.5 rounded-lg ${activeSub === 'check-in' ? 'bg-white/20' : 'bg-emerald-50 text-emerald-600'}`}>
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5Z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.75 11.625c0-.621.504-1.125 1.125-1.125h.75c.621 0 1.125.504 1.125 1.125v.75c0 .621-.504 1.125-1.125 1.125h-.75a1.125 1.125 0 0 1-1.125-1.125v-.75ZM11.625 16.75c0-.621.504-1.125 1.125-1.125h.75c.621 0 1.125.504 1.125 1.125v.75c0 .621-.504 1.125-1.125 1.125h-.75a1.125 1.125 0 0 1-1.125-1.125v-.75ZM16.75 16.75c0-.621.504-1.125 1.125-1.125h.75c.621 0 1.125.504 1.125 1.125v.75c0 .621-.504 1.125-1.125 1.125h-.75a1.125 1.125 0 0 1-1.125-1.125v-.75ZM14.25 14.25h.75v.75h-.75v-.75ZM14.25 19.25h.75v.75h-.75v-.75ZM19.25 14.25h.75v.75h-.75v-.75ZM19.25 19.25h.75v.75h-.75v-.75Z" />
-                            </svg>
-                        </div>
-                        <span>QR Check-in Yönetimi</span>
-                    </button>
-                </div>
-            </aside >
+            </div>}
 
             {/* Main Content Area */}
-            <main className="flex-1">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {activeSub === "profile" && (
                     <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -927,24 +824,20 @@ export function ClinicSettingsTab() {
 
                 {activeSub === "assistant" && localSettings && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white rounded-[40px] border border-slate-200/60 p-6 sm:p-10 shadow-xl shadow-slate-200/20 relative overflow-hidden group/container">
+                        <div className="bg-white rounded-[32px] border border-slate-200/60 p-5 sm:p-8 shadow-xl shadow-slate-200/20 relative overflow-hidden group/container">
                             {/* Background decorative glow */}
-                            <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none group-hover/container:bg-indigo-500/10 transition-colors duration-700" />
-                            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl pointer-events-none group-hover/container:bg-violet-500/10 transition-colors duration-700" />
+                            <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none group-hover/container:bg-indigo-500/10 transition-colors duration-700" />
+                            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl pointer-events-none group-hover/container:bg-violet-500/10 transition-colors duration-700" />
 
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 relative z-10">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200/50">
-                                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a.75.75 0 0 1-1.074-.765 4.99 4.99 0 0 1 .63-1.536C3.908 17.204 3 15.204 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
-                                            </svg>
-                                        </div>
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 relative z-10">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2.5">
+
                                         <div>
-                                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Akıllı Mesaj Asistanı</h2>
-                                            <div className="flex items-center gap-2">
-                                                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                                                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Otomatik İletişim Merkezi</p>
+                                            <h2 className="text-lg font-black text-slate-900 tracking-tight">Akıllı Mesaj Asistanı</h2>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Otomatik İletişim</p>
                                             </div>
                                         </div>
                                     </div>
@@ -953,14 +846,14 @@ export function ClinicSettingsTab() {
                                     <button
                                         onClick={handleSaveAssistant}
                                         disabled={isLoading}
-                                        className="h-14 px-10 rounded-[22px] bg-indigo-600 text-white text-sm font-black shadow-xl shadow-indigo-100/80 hover:shadow-indigo-200/90 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-3 group/save"
+                                        className="h-11 px-7 rounded-2xl bg-indigo-600 text-white text-[11px] font-black shadow-lg shadow-indigo-100/80 hover:shadow-indigo-200/90 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2 group/save"
                                     >
-                                        {isLoading ? <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : 
-                                            <svg className="w-5 h-5 group-hover/save:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        {isLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> :
+                                            <svg className="w-4 h-4 group-hover/save:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                             </svg>
                                         }
-                                        Ayarları Kaydet
+                                        Kaydet
                                     </button>
                                 </div>
                             </div>
@@ -972,7 +865,7 @@ export function ClinicSettingsTab() {
                                     disabled={isLoading}
                                     className="w-full h-15 rounded-[22px] bg-indigo-600 text-white text-sm font-black shadow-2xl shadow-indigo-500/40 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                                 >
-                                    {isLoading ? <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : 
+                                    {isLoading ? <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" /> :
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                         </svg>
@@ -983,8 +876,8 @@ export function ClinicSettingsTab() {
 
                             {saveMessage && (
                                 <div className={`mb-8 p-5 rounded-[24px] border text-sm font-bold animate-in zoom-in-95 slide-in-from-top-4 flex items-center gap-4 transition-all duration-300 ${saveMessage.type === 'success'
-                                        ? 'bg-emerald-50 border-emerald-100/50 text-emerald-800 shadow-lg shadow-emerald-500/5'
-                                        : 'bg-rose-50 border-rose-100/50 text-rose-800 shadow-lg shadow-rose-500/5'
+                                    ? 'bg-emerald-50 border-emerald-100/50 text-emerald-800 shadow-lg shadow-emerald-500/5'
+                                    : 'bg-rose-50 border-rose-100/50 text-rose-800 shadow-lg shadow-rose-500/5'
                                     }`}>
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${saveMessage.type === 'success' ? 'bg-emerald-100' : 'bg-rose-100'}`}>
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -997,10 +890,10 @@ export function ClinicSettingsTab() {
 
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-8 relative z-10">
                                 {/* Left Section: Categories (3/12 or 4/12) */}
-                                <div className="md:col-span-4 lg:col-span-3 space-y-3 pr-0 md:pr-4">
-                                    <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5 ml-2">İletişim Türleri</h3>
+                                <div className="md:col-span-4 lg:col-span-3 space-y-2.5 pr-0 md:pr-4">
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-1">İletişim Türleri</h3>
                                     <div className="relative">
-                                        <div className="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 scrollbar-hide snap-x snap-mandatory">
+                                        <div className="flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible pb-3 md:pb-0 scrollbar-hide snap-x snap-mandatory">
                                             {(["REMINDER", "SATISFACTION", "PAYMENT", "BIRTHDAY", "DELAY", "FOLLOWUP", "INCOMPLETE", "NEW_PATIENT", "LAB_TRACKING"] as MessageType[]).map((type) => {
                                                 const label = type === 'REMINDER' ? 'Hatırlat' :
                                                     type === 'SATISFACTION' ? 'Memnuniyet' :
@@ -1022,24 +915,21 @@ export function ClinicSettingsTab() {
                                                     <button
                                                         key={type}
                                                         onClick={() => setActiveMessage(type)}
-                                                        className={`group/cat w-auto md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3.5 rounded-[16px] md:rounded-[18px] transition-all duration-300 relative shrink-0 md:shrink snap-center ${isActive
-                                                                ? 'bg-gradient-to-r from-indigo-50 to-indigo-100/50 border-2 border-indigo-200/60 shadow-md shadow-indigo-100/10'
-                                                                : 'hover:bg-slate-50 border border-transparent'
+                                                        className={`group/cat w-auto md:w-full flex items-center gap-2 px-3 py-2 md:py-2.5 rounded-xl transition-all duration-300 relative shrink-0 md:shrink snap-center ${isActive
+                                                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200/50 border border-indigo-400/30'
+                                                            : 'hover:bg-slate-50 border border-transparent text-slate-500'
                                                             }`}
                                                     >
-                                                        <span className={`text-base md:text-lg transition-transform duration-300 ${isActive ? 'scale-110 drop-shadow-md' : 'grayscale opacity-60 group-hover/cat:grayscale-0 group-hover/cat:opacity-100'}`}>
+                                                        <span className={`text-base transition-transform duration-300 ${isActive ? 'scale-110 drop-shadow-md' : 'grayscale opacity-60'}`}>
                                                             {icons[type]}
                                                         </span>
-                                                        <span className={`text-[12px] md:text-[13px] font-black whitespace-nowrap tracking-tight transition-colors duration-300 ${isActive ? 'text-indigo-900 border-b-2 border-indigo-400 md:border-none' : 'text-slate-500 group-hover/cat:text-slate-700'}`}>
+                                                        <span className={`text-[11px] font-black whitespace-nowrap tracking-tight ${isActive ? 'text-white' : 'text-slate-500'}`}>
                                                             {label}
                                                         </span>
-                                                        {isActive && <div className="absolute right-4 w-2 h-2 rounded-full bg-indigo-600 animate-pulse shrink-0 hidden md:block" />}
                                                     </button>
                                                 );
                                             })}
                                         </div>
-                                        {/* Mobile scroll indicator mask */}
-                                        <div className="md:hidden absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white pointer-events-none z-10" />
                                     </div>
                                 </div>
 
@@ -1047,63 +937,58 @@ export function ClinicSettingsTab() {
                                 <div className="md:col-span-8 lg:col-span-9">
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
                                         <div className="space-y-8">
-                                             {/* Assistant Explainer Guide */}
-                                            <div className="p-5 rounded-[28px] bg-indigo-50/40 border border-indigo-100/50 mb-4 animate-in slide-in-from-right-4 duration-500 group/guide relative overflow-hidden">
-                                                <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover/guide:scale-110 transition-transform">
-                                                    <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                                                </div>
-                                                <div className="flex gap-4 relative z-10">
-                                                    <div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0 border border-indigo-100/50">
-                                                        <span className="text-xl">💡</span>
+                                            {/* Assistant Explainer Guide */}
+                                            <div className="p-3.5 rounded-[22px] bg-indigo-50/40 border border-indigo-100/50 mb-3 animate-in slide-in-from-right-4 duration-500 group/guide relative overflow-hidden">
+                                                <div className="flex gap-3 relative z-10">
+                                                    <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0 border border-indigo-100/50">
+                                                        <span className="text-base">💡</span>
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-[12px] font-black text-indigo-900 uppercase tracking-widest mb-1">
+                                                        <h4 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest mb-0.5">
                                                             {activeMessage === 'REMINDER' ? 'Randevu Hatırlatıcı' :
-                                                             activeMessage === 'SATISFACTION' ? 'Memnuniyet Anketi' :
-                                                             activeMessage === 'PAYMENT' ? 'Ödeme Takip' :
-                                                             activeMessage === 'BIRTHDAY' ? 'Doğum Günü Kutlama' :
-                                                             activeMessage === 'DELAY' ? 'Gecikme Uyarısı' :
-                                                             activeMessage === 'FOLLOWUP' ? 'Operasyon Takip' :
-                                                             activeMessage === 'INCOMPLETE' ? 'Eksik Veri Takibi' :
-                                                             activeMessage === 'NEW_PATIENT' ? 'Hoş Geldin Mesajı' : 'Laboratuvar Takip'}
+                                                                activeMessage === 'SATISFACTION' ? 'Memnuniyet Anketi' :
+                                                                    activeMessage === 'PAYMENT' ? 'Ödeme Takip' :
+                                                                        activeMessage === 'BIRTHDAY' ? 'Doğum Günü Kutlama' :
+                                                                            activeMessage === 'DELAY' ? 'Gecikme Uyarısı' :
+                                                                                activeMessage === 'FOLLOWUP' ? 'Operasyon Takip' :
+                                                                                    activeMessage === 'INCOMPLETE' ? 'Eksik Veri Takibi' :
+                                                                                        activeMessage === 'NEW_PATIENT' ? 'Hoş Geldin Mesajı' : 'Laboratuvar Takip'}
                                                         </h4>
-                                                        <p className="text-[11px] text-indigo-700/70 font-bold leading-relaxed italic">
-                                                            {activeMessage === 'REMINDER' ? 'Randevudan önce hastaya onay mesajı iletir ve kliniğe hazırlık için asistan bildirimi gönderir.' :
-                                                             activeMessage === 'SATISFACTION' ? 'Tedavi tamamlandığında hastaya otomatik deneyim anketi göndererek geri bildirim toplamanızı sağlar.' :
-                                                             activeMessage === 'PAYMENT' ? 'Ödemesi yaklaşan veya geciken hastalar için hem hastaya hem de ilgili personele otomatik hatırlatma yapar.' :
-                                                             activeMessage === 'BIRTHDAY' ? 'Hastalarınızın profilinde kayıtlı doğum günlerinde onlara özel kutlama mesajları iletir.' :
-                                                             activeMessage === 'DELAY' ? 'Randevu saati geçmesine rağmen işlem başlamamışsa personelinize gecikme uyarısı gönderir.' :
-                                                             activeMessage === 'FOLLOWUP' ? 'Cerrahi operasyonlar gibi kritik işlemler sonrası hastanın durumunu sormak için hatırlatma yapar.' :
-                                                             activeMessage === 'INCOMPLETE' ? 'Profilinde TC Kimlik veya Telefon bilgisi eksik olan hastalar için kayıt anında uyarı verir.' :
-                                                             activeMessage === 'NEW_PATIENT' ? 'Klinik kaydı ilk kez açılan hastalara kliniğiniz hakkında kısa bir tanıtım ve hoş geldin mesajı yollar.' : 'Laboratuvara gönderilen protezlerin durumunu takip eder ve gecikmelerde sizi uyarır.'}
+                                                        <p className="text-[10px] text-indigo-700/70 font-bold leading-tight italic">
+                                                            {activeMessage === 'REMINDER' ? 'Randevudan önce hastaya onay mesajı iletir.' :
+                                                                activeMessage === 'SATISFACTION' ? 'Tedavi sonrası anket gönderir.' :
+                                                                    activeMessage === 'PAYMENT' ? 'Ödemesi gecikenlere hatırlatma yapar.' :
+                                                                        activeMessage === 'BIRTHDAY' ? 'Özel kutlama mesajları iletir.' :
+                                                                            activeMessage === 'DELAY' ? 'İşlem başlamamışsa personeli uyarır.' :
+                                                                                activeMessage === 'FOLLOWUP' ? 'Operasyon sonrası durumu sorar.' :
+                                                                                    activeMessage === 'INCOMPLETE' ? 'Eksik veri uyarısı verir.' :
+                                                                                        activeMessage === 'NEW_PATIENT' ? 'Hoş geldin mesajı yollar.' : 'Laboratuvar takibi yapar.'}
                                                         </p>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {/* Timing Card */}
-                                            <div className="bg-slate-50/50 rounded-3xl p-6 border border-slate-100 space-y-4 shadow-inner">
-                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                                    <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                                        <div className="w-1.5 h-4 bg-indigo-600 rounded-full" />
-                                                        Bildirim Zamanlaması
-                                                    </h4>
-                                                </div>
-                                                <div className="flex flex-col gap-4">
-                                                    <div className="flex items-center gap-3">
+                                            <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 space-y-3 shadow-inner">
+                                                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-1.5">
+                                                    <div className="w-1 h-3 bg-indigo-600 rounded-full" />
+                                                    Zamanlama
+                                                </h4>
+                                                <div className="flex flex-col gap-3">
+                                                    <div className="flex items-center gap-2">
                                                         <div className="flex-1 relative">
                                                             <input
                                                                 type="number"
                                                                 value={(localSettings.assistant_timings as Record<string, { value: number; unit: string }>)?.[activeMessage]?.value ?? 1}
                                                                 onChange={(e) => updateTiming(activeMessage, 'value', parseInt(e.target.value))}
-                                                                className="w-full h-14 bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all outline-none shadow-sm"
+                                                                className="w-full h-10 bg-white border border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all outline-none shadow-sm"
                                                             />
                                                         </div>
                                                         <div className="flex-[1.5]">
                                                             <select
                                                                 value={(localSettings.assistant_timings as Record<string, { value: number; unit: string }>)?.[activeMessage]?.unit ?? "hours"}
                                                                 onChange={(e) => updateTiming(activeMessage, 'unit', e.target.value)}
-                                                                className="w-full h-14 bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all outline-none shadow-sm appearance-none cursor-pointer"
+                                                                className="w-full h-10 bg-white border border-slate-200 rounded-xl px-4 text-xs font-bold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all outline-none shadow-sm appearance-none cursor-pointer"
                                                             >
                                                                 <option value="minutes">Dakika</option>
                                                                 <option value="hours">Saat</option>
@@ -1126,7 +1011,55 @@ export function ClinicSettingsTab() {
                                                         <div className="w-1.5 h-4 bg-indigo-600 rounded-full" />
                                                         Mesaj Taslağı
                                                     </h4>
+                                                    <button
+                                                        onClick={() => setShowResetConfirm(true)}
+                                                        className="px-3 py-1.5 rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition-all duration-300 flex items-center gap-2 border border-slate-200/50 group/reset"
+                                                    >
+                                                        <div className="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover/reset:shadow-sm transition-all group-hover/reset:rotate-180 duration-500">
+                                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                                            </svg>
+                                                        </div>
+                                                        <span className="text-[10px] font-black uppercase tracking-widest">Varsayılan Temaya Dön</span>
+                                                    </button>
                                                 </div>
+
+                                                {/* Reset Confirm Modal */}
+                                                {showResetConfirm && (
+                                                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                                                        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setShowResetConfirm(false)} />
+                                                        <div className="relative w-full max-w-sm bg-white rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100">
+                                                            <div className="p-8 text-center">
+                                                                <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-indigo-100/50">
+                                                                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                                                    </svg>
+                                                                </div>
+                                                                <h3 className="text-xl font-black text-slate-900 mb-2">Taslağı Sıfırla</h3>
+                                                                <p className="text-sm font-medium text-slate-500 leading-relaxed mb-8">
+                                                                    Seçili taslağı profesyonel varsayılan haline döndürmek istediğinize emin misiniz? <br /><b className="text-indigo-600">Bu işlem geri alınamaz.</b>
+                                                                </p>
+                                                                <div className="flex gap-3">
+                                                                    <button
+                                                                        onClick={() => setShowResetConfirm(false)}
+                                                                        className="flex-1 px-6 py-3.5 rounded-2xl bg-slate-50 text-slate-500 font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-colors"
+                                                                    >
+                                                                        Vazgeç
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            updateMessageTemplate(activeMessage, DEFAULT_TEMPLATES[activeMessage]);
+                                                                            setShowResetConfirm(false);
+                                                                        }}
+                                                                        className="flex-1 px-6 py-3.5 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-100/50 transition-all active:scale-95"
+                                                                    >
+                                                                        Evet, Sıfırla
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 <div className="relative group/editor bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm focus-within:ring-8 focus-within:ring-indigo-500/10 focus-within:border-indigo-400 transition-all">
                                                     {/* Clean Editor */}
@@ -1705,7 +1638,7 @@ export function ClinicSettingsTab() {
                             <div className="p-8 space-y-8">
                                 <div className="p-6 rounded-[32px] bg-slate-50 border border-slate-200/60 shadow-inner">
                                     <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                        <span className="w-1.5 h-4 bg-teal-500 rounded-full" />
+                                        <span className="w-1.5 h-4 bg-indigo-500 rounded-full" />
                                         Yeni Tedavi Ekle
                                     </h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
@@ -1716,7 +1649,7 @@ export function ClinicSettingsTab() {
                                                 placeholder="Örn: Kanal Tedavisi"
                                                 value={newTreatmentName}
                                                 onChange={(e) => setNewTreatmentName(e.target.value)}
-                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
                                             />
                                         </div>
                                         <div className="space-y-1.5">
@@ -1725,7 +1658,7 @@ export function ClinicSettingsTab() {
                                                 type="number"
                                                 value={newTreatmentDuration}
                                                 onChange={(e) => setNewTreatmentDuration(parseInt(e.target.value))}
-                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
                                             />
                                         </div>
                                         <div className="space-y-1.5">
@@ -1737,7 +1670,7 @@ export function ClinicSettingsTab() {
                                                 value={newTreatmentMaterialCost}
                                                 onFocus={(e) => e.target.select()}
                                                 onChange={(e) => setNewTreatmentMaterialCost(parseFloat(e.target.value) || 0)}
-                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
                                             />
                                         </div>
                                         <div className="space-y-1.5">
@@ -1750,7 +1683,7 @@ export function ClinicSettingsTab() {
                                                 value={newTreatmentPrimPercent}
                                                 onFocus={(e) => e.target.select()}
                                                 onChange={(e) => setNewTreatmentPrimPercent(parseFloat(e.target.value) || 0)}
-                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
                                             />
                                         </div>
                                         <div className="space-y-1.5">
@@ -1761,14 +1694,14 @@ export function ClinicSettingsTab() {
                                                 placeholder="Örn: 180"
                                                 value={newTreatmentRecallDays ?? ""}
                                                 onChange={(e) => setNewTreatmentRecallDays(e.target.value ? parseInt(e.target.value) : null)}
-                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all"
+                                                className="w-full h-[52px] bg-white border border-slate-200 rounded-2xl px-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
                                             />
                                         </div>
                                         <div className="flex items-end">
                                             <button
                                                 onClick={handleSaveTreatment}
                                                 disabled={isLoading || !newTreatmentName}
-                                                className="w-full h-[52px] bg-gradient-to-r from-teal-600 to-emerald-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-teal-100 hover:shadow-teal-200 transition-all active:scale-[0.98] disabled:opacity-50"
+                                                className="w-full h-[52px] bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-50"
                                             >
                                                 Ekle
                                             </button>
@@ -1779,10 +1712,10 @@ export function ClinicSettingsTab() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {isTreatmentsLoading ? (
                                         <div className="col-span-full py-12 flex justify-center">
-                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
                                         </div>
                                     ) : treatmentDefinitions.map((td) => (
-                                        <div key={td.id} className={`group relative p-6 rounded-[32px] border transition-all shadow-sm ${editingTreatmentId === td.id ? "border-teal-300 bg-teal-50/30 shadow-md" : "border-slate-100 bg-white hover:border-teal-200 hover:shadow-md"}`}>
+                                        <div key={td.id} className={`group relative p-6 rounded-[32px] border transition-all shadow-sm ${editingTreatmentId === td.id ? "border-indigo-300 bg-indigo-50/30 shadow-md" : "border-slate-100 bg-white hover:border-indigo-200 hover:shadow-md"}`}>
                                             {editingTreatmentId === td.id ? (
                                                 /* ── Düzenleme modu ── */
                                                 <div className="space-y-3">
@@ -1794,7 +1727,7 @@ export function ClinicSettingsTab() {
                                                             onChange={e => setEditingTreatmentName(e.target.value)}
                                                             onKeyDown={e => { if (e.key === "Enter") handleUpdateTreatment(); if (e.key === "Escape") handleCancelEditTreatment(); }}
                                                             autoFocus
-                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
@@ -1803,7 +1736,7 @@ export function ClinicSettingsTab() {
                                                             type="number"
                                                             value={editingTreatmentDuration}
                                                             onChange={e => setEditingTreatmentDuration(parseInt(e.target.value) || 0)}
-                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
@@ -1815,7 +1748,7 @@ export function ClinicSettingsTab() {
                                                             value={editingMaterialCost}
                                                             onFocus={(e) => e.target.select()}
                                                             onChange={e => setEditingMaterialCost(parseFloat(e.target.value) || 0)}
-                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
@@ -1828,7 +1761,7 @@ export function ClinicSettingsTab() {
                                                             value={editingPrimPercent}
                                                             onFocus={(e) => e.target.select()}
                                                             onChange={e => setEditingPrimPercent(parseFloat(e.target.value) || 0)}
-                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
@@ -1839,14 +1772,14 @@ export function ClinicSettingsTab() {
                                                             placeholder="Örn: 180"
                                                             value={editingRecallDays ?? ""}
                                                             onChange={e => setEditingRecallDays(e.target.value ? parseInt(e.target.value) : null)}
-                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                                                            className="w-full h-10 bg-white border border-slate-200 rounded-xl px-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
                                                         />
                                                     </div>
                                                     <div className="flex gap-2 pt-1">
                                                         <button
                                                             onClick={handleUpdateTreatment}
                                                             disabled={isLoading || !editingTreatmentName.trim()}
-                                                            className="flex-1 h-9 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-black transition-all active:scale-95 disabled:opacity-50"
+                                                            className="flex-1 h-9 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all active:scale-95 disabled:opacity-50"
                                                         >
                                                             Kaydet
                                                         </button>
@@ -1869,7 +1802,7 @@ export function ClinicSettingsTab() {
                                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                                                             <button
                                                                 onClick={() => handleStartEditTreatment(td)}
-                                                                className="p-2 rounded-xl text-slate-300 hover:text-teal-600 hover:bg-teal-50 transition-all"
+                                                                className="p-2 rounded-xl text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
                                                                 title="Düzenle"
                                                             >
                                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -1948,7 +1881,7 @@ export function ClinicSettingsTab() {
                                         {doctorList.map(doc => (
                                             <button key={doc.id}
                                                 onClick={() => setSelectedDoctorId(doc.id)}
-                                                className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${selectedDoctorId === doc.id ? 'bg-violet-600 text-white shadow-lg shadow-violet-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                                                className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${selectedDoctorId === doc.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                                                 {doc.full_name}
                                             </button>
                                         ))}
@@ -2015,18 +1948,16 @@ export function ClinicSettingsTab() {
                             <div className="px-8 py-6 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
                                     <h3 className="text-xl font-black text-slate-900">Kanal Yönetimi</h3>
-                                    {isLoading && <span className="w-3.5 h-3.5 rounded-full border-2 border-sky-400 border-t-transparent animate-spin" />}
+                                    {isLoading && <span className="w-3.5 h-3.5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />}
                                 </div>
                             </div>
-                            <div className="px-8 py-5 bg-sky-50/40 border-b border-sky-100/60">
+                            <div className="px-8 py-5 bg-indigo-50/40 border-b border-indigo-100/60">
                                 <p className="text-sm text-slate-600 font-medium leading-relaxed">
-                                    Randevu kanalları, hastanın kliniğe nasıl ulaştığını takip etmek için kullanılır — örneğin <span className="font-black text-slate-800">Instagram</span>, <span className="font-black text-slate-800">Telefon</span>, <span className="font-black text-slate-800">Google</span> veya <span className="font-black text-slate-800">Tavsiye</span>.
-                                    Yeni randevu eklerken veya düzenlerken bu listeden seçim yapılabilir. Silinen bir kanalın atandığı randevular otomatik olarak &ldquo;Belirtilmedi&rdquo; olarak güncellenir.
+                                    Randevu kanalları, hastanın kliniğe nasıl ulaştığını takip etmek için kullanılır — örneğin <span className="font-black text-slate-800">Instagram</span>, <span className="font-black text-slate-800">Telefon</span>, <span className="font-black text-slate-800">Google</span> veya <span className="font-black text-slate-800">Tavsiye</span>. Yeni randevu eklerken veya düzenlerken bu listeden seçim yapılabilir. Silinen bir kanalın atandığı randevular otomatik olarak "Belirtilmedi" olarak güncellenir.
                                 </p>
                             </div>
 
                             <div className="p-5 space-y-4">
-                                {/* Yeni kanal ekle */}
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
@@ -2035,21 +1966,20 @@ export function ClinicSettingsTab() {
                                         onChange={(e) => setNewChannelName(e.target.value)}
                                         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddChannel(); } }}
                                         disabled={isLoading}
-                                        className="flex-1 h-10 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-sky-400/30 focus:border-sky-400 transition-all disabled:opacity-50"
+                                        className="flex-1 h-10 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-400 transition-all disabled:opacity-50"
                                     />
                                     <button
                                         onClick={handleAddChannel}
                                         disabled={!newChannelName.trim() || isLoading}
-                                        className="h-10 px-5 bg-gradient-to-r from-sky-600 to-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-wide shadow-sm hover:shadow-md transition-all active:scale-[0.97] disabled:opacity-40"
+                                        className="h-10 px-5 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-wide shadow-sm hover:shadow-md transition-all active:scale-[0.97] disabled:opacity-40"
                                     >
                                         Ekle
                                     </button>
                                 </div>
 
-                                {/* Mevcut kanallar */}
                                 {channels.length === 0 ? (
                                     <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl">
-                                        <p className="text-xs font-semibold text-slate-400">Henüz kanal yok. Randevular &quot;Belirtilmedi&quot; görünür.</p>
+                                        <p className="text-xs font-semibold text-slate-400">Henüz kanal yok. Randevular "Belirtilmedi" görünür.</p>
                                     </div>
                                 ) : (
                                     <div className="flex flex-wrap gap-2">
@@ -2072,71 +2002,73 @@ export function ClinicSettingsTab() {
                                 )}
 
                                 {saveMessage && (
-                                    <div className={`px-3 py-2 rounded-xl text-xs font-bold ${saveMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                                    <div className={`px-3 py-2 rounded-xl text-xs font-bold ${saveMessage.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
                                         {saveMessage.text}
                                     </div>
                                 )}
                             </div>
                         </div>
-                    )
-                }
+                    )}
 
-                {activeSub === "check-in" && clinic.clinicId && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden">
-                            <div className="p-8 border-b border-slate-50">
-                                <h3 className="text-xl font-black text-slate-900">QR Check-in Sistemi</h3>
-                                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Hastalarınızın bekleme salonunda işlemlerini yapması için QR kodunuzu yönetin.</p>
-                            </div>
+                {
+                    activeSub === "check-in" && clinic.clinicId && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden">
+                                <div className="p-8 border-b border-slate-50">
+                                    <h3 className="text-xl font-black text-slate-900">QR Check-in Sistemi</h3>
+                                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-1">Hastalarınızın bekleme salonunda işlemlerini yapması için QR kodunuzu yönetin.</p>
+                                </div>
 
-                            <div className="p-8 sm:p-12 flex flex-col items-center">
-                                <QRCodeGenerator
-                                    value={getCheckinUrl(clinic.clinicSlug!)}
-                                    title={`${clinic.clinicName} Check-in QR Kodu`}
-                                    description="Bu kodu bastırıp bekleme salonuna asarak hastalarınızın check-in yapmasını ve dijital anamnez formu doldurmasını sağlayabilirsiniz."
-                                />
+                                <div className="p-8 sm:p-12 flex flex-col items-center">
+                                    <QRCodeGenerator
+                                        value={getCheckinUrl(clinic.clinicSlug!)}
+                                        title={`${clinic.clinicName} Check-in QR Kodu`}
+                                        description="Bu kodu bastırıp bekleme salonuna asarak hastalarınızın check-in yapmasını ve dijital anamnez formu doldurmasını sağlayabilirsiniz."
+                                    />
 
-                                <div className="mt-12 max-w-2xl w-full grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="p-6 bg-emerald-50 rounded-[28px] border border-emerald-100/50">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor font-black"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                    <div className="mt-12 max-w-2xl w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="p-6 bg-emerald-50 rounded-[28px] border border-emerald-100/50">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor font-black"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                                </div>
+                                                <span className="text-xs font-black text-emerald-900 uppercase">Avantajlar</span>
                                             </div>
-                                            <span className="text-xs font-black text-emerald-900 uppercase">Avantajlar</span>
+                                            <ul className="space-y-2">
+                                                <li className="flex items-start gap-2 text-[11px] font-bold text-emerald-700/80 leading-relaxed">
+                                                    <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                                                    Sekreteryanın veri girişi yükü azalır.
+                                                </li>
+                                                <li className="flex items-start gap-2 text-[11px] font-bold text-emerald-700/80 leading-relaxed">
+                                                    <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                                                    Hatalı veri girişi riski minimize edilir.
+                                                </li>
+                                                <li className="flex items-start gap-2 text-[11px] font-bold text-emerald-700/80 leading-relaxed">
+                                                    <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                                                    Kliniğinizin teknolojik prestiji artar.
+                                                </li>
+                                            </ul>
                                         </div>
-                                        <ul className="space-y-2">
-                                            <li className="flex items-start gap-2 text-[11px] font-bold text-emerald-700/80 leading-relaxed">
-                                                <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                                                Sekreteryanın veri girişi yükü azalır.
-                                            </li>
-                                            <li className="flex items-start gap-2 text-[11px] font-bold text-emerald-700/80 leading-relaxed">
-                                                <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                                                Hatalı veri girişi riski minimize edilir.
-                                            </li>
-                                            <li className="flex items-start gap-2 text-[11px] font-bold text-emerald-700/80 leading-relaxed">
-                                                <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                                                Kliniğinizin teknolojik prestiji artar.
-                                            </li>
-                                        </ul>
-                                    </div>
 
-                                    <div className="p-6 bg-indigo-50 rounded-[28px] border border-indigo-100/50">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className="w-8 h-8 rounded-xl bg-indigo-500 flex items-center justify-center text-white">
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor font-black"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <div className="p-6 bg-indigo-50 rounded-[28px] border border-indigo-100/50">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="w-8 h-8 rounded-xl bg-indigo-500 flex items-center justify-center text-white">
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor font-black"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                </div>
+                                                <span className="text-xs font-black text-indigo-900 uppercase">Nasıl Kullanılır?</span>
                                             </div>
-                                            <span className="text-xs font-black text-indigo-900 uppercase">Nasıl Kullanılır?</span>
+                                            <p className="text-[11px] font-bold text-indigo-700/80 leading-relaxed">
+                                                QR kodu indirip bastırarak bekleme salonuna asın. Hasta kodu okutup telefon numarasını girdiğinde randevusuyla eşleşir ve anamnez formu açılır.
+                                            </p>
                                         </div>
-                                        <p className="text-[11px] font-bold text-indigo-700/80 leading-relaxed">
-                                            QR kodu indirip bastırarak bekleme salonuna asın. Hasta kodu okutup telefon numarasını girdiğinde randevusuyla eşleşir ve anamnez formu açılır.
-                                        </p>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </main >
-        </div >
+                    )
+                }
+            </div>
+        </div>
     );
 }
+

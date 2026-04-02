@@ -35,7 +35,7 @@ export function AnnouncementBanner() {
                         className="flex items-center gap-3 overflow-hidden cursor-pointer group/text"
                         onClick={() => setIsModalOpen(true)}
                     >
-                        <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-lg bg-white/20 backdrop-blur-sm group-hover/text:bg-white/30 transition-colors">
+                        <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-lg bg-white/20 backdrop-blur-xl group-hover/text:bg-white/30 transition-colors">
                             {currentAnn.type === 'danger' ? (
                                 <svg className="w-4 h-4 text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

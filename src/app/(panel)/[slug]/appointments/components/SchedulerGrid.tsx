@@ -108,7 +108,10 @@ export function SchedulerGrid({
                                 className="flex-1 min-w-[260px] h-12 flex items-center justify-center border-r border-slate-100 px-3 shrink-0"
                             >
                                 <div className="flex items-center gap-2.5 overflow-hidden">
-                                    <div className="h-7 w-7 rounded-full bg-teal-50 flex items-center justify-center text-[10px] font-bold text-teal-600 border border-teal-100 shrink-0 uppercase">
+                                    <div 
+                                        className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm shrink-0 uppercase"
+                                        style={{ background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` }}
+                                    >
                                         {doctor.full_name?.toLowerCase().includes("atanmadı") ? '?' : (doctor.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'H')}
                                     </div>
                                     <span className="text-xs font-bold text-slate-700 truncate">

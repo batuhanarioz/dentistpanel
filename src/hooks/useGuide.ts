@@ -11,11 +11,11 @@ async function getToken(): Promise<string> {
 }
 
 /** Kliniğe özel protocol override'ları merge edilmiş tedavi listesini getirir. */
-export function useRehber() {
+export function useGuide() {
     const { clinicId } = useClinic();
-
+ 
     return useQuery<TreatmentLibraryItem[]>({
-        queryKey: ["rehber", clinicId],
+        queryKey: ["guide", clinicId],
         enabled: !!clinicId,
         staleTime: 60_000,
         queryFn: async () => {
@@ -29,12 +29,12 @@ export function useRehber() {
         },
     });
 }
-
+ 
 /** Admin/Doktor: klinik bazlı protokol notu günceller (upsert). */
 export function useUpdateProtocol() {
     const { clinicId } = useClinic();
     const queryClient = useQueryClient();
-
+ 
     return useMutation({
         mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
             const token = await getToken();
@@ -49,7 +49,7 @@ export function useUpdateProtocol() {
             if (!res.ok) throw new Error(await res.text());
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["rehber", clinicId] });
+            queryClient.invalidateQueries({ queryKey: ["guide", clinicId] });
         },
     });
 }

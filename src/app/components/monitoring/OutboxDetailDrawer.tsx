@@ -59,7 +59,7 @@ export function OutboxDetailDrawer({ outboxId, onClose }: Props) {
     return (
         <div className={`fixed inset-0 z-[120] transition-opacity duration-300 ${outboxId ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             {/* Overlay */}
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity" onClick={onClose} />
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl transition-opacity" onClick={onClose} />
 
             {/* Drawer */}
             <div

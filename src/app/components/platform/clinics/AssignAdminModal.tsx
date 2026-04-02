@@ -24,7 +24,7 @@ export function AssignAdminModal({ isOpen, onClose, clinic, onSubmit, saving, er
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-xl" onClick={onClose}>
       <div className="bg-white rounded-3xl shadow-2xl border w-full max-w-md mx-4 p-8 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <h2 className="text-lg font-bold text-slate-900">Yönetici Ata</h2>

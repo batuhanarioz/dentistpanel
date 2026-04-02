@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { Announcement } from "@/types/database";
 import { tr } from "date-fns/locale";
 import { supabase } from "@/lib/supabaseClient";
-import { useClinic } from "@/app/context/ClinicContext";
+import { useClinic, useUI } from "@/app/context/ClinicContext";
 import { useRouter } from "next/navigation";
 import { useSmartAssistant } from "@/hooks/useSmartAssistant";
 
@@ -67,6 +67,8 @@ export function NotificationDropdown() {
 
     const pendingCount = (controlItems?.length || 0) + (announcements?.length || 0) + panelNotifications.length + (assistantItems?.length || 0);
 
+    const { setOverlayActive } = useUI();
+
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -76,6 +78,13 @@ export function NotificationDropdown() {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        setOverlayActive(isOpen);
+        return () => {
+            if (isOpen) setOverlayActive(false);
+        };
+    }, [isOpen, setOverlayActive]);
 
     const getIcon = (code: string) => {
         switch (code) {
@@ -153,7 +162,7 @@ export function NotificationDropdown() {
             {/* Bildirim Butonu */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`relative group flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${isOpen ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-500 hover:border-indigo-200 hover:text-indigo-600 hover:shadow-md'
+                className={`relative group flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${isOpen ? 'active-brand-gradient text-white shadow-lg shadow-black/10' : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700 hover:shadow-md'
                     }`}
             >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -161,7 +170,7 @@ export function NotificationDropdown() {
                 </svg>
 
                 {pendingCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-white animate-in zoom-in">
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-white animate-in zoom-in" style={{ backgroundColor: 'var(--brand-from)' }}>
                         {pendingCount}
                     </span>
                 )}
@@ -230,7 +239,7 @@ export function NotificationDropdown() {
                                             <div className="shrink-0 group-hover:scale-110 transition-transform">{getAnnIcon(ann.type)}</div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2 mb-1">
-                                                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Sistem Duyurusu</span>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--brand-from)' }}>Sistem Duyurusu</span>
                                                 </div>
                                                 <p className="text-xs font-black text-slate-900 leading-tight mb-1">{ann.title}</p>
                                                 <p className="text-[11px] text-slate-600 font-medium leading-relaxed line-clamp-2">{ann.content}</p>
@@ -291,7 +300,8 @@ export function NotificationDropdown() {
                     <div className="p-3 border-t border-slate-50 bg-slate-50/30 text-center">
                         <button
                             onClick={() => { router.push(`/${clinicSlug}`); setIsOpen(false); }}
-                            className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
+                            className="text-[11px] font-bold transition-colors"
+                            style={{ color: 'var(--brand-from)' }}
                         >
                             Tüm Kontrolleri Gör
                         </button>

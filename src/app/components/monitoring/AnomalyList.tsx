@@ -55,7 +55,7 @@ export function AnomalyList({ data }: Props) {
                         className={`p-4 rounded-xl border-l-4 transition-all hover:scale-[1.01] ${getSeverityStyles(anomaly.severity)}`}
                     >
                         <div className="flex items-start gap-3">
-                            <div className="mt-0.5 p-1.5 rounded-lg bg-white/50 backdrop-blur-sm">
+                            <div className="mt-0.5 p-1.5 rounded-lg bg-white/50 backdrop-blur-xl">
                                 {getAnomalyIcon(anomaly.type)}
                             </div>
                             <div className="flex-1 min-w-0">

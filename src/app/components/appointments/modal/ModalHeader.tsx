@@ -11,7 +11,7 @@ interface ModalHeaderProps {
 
 export function ModalHeader({ editing, formDate, formTime, onClose, onSubmit, phoneNumber, phoneCountryCode, isSubmitting }: ModalHeaderProps) {
     return (
-        <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-500 px-6 py-4">
+        <div className="active-brand-gradient px-6 py-4">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="rounded-lg bg-white/10 p-2">

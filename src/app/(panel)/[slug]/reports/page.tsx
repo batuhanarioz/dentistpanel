@@ -26,6 +26,7 @@ const NAV_ITEMS = [
 ];
 
 function SectionNav() {
+  const { themeColorFrom: brandFrom = '#4f46e5' } = useClinic();
   const [active, setActive] = useState<string | null>(null);
 
   const scrollTo = useCallback((id: string) => {
@@ -45,9 +46,10 @@ function SectionNav() {
             key={id}
             onClick={() => scrollTo(id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${active === id
-              ? "bg-indigo-600 text-white shadow-sm"
+              ? "text-white shadow-sm"
               : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
               }`}
+            style={active === id ? { background: brandFrom } : {}}
           >
             <Icon className="w-3.5 h-3.5" />
             {label}
@@ -93,7 +95,10 @@ export default function ReportsPage() {
   if (loading && !analytics) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+        <Loader2 
+          className="w-10 h-10 animate-spin" 
+          style={{ color: (useClinic().themeColorFrom || '#4f46e5') }} 
+        />
         <p className="text-sm font-bold text-slate-400 animate-pulse uppercase tracking-widest">Veriler Derleniyor...</p>
         <p className="text-sm font-bold text-slate-400 animate-pulse tracking-widest">Bu işlem biraz zaman alabilir...</p>
         <p className="text-sm font-bold text-slate-400 animate-pulse tracking-widest">Lütfen bekleyiniz.</p>

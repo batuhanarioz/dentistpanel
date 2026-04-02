@@ -4,6 +4,7 @@ import React from "react";
 import { DatePreset } from "@/hooks/useReports";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
 import { Filter, Calendar, Users, Activity, RefreshCw, Download } from "lucide-react";
+import { useClinic } from "@/app/context/ClinicContext";
 import type { ReportData } from "./ReportSections";
 
 interface GlobalFilterBarProps {
@@ -97,13 +98,20 @@ export function GlobalFilterBar({
     onRefresh,
     analytics,
 }: GlobalFilterBarProps) {
+    const clinic = useClinic();
+    const brandFrom = clinic.themeColorFrom || '#4f46e5';
+    const brandTo = clinic.themeColorTo || '#10b981';
+
     return (
-        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b shadow-sm -mx-4 px-4 py-3 mb-0">
+        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b shadow-sm -mx-4 px-4 py-3 mb-0">
             <div className="max-w-7xl mx-auto flex flex-col gap-4">
                 {/* Header, presets, action buttons */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="bg-indigo-600 p-2 rounded-xl shadow-indigo-200 shadow-lg">
+                        <div 
+                            className="p-2 rounded-xl shadow-lg"
+                            style={{ background: brandFrom, boxShadow: `0 10px 15px -3px ${brandFrom}33` }}
+                        >
                             <Activity className="w-5 h-5 text-white" />
                         </div>
                         <div>
@@ -129,9 +137,10 @@ export function GlobalFilterBar({
                                     onClick={() => setPreset(p.id as DatePreset)}
                                     className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
                                         preset === p.id
-                                            ? "bg-white text-indigo-600 shadow-sm"
+                                            ? "bg-white shadow-sm"
                                             : "text-slate-500 hover:text-slate-700"
                                     }`}
+                                    style={preset === p.id ? { color: brandFrom } : {}}
                                 >
                                     {p.label}
                                 </button>
@@ -155,7 +164,8 @@ export function GlobalFilterBar({
                             <button
                                 onClick={() => exportToCSV(analytics, rangeLabel)}
                                 title="CSV olarak dışa aktar"
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 transition-colors text-xs font-bold text-indigo-700"
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-colors text-xs font-bold"
+                                style={{ background: `${brandFrom}10`, borderColor: `${brandFrom}20`, color: brandFrom }}
                             >
                                 <Download className="w-3.5 h-3.5" />
                                 Dışa Aktar
@@ -175,7 +185,10 @@ export function GlobalFilterBar({
                         </div>
                     )}
 
-                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                    <div 
+                        className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 transition-all"
+                        style={{ outlineColor: `${brandFrom}20` }}
+                    >
                         <Users className="w-3.5 h-3.5 text-slate-400 ml-1" />
                         <select
                             value={doctorFilter}
@@ -187,7 +200,10 @@ export function GlobalFilterBar({
                         </select>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                    <div 
+                        className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 transition-all"
+                        style={{ outlineColor: `${brandFrom}20` }}
+                    >
                         <Filter className="w-3.5 h-3.5 text-slate-400 ml-1" />
                         <select
                             value={treatmentFilter}
@@ -199,7 +215,10 @@ export function GlobalFilterBar({
                         </select>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                    <div 
+                        className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 transition-all"
+                        style={{ outlineColor: `${brandFrom}20` }}
+                    >
                         <Activity className="w-3.5 h-3.5 text-slate-400 ml-1" />
                         <select
                             value={statusFilter}

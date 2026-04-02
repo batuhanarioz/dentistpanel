@@ -11,7 +11,7 @@ const ROLE_OPTIONS = [
     },
     {
         value: UserRole.DOKTOR,
-        label: "HEKİM",
+        label: "Hekim",
         description: "Randevular, hastalar ve tedavi planları",
         color: "teal",
     },
@@ -98,7 +98,7 @@ export function EditUserModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/40 backdrop-blur-xl p-4" onClick={onClose}>
             <div className="bg-white rounded-2xl shadow-xl border w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="bg-gradient-to-r from-slate-700 via-slate-600 to-slate-500 px-6 py-4 flex items-center justify-between shrink-0">
@@ -162,8 +162,8 @@ export function EditUserModal({
                                         type="button"
                                         onClick={() => setRole(opt.value)}
                                         className={`flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-all ${role === opt.value
-                                                ? "border-slate-500 bg-slate-700 text-white shadow-sm"
-                                                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                                            ? "border-slate-500 bg-slate-700 text-white shadow-sm"
+                                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                                             }`}
                                     >
                                         <span className="text-xs font-bold">{opt.label}</span>

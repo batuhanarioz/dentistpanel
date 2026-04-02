@@ -7,7 +7,7 @@ import {
     useCreateLabJob, useUpdateLabJob,
 } from "@/hooks/useLabJobs";
 import { supabase } from "@/lib/supabaseClient";
-import { useClinic } from "@/app/context/ClinicContext";
+import { useClinic, useUI } from "@/app/context/ClinicContext";
 
 // ─── Tipler ───────────────────────────────────────────────────────────────────
 
@@ -51,6 +51,14 @@ export function LabJobModal({ open, onClose, editJob, prefilledPatient }: Props)
     const [status, setStatus] = useState<LabJobStatus>("sent");
 
     const [formError, setFormError] = useState<string | null>(null);
+    const { setOverlayActive } = useUI();
+
+    useEffect(() => {
+        setOverlayActive(open);
+        return () => {
+            if (open) setOverlayActive(false);
+        };
+    }, [open, setOverlayActive]);
 
     // Düzenleme modunda form doldur
     useEffect(() => {
@@ -153,9 +161,8 @@ export function LabJobModal({ open, onClose, editJob, prefilledPatient }: Props)
     const isPending = createMutation.isPending || updateMutation.isPending;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full sm:max-w-xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[95dvh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[320] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-xl" onClick={onClose}>
+            <div className="relative w-full sm:max-w-xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[95dvh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="px-6 pt-6 pb-4 border-b border-slate-100 shrink-0 flex items-center justify-between">

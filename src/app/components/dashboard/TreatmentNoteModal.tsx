@@ -93,7 +93,7 @@ export function TreatmentNoteModal({ open, onClose, appointmentId, patientName, 
     };
 
     return (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-xl p-4">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
 
                 {/* Header */}

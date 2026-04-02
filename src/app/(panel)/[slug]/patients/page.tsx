@@ -87,7 +87,10 @@ export default function PatientsPage() {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-3">
         {/* Toplam Hasta */}
-        <div className="relative rounded-2xl overflow-hidden px-3 md:px-4 py-3.5 bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600 shadow-lg shadow-teal-200/60 hover:-translate-y-0.5 transition-all duration-300 cursor-default w-full">
+        <div 
+          style={{ background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` }}
+          className="relative rounded-2xl overflow-hidden px-3 md:px-4 py-3.5 shadow-lg shadow-indigo-200/40 hover:-translate-y-0.5 transition-all duration-300 cursor-default w-full"
+        >
           <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10" />
           <div className="absolute right-2 bottom-2 opacity-[0.12]">
             <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
@@ -100,7 +103,10 @@ export default function PatientsPage() {
         </div>
 
         {/* Bu Ay Yeni */}
-        <div className="relative rounded-2xl overflow-hidden px-3 md:px-4 py-3.5 bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 shadow-lg shadow-indigo-200/60 hover:-translate-y-0.5 transition-all duration-300 cursor-default w-full">
+        <div 
+          style={{ background: `linear-gradient(to bottom right, var(--brand-to), var(--brand-from))` }}
+          className="relative rounded-2xl overflow-hidden px-3 md:px-4 py-3.5 shadow-lg shadow-purple-200/40 hover:-translate-y-0.5 transition-all duration-300 cursor-default w-full"
+        >
           <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10" />
           <div className="absolute right-2 bottom-2 opacity-[0.12]">
             <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
@@ -120,13 +126,18 @@ export default function PatientsPage() {
           <div className="flex flex-col md:flex-row gap-3 items-center">
             {/* Search */}
             <div className="relative flex-1 group w-full">
-              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <svg 
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[var(--focus-color)] transition-colors" 
+                fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"
+                style={{ '--focus-color': 'var(--brand-from)' } as React.CSSProperties}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
               </svg>
               <input
                 type="text"
                 placeholder="İsim veya telefon ile hızla ara..."
-                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white pl-10 pr-4 text-sm font-bold focus:border-emerald-500 focus:outline-none transition-all"
+                style={{ '--focus-border-color': 'var(--brand-from)' } as React.CSSProperties}
+                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white pl-10 pr-4 text-sm font-bold focus:border-[var(--focus-border-color)] focus:outline-none transition-all placeholder:font-medium placeholder:text-slate-400"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
               />
@@ -136,7 +147,11 @@ export default function PatientsPage() {
             <div className="flex gap-2 w-full md:w-auto shrink-0">
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="flex-1 md:flex-none h-10 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-xs font-black text-white shadow-lg shadow-emerald-200 hover:bg-emerald-700 active:scale-95 transition-all whitespace-nowrap uppercase tracking-widest"
+                style={{ 
+                  background: `linear-gradient(to right, var(--brand-from), var(--brand-to))`,
+                  boxShadow: `0 10px 15px -3px var(--brand-from)33`
+                }}
+                className="flex-1 md:flex-none h-10 flex items-center justify-center gap-2 rounded-xl px-5 text-xs font-black text-white hover:brightness-110 active:scale-95 transition-all whitespace-nowrap uppercase tracking-widest"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -147,7 +162,8 @@ export default function PatientsPage() {
                 <>
                   <button
                     onClick={() => setIsCSVModalOpen(true)}
-                    className="h-10 flex items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-100 bg-white px-4 text-xs font-black text-emerald-700 hover:bg-emerald-50 active:scale-95 transition-all whitespace-nowrap"
+                    style={{ '--brand-from-15': 'var(--brand-from)26' } as React.CSSProperties}
+                    className="h-10 flex items-center justify-center gap-1.5 rounded-xl border-2 border-slate-100 bg-white px-4 text-xs font-black text-slate-700 hover:bg-[var(--brand-from-15)] hover:text-[var(--brand-from)] hover:border-[var(--brand-from-15)] active:scale-95 transition-all whitespace-nowrap"
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -203,9 +219,12 @@ export default function PatientsPage() {
                   <path d="M15.75 19.5L8.25 12l7.5-7.5" />
                 </svg>
               </button>
-              <div className="h-8 min-w-[32px] px-2 rounded-lg bg-emerald-500 text-white text-xs font-black flex items-center justify-center shadow-md shadow-emerald-200/50">
-                {safePage}
-              </div>
+               <div 
+                 style={{ backgroundColor: 'var(--brand-from)' }}
+                 className="h-8 min-w-[32px] px-2 rounded-lg text-white text-xs font-black flex items-center justify-center shadow-md shadow-indigo-200/50"
+               >
+                 {safePage}
+               </div>
               <button
                 disabled={safePage === computedTotalPages}
                 onClick={() => setCurrentPage(safePage + 1)}

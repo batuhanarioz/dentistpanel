@@ -15,14 +15,12 @@ interface PatientListTableProps {
 }
 
 const AVATAR_GRADIENTS = [
-    "from-teal-500 to-emerald-500",
     "from-indigo-500 to-violet-500",
-    "from-rose-500 to-pink-500",
-    "from-amber-500 to-orange-400",
-    "from-blue-500 to-cyan-500",
     "from-purple-500 to-indigo-500",
-    "from-emerald-500 to-green-600",
-    "from-sky-500 to-blue-600",
+    "from-violet-500 to-fuchsia-500",
+    "from-slate-500 to-slate-700",
+    "from-blue-500 to-indigo-600",
+    "from-indigo-400 to-purple-500",
 ];
 
 export function PatientListTable({ patients, loading, onSelectPatient, sortKey, sortDir, onSort }: PatientListTableProps) {
@@ -45,7 +43,9 @@ export function PatientListTable({ patients, loading, onSelectPatient, sortKey, 
     }, [patients]);
 
     const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }) => (
-        <svg className={`h-3 w-3 ml-1 transition-transform ${active ? "text-teal-600" : "text-slate-300"} ${active && dir === "desc" ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+        <svg className={`h-3 w-3 ml-1 transition-transform ${active ? "text-[var(--brand-from)]" : "text-slate-300"} ${active && dir === "desc" ? "rotate-180" : ""}`} 
+             style={{ '--brand-from': 'var(--brand-from)' } as React.CSSProperties}
+             fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
         </svg>
     );
@@ -129,7 +129,10 @@ export function PatientListTable({ patients, loading, onSelectPatient, sortKey, 
                                                 {p.full_name[0]}
                                             </div>
                                             <div>
-                                                <div className="font-bold text-slate-900 group-hover:text-teal-600 transition-colors">
+                                                <div 
+                                                    style={{ color: 'var(--brand-from)' }}
+                                                    className="font-bold group-hover:text-[var(--brand-from)] transition-colors"
+                                                >
                                                     {p.full_name}
                                                 </div>
                                                 <div className="text-[10px] font-medium text-slate-400 mt-0.5">

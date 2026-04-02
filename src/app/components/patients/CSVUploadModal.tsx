@@ -190,7 +190,7 @@ export function CSVUploadModal({ isOpen, onClose, onUploadComplete }: CSVUploadM
     ];
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xl p-4 overflow-y-auto" onClick={onClose}>
             <div className="bg-white rounded-3xl shadow-2xl border w-full max-w-lg mx-auto overflow-hidden animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
                 <div className="bg-gradient-to-r from-teal-700 to-emerald-600 px-6 py-4 flex items-center justify-between">
                     <h2 className="text-sm font-bold text-white">CSV&apos;den Hasta Yükle</h2>

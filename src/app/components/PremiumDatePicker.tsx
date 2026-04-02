@@ -7,7 +7,7 @@ const WEEKDAY_SHORT = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 const MONTH_NAMES = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 
 const CURRENT_YEAR = new Date().getFullYear();
-const YEAR_RANGE = { min: CURRENT_YEAR - 2, max: CURRENT_YEAR + 3 };
+const YEAR_RANGE = { min: CURRENT_YEAR - 120, max: CURRENT_YEAR + 5 };
 
 type Props = {
   value: string;
@@ -119,7 +119,7 @@ export function PremiumDatePicker({ value, onChange, today: todayProp, className
         </button>
       )}
       {open && (
-        <div className={`absolute top-full z-50 mt-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/50 min-w-[280px] ${align === "right" ? "right-0" : "left-0"}`}>
+        <div className={`absolute top-full z-[100] mt-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/50 min-w-[280px] ${align === "right" ? "right-0" : "left-0"}`}>
           <div className="grid grid-cols-2 gap-2 mb-4">
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Ay</label>

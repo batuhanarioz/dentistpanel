@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { PremiumDatePicker } from "@/app/components/PremiumDatePicker";
-import { useClinic } from "@/app/context/ClinicContext";
+import { useClinic, useUI } from "@/app/context/ClinicContext";
 import { useTreatmentPlanMutations } from "@/hooks/useTreatmentPlanning";
 import { getAllPatients, getTreatmentDefinitions } from "@/lib/api";
 
@@ -10,6 +10,8 @@ const UPPER_TEETH_PICKER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 
 const LOWER_TEETH_PICKER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
 function ToothPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+    const { themeColorFrom: brandFrom = '#0d9488' } = useClinic();
+    
     const toggle = (n: number) => onChange(value === String(n) ? "" : String(n));
     const Row = ({ teeth }: { teeth: number[] }) => (
         <div className="flex gap-0.5">
@@ -18,7 +20,8 @@ function ToothPicker({ value, onChange }: { value: string; onChange: (v: string)
                     key={n}
                     type="button"
                     onClick={() => toggle(n)}
-                    className={`w-[22px] h-[22px] text-[8px] font-black rounded transition-colors ${value === String(n) ? "bg-[#007f6e] text-white" : "bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-[#007f6e]"}`}
+                    className={`w-[22px] h-[22px] text-[8px] font-black rounded transition-colors ${value === String(n) ? "text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                    style={value === String(n) ? { background: brandFrom } : undefined}
                 >
                     {n}
                 </button>
@@ -74,7 +77,10 @@ export function CreateTreatmentPlanModal({
     appointmentId,
     doctorId,
 }: Props) {
-    const { clinicId } = useClinic();
+    const clinic = useClinic();
+    const { clinicId } = clinic;
+    const brandFrom = clinic.themeColorFrom || '#0d9488';
+    const brandTo = clinic.themeColorTo || '#10b981';
 
     // Hasta seçimi (patientId verilmemişse)
     const [selectedPatientId, setSelectedPatientId] = useState(initialPatientId ?? "");
@@ -95,6 +101,14 @@ export function CreateTreatmentPlanModal({
 
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { setOverlayActive } = useUI();
+
+    useEffect(() => {
+        setOverlayActive(open);
+        return () => {
+            if (open) setOverlayActive(false);
+        };
+    }, [open, setOverlayActive]);
 
     const { createPlan } = useTreatmentPlanMutations(selectedPatientId || undefined);
 
@@ -217,11 +231,14 @@ export function CreateTreatmentPlanModal({
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[320] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xl">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[92vh]">
 
                 {/* Header */}
-                <div className="p-6 text-white relative flex-shrink-0 bg-gradient-to-r from-teal-600 to-indigo-600">
+                <div 
+                    className="p-6 text-white relative flex-shrink-0"
+                    style={{ background: `linear-gradient(to right, ${brandFrom}, ${brandTo})` }}
+                >
                     <button onClick={onClose} className="absolute right-4 top-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -260,11 +277,12 @@ export function CreateTreatmentPlanModal({
                                         }}
                                         onFocus={() => setShowPatientDropdown(true)}
                                         placeholder="Hasta adı veya telefonu ile ara..."
-                                        className="w-full h-10 pl-10 pr-4 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-teal-500 focus:bg-white transition-all"
+                                        className="w-full h-10 pl-10 pr-4 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-medium text-slate-700 outline-none focus:bg-white transition-all"
+                                        style={{ borderColor: showPatientDropdown ? `${brandFrom}40` : undefined }}
                                     />
                                     {selectedPatientId && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                            <svg className="w-4 h-4 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <svg className="w-4 h-4" style={{ color: brandFrom }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                             </svg>
                                         </div>
@@ -279,9 +297,9 @@ export function CreateTreatmentPlanModal({
                                             <button
                                                 key={p.id}
                                                 onClick={() => selectPatient(p)}
-                                                className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-teal-50 transition-colors text-left"
+                                                className="w-full flex items-center justify-between px-4 py-2.5 transition-colors text-left group"
                                             >
-                                                <span className="text-sm font-bold text-slate-800">{p.full_name}</span>
+                                                <span className="text-sm font-bold text-slate-800 group-hover:text-[var(--brand-text)]" style={{ '--brand-text': brandFrom } as React.CSSProperties}>{p.full_name}</span>
                                                 {p.phone && <span className="text-xs text-slate-400">{p.phone}</span>}
                                             </button>
                                         ))}
@@ -304,7 +322,8 @@ export function CreateTreatmentPlanModal({
                                 value={planTitle}
                                 onChange={(e) => setPlanTitle(e.target.value)}
                                 placeholder="ör. Üst çene implant tedavisi"
-                                className="w-full h-10 px-4 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-teal-500 focus:bg-white transition-all"
+                                className="w-full h-10 px-4 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-medium text-slate-700 outline-none focus:bg-white transition-all"
+                                style={{ borderColor: planTitle ? `${brandFrom}40` : undefined }}
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -313,7 +332,8 @@ export function CreateTreatmentPlanModal({
                                 value={planNote}
                                 onChange={(e) => setPlanNote(e.target.value)}
                                 placeholder="Tedavi hakkında genel notlar..."
-                                className="w-full h-16 px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-teal-500 focus:bg-white transition-all resize-none"
+                                className="w-full h-16 px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-medium text-slate-700 outline-none focus:bg-white transition-all resize-none"
+                                style={{ borderColor: planNote ? `${brandFrom}40` : undefined }}
                             />
                         </div>
                     </div>
@@ -325,7 +345,10 @@ export function CreateTreatmentPlanModal({
                                 Planlanan İşlemler <span className="text-rose-400">*</span>
                             </label>
                             {totalAmount > 0 && (
-                                <span className="text-[10px] font-black text-teal-600 bg-teal-50 px-2 py-0.5 rounded-lg">
+                                <span 
+                                    className="text-[10px] font-black px-2 py-0.5 rounded-lg"
+                                    style={{ background: `${brandFrom}15`, color: brandFrom }}
+                                >
                                     Toplam: {totalAmount.toLocaleString("tr-TR")} ₺
                                 </span>
                             )}
@@ -370,7 +393,7 @@ export function CreateTreatmentPlanModal({
                                     <div className="space-y-1 col-span-full">
                                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                             Diş No
-                                            {item.tooth_no && <span className="ml-2 text-[#007f6e]">#{item.tooth_no} seçili</span>}
+                                            {item.tooth_no && <span className="ml-2 font-black" style={{ color: brandFrom }}>#{item.tooth_no} seçili</span>}
                                         </label>
                                         <div className="bg-white border border-slate-200 rounded-xl p-2 overflow-x-auto">
                                             <ToothPicker
@@ -402,7 +425,7 @@ export function CreateTreatmentPlanModal({
                                     </div>
                                 </div>
                                 {item.quantity > 0 && item.unit_price > 0 && (
-                                    <div className="text-right text-[10px] font-black text-teal-600">
+                                    <div className="text-right text-[10px] font-black" style={{ color: brandFrom }}>
                                         {item.quantity} × {item.unit_price.toLocaleString("tr-TR")} ₺ = {(item.quantity * item.unit_price).toLocaleString("tr-TR")} ₺
                                     </div>
                                 )}
@@ -411,7 +434,8 @@ export function CreateTreatmentPlanModal({
 
                         <button
                             onClick={addItem}
-                            className="w-full py-2.5 border-2 border-dashed border-teal-200 rounded-2xl text-xs font-bold text-teal-600 hover:border-teal-400 hover:bg-teal-50 transition-all flex items-center justify-center gap-2"
+                            className="w-full py-2.5 border-2 border-dashed rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 group"
+                            style={{ borderColor: `${brandFrom}33`, color: brandFrom }}
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -421,12 +445,15 @@ export function CreateTreatmentPlanModal({
                     </div>
 
                     {/* Sonraki randevu */}
-                    <div className="bg-teal-50/60 rounded-2xl border border-teal-100 p-4 space-y-3">
+                    <div 
+                        className="rounded-2xl border p-4 space-y-3"
+                        style={{ background: `${brandFrom}08`, borderColor: `${brandFrom}15` }}
+                    >
                         <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4" style={{ color: brandFrom }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <span className="text-[10px] font-black text-teal-700 uppercase tracking-widest">Sonraki Randevu (Otomatik)</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: brandFrom }}>Sonraki Randevu (Otomatik)</span>
                         </div>
                         <p className="text-[10px] text-slate-500 -mt-1">Tarih seçerseniz randevu otomatik oluşturulur.</p>
                         <div className="grid grid-cols-3 gap-2">
@@ -457,11 +484,11 @@ export function CreateTreatmentPlanModal({
                             </div>
                         </div>
                         {nextDate && (
-                            <div className="flex items-center gap-2 bg-teal-100 rounded-xl px-3 py-2">
-                                <svg className="w-3.5 h-3.5 text-teal-700 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: `${brandFrom}20` }}>
+                                <svg className="w-3.5 h-3.5 flex-shrink-0" style={{ color: brandFrom }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                 </svg>
-                                <span className="text-[10px] font-bold text-teal-700">
+                                <span className="text-[10px] font-bold" style={{ color: brandFrom }}>
                                     {new Date(`${nextDate}T${nextTime}`).toLocaleDateString("tr-TR", {
                                         day: "2-digit", month: "long", year: "numeric", weekday: "long"
                                     })} saat {nextTime} için randevu oluşturulacak.
@@ -475,7 +502,7 @@ export function CreateTreatmentPlanModal({
                 <div className="p-5 bg-slate-50 border-t border-slate-100 flex justify-between items-center gap-3 flex-shrink-0">
                     {totalAmount > 0 ? (
                         <span className="text-sm font-black text-slate-700">
-                            Toplam: <span className="text-teal-600">{totalAmount.toLocaleString("tr-TR")} ₺</span>
+                            Toplam: <span style={{ color: brandFrom }}>{totalAmount.toLocaleString("tr-TR")} ₺</span>
                         </span>
                     ) : <span />}
                     <div className="flex gap-3">
@@ -489,7 +516,8 @@ export function CreateTreatmentPlanModal({
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="px-6 py-2.5 text-white font-bold rounded-xl shadow-lg transition-all text-xs flex items-center gap-2 disabled:opacity-60 active:scale-95 bg-teal-600 hover:bg-teal-700 shadow-teal-600/30"
+                            style={{ background: brandFrom }}
+                            className="px-6 py-2.5 text-white font-bold rounded-xl shadow-lg transition-all text-xs flex items-center gap-2 disabled:opacity-60 active:scale-95 shadow-black/5"
                         >
                             {saving ? (
                                 <>

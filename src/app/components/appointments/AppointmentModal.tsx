@@ -11,7 +11,7 @@ import { AnamnesisSection } from "@/app/components/patients/AnamnesisSection";
 import { useAnamnesis, useAnamnesisMutation } from "@/hooks/useAnamnesis";
 import type { PatientAnamnesis } from "@/types/database";
 import { supabase } from "@/lib/supabaseClient";
-import { useClinic } from "@/app/context/ClinicContext";
+import { useClinic, useUI } from "@/app/context/ClinicContext";
 
 interface AppointmentModalProps {
     isOpen: boolean;
@@ -58,6 +58,14 @@ export function AppointmentModal(props: AppointmentModalProps) {
     const [deleteError, setDeleteError] = React.useState<string | null>(null);
     const [deleteLoading, setDeleteLoading] = React.useState(false);
     const [linkedPlanCount, setLinkedPlanCount] = React.useState<number | null>(null);
+    const { setOverlayActive } = useUI();
+
+    React.useEffect(() => {
+        setOverlayActive(props.isOpen, true);
+        return () => {
+            if (props.isOpen) setOverlayActive(false);
+        };
+    }, [props.isOpen, setOverlayActive]);
 
     // Silme onayı gösterildiğinde bağlı tedavi planı sayısını çek
     React.useEffect(() => {
@@ -98,8 +106,8 @@ export function AppointmentModal(props: AppointmentModalProps) {
 
     return (
         <>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" onClick={props.onClose}>
-                <div className="bg-white rounded-3xl shadow-2xl border w-full max-w-2xl mx-auto overflow-hidden animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-900/40 backdrop-blur-xl p-4 overflow-y-auto" onClick={props.onClose}>
+                <div className="bg-white rounded-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-white/20 w-full max-w-2xl mx-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
                     <ModalHeader
                         editing={!!props.editing}
                         formDate={props.formDate}
@@ -169,7 +177,7 @@ export function AppointmentModal(props: AppointmentModalProps) {
                             <button
                                 type="button"
                                 onClick={() => setShowMoreInfo(!showMoreInfo)}
-                                className="flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50/80 backdrop-blur-sm px-5 py-2.5 text-xs font-bold text-indigo-700 shadow-sm hover:bg-indigo-100 hover:border-indigo-200 transition-all active:scale-95 group"
+                                className="flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50/80 backdrop-blur-xl px-5 py-2.5 text-xs font-bold text-indigo-700 shadow-sm hover:bg-indigo-100 hover:border-indigo-200 transition-all active:scale-95 group"
                             >
                                 {showMoreInfo ? "Detayları Gizle" : "Daha Fazla Bilgi"}
                                 <svg
@@ -269,7 +277,7 @@ export function AppointmentModal(props: AppointmentModalProps) {
 
             {/* Anamnez Modalı */}
             {showAnamnesisModal && activePatientId && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowAnamnesisModal(false)}>
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-xl p-4" onClick={() => setShowAnamnesisModal(false)}>
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">

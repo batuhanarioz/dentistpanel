@@ -113,7 +113,7 @@ export function DashboardChecklistModal({ open, onClose }: DashboardChecklistMod
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xl p-4">
             <div
                 className="bg-white rounded-2xl shadow-xl border w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}

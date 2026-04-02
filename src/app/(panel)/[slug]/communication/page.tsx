@@ -11,6 +11,7 @@ import { formatPhoneForWhatsApp } from "@/lib/dateUtils";
 import { useParams } from "next/navigation";
 import { usePatients, PatientRow } from "@/hooks/usePatients";
 import { PatientDetailModal } from "@/app/components/patients/PatientDetailModal";
+import { useClinic } from "@/app/context/ClinicContext";
 
 // --- Kategori renk & ikon tanımları ---
 type CategoryStyle = {
@@ -70,6 +71,10 @@ function buildRecallWaLink(phone: string | null | undefined, patientName: string
 
 export default function CommunicationHubPage() {
     const { slug } = useParams() as { slug: string };
+    const clinic = useClinic();
+    const brandFrom = clinic.themeColorFrom || '#0d9488';
+    const brandTo = clinic.themeColorTo || '#10b981';
+
     const [viewMode, setViewMode] = useState<'ASSISTANT' | 'RECALL' | 'CHECKIN'>('ASSISTANT');
     const [searchTerm, setSearchTerm] = useState("");
     const [openRecallStatusId, setOpenRecallStatusId] = useState<string | null>(null);
@@ -130,9 +135,7 @@ export default function CommunicationHubPage() {
 
     const filteredAssistantItems = useMemo(() => {
         let list = showDismissed ? dismissedAssistantItems : assistantItems;
-        if (assistantFilter === "INCOMPLETE") {
-            list = list.filter((i: AssistantItem) => !i.patientPhone);
-        } else if (assistantFilter !== "ALL") {
+        if (assistantFilter !== "ALL") {
             list = list.filter((i: AssistantItem) => i.type === assistantFilter);
         }
         if (searchTerm) list = list.filter((i: AssistantItem) => i.patientName.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -214,13 +217,14 @@ export default function CommunicationHubPage() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-2">
                 <div className="bg-white p-1 rounded-full shadow-lg border border-slate-100 flex items-center relative overflow-hidden w-full md:w-auto">
                     <div
-                        className={`absolute inset-y-1 rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 transition-all duration-500 ease-out shadow-lg ${viewMode === 'ASSISTANT' ? 'left-1 w-[32%]' :
+                        className={`absolute inset-y-1 rounded-full transition-all duration-500 ease-out shadow-lg ${viewMode === 'ASSISTANT' ? 'left-1 w-[32%]' :
                             viewMode === 'RECALL' ? 'left-[34%] w-[32%]' :
                                 'left-[67%] w-[32%]'
                             } md:w-[120px] ${viewMode === 'ASSISTANT' ? 'md:left-1' :
                                 viewMode === 'RECALL' ? 'md:left-[125px]' :
                                     'md:left-[249px]'
                             }`}
+                        style={{ background: `linear-gradient(to right, ${brandFrom}, ${brandTo})` }}
                     />
                     <button onClick={() => setViewMode('ASSISTANT')} className={`relative z-10 flex-1 md:w-[120px] py-2.5 text-[10px] md:text-xs font-black tracking-widest uppercase transition-colors duration-300 ${viewMode === 'ASSISTANT' ? 'text-white' : 'text-slate-400'}`}>Asistan</button>
                     <button onClick={() => setViewMode('RECALL')} className={`relative z-10 flex-1 md:w-[120px] py-2.5 text-[10px] md:text-xs font-black tracking-widest uppercase transition-colors duration-300 ${viewMode === 'RECALL' ? 'text-white' : 'text-slate-400'}`}>Recall</button>
@@ -233,7 +237,8 @@ export default function CommunicationHubPage() {
                         placeholder="İsimle hasta ara..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-white border border-slate-100 rounded-2xl px-5 py-3.5 text-xs font-bold text-slate-700 shadow-sm focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all outline-none"
+                        className="w-full bg-white border border-slate-100 rounded-2xl px-5 py-3.5 text-xs font-bold text-slate-700 shadow-sm transition-all outline-none"
+                        style={{ borderColor: searchTerm ? brandFrom : undefined }}
                     />
                 </div>
             </div>
@@ -271,7 +276,10 @@ export default function CommunicationHubPage() {
                     <div className="flex flex-col gap-5 bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                             <div className="flex items-center gap-4 w-full md:w-auto">
-                                <div className="h-12 w-12 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-600 text-xl font-bold">✨</div>
+                                <div 
+                                    className="h-12 w-12 rounded-2xl flex items-center justify-center text-xl font-bold"
+                                    style={{ background: `${brandFrom}15`, color: brandFrom }}
+                                >✨</div>
                                 <div>
                                     <h2 className="text-lg font-black text-slate-800">Akıllı Bildirimler</h2>
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">{filteredAssistantItems.length} kayıt</p>
@@ -287,7 +295,8 @@ export default function CommunicationHubPage() {
                                 </button>
                                 <button
                                     onClick={() => setShowDismissed(true)}
-                                    className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${showDismissed ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200' : 'text-slate-400 hover:text-slate-600'}`}
+                                    className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${showDismissed ? 'text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+                                    style={showDismissed ? { background: brandFrom } : {}}
                                 >
                                     Gönderilenler
                                     <span className={`px-2 py-0.5 rounded-full text-[9px] ${showDismissed ? 'bg-white/20' : 'bg-slate-300/50 text-slate-500'}`}>{dismissedAssistantItems.length}</span>
@@ -412,7 +421,10 @@ export default function CommunicationHubPage() {
                 <div className="space-y-6 animate-in fade-in duration-500">
                     <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
                         <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 text-xl font-bold">📅</div>
+                            <div 
+                                className="h-12 w-12 rounded-2xl flex items-center justify-center text-xl font-bold"
+                                style={{ background: `${brandFrom}15`, color: brandFrom }}
+                            >📅</div>
                             <div>
                                 <h2 className="text-lg font-black text-slate-800">Recall Listesi</h2>
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">{recallStats.pending} bekleyen</p>
@@ -420,8 +432,12 @@ export default function CommunicationHubPage() {
                         </div>
                         <div className="flex flex-wrap gap-2 bg-slate-50 p-1.5 rounded-2xl">
                             {(['pending', 'contacted', 'booked', 'dismissed'] as RecallStatus[]).map((t) => (
-                                <button key={t} onClick={() => setRecallTab(t)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${recallTab === t ? "bg-white text-amber-600 shadow-md" : "text-slate-400"}`}>
-                                    {statusNames[t]} <span className="bg-slate-100 px-1.5 py-0.5 rounded-full text-[9px]">{recallStats[t as keyof typeof recallStats] as number}</span>
+                                <button 
+                                    key={t} onClick={() => setRecallTab(t)} 
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${recallTab === t ? "bg-white shadow-md" : "text-slate-400"}`}
+                                    style={recallTab === t ? { color: brandFrom } : {}}
+                                >
+                                    {statusNames[t]} <span className="bg-slate-100 px-1.5 py-0.5 rounded-full text-[9px]" style={recallTab === t ? { background: `${brandFrom}15` } : {}}>{recallStats[t as keyof typeof recallStats] as number}</span>
                                 </button>
                             ))}
                         </div>

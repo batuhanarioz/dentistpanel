@@ -6,10 +6,15 @@ import { useTreatmentPlans, useTreatmentPlanMutations, PLAN_STATUS_CONFIG, ITEM_
 import { TreatmentPlanWithItems } from "@/hooks/useTreatmentPlanning";
 import { TreatmentPlanItemWithDoctor } from "@/lib/api";
 import { CreateTreatmentPlanModal } from "@/app/components/treatments/CreateTreatmentPlanModal";
+import { useClinic } from "@/app/context/ClinicContext";
 
 type StatusFilter = "ALL" | TreatmentPlanWithItems["status"];
 
 export default function TreatmentPlansPage() {
+    const clinic = useClinic();
+    const brandFrom = clinic.themeColorFrom || '#0d9488';
+    const brandTo = clinic.themeColorTo || '#10b981';
+
     usePageHeader("Tedavi Planları");
 
     const { data: plans = [], isLoading } = useTreatmentPlans();
@@ -71,12 +76,13 @@ export default function TreatmentPlansPage() {
                             placeholder="Hasta adı veya plan başlığı..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-100 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-teal-500 focus:bg-white transition-all"
+                            className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-100 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-slate-300 focus:bg-white transition-all"
                         />
                     </div>
                     <button
                         onClick={() => setShowCreate(true)}
-                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-md shadow-teal-600/20 transition-all active:scale-95 shrink-0"
+                        style={{ background: `linear-gradient(to right, ${brandFrom}, ${brandTo})` }}
+                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white rounded-xl shadow-md transition-all active:scale-95 shrink-0"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -90,9 +96,10 @@ export default function TreatmentPlansPage() {
                         <button
                             key={tab.key}
                             onClick={() => setStatusFilter(tab.key)}
+                            style={statusFilter === tab.key ? { background: brandFrom } : {}}
                             className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
                                 statusFilter === tab.key
-                                    ? "bg-teal-600 text-white shadow-md shadow-teal-600/20"
+                                    ? "text-white shadow-md"
                                     : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100"
                             }`}
                         >
@@ -112,8 +119,11 @@ export default function TreatmentPlansPage() {
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-16 text-center">
-                        <div className="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <svg className="w-6 h-6 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div 
+                            className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                            style={{ background: `${brandFrom}15`, color: brandFrom }}
+                        >
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
                             </svg>
                         </div>
@@ -121,7 +131,8 @@ export default function TreatmentPlansPage() {
                         <p className="text-xs text-slate-300 mt-1">Yeni bir plan oluşturmak için &quot;Yeni Plan&quot; butonuna tıklayın.</p>
                         <button
                             onClick={() => setShowCreate(true)}
-                            className="mt-4 flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-md transition-all mx-auto"
+                            style={{ background: `linear-gradient(to right, ${brandFrom}, ${brandTo})` }}
+                            className="mt-4 flex items-center gap-1.5 px-4 py-2 text-xs font-black text-white rounded-xl shadow-md transition-all mx-auto active:scale-95"
                         >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -155,15 +166,28 @@ export default function TreatmentPlansPage() {
 // ─── Alt bileşenler ──────────────────────────────────────────────────────────
 
 function StatCard({ label, value, color }: { label: string; value: string | number; color: string }) {
+    const clinic = useClinic();
+    const brandFrom = clinic.themeColorFrom || '#0d9488';
+
     const colors: Record<string, string> = {
         slate: "bg-slate-50 text-slate-700",
         amber: "bg-amber-50 text-amber-700",
         blue:  "bg-blue-50 text-blue-700",
-        teal:  "bg-teal-50 text-teal-700",
+        teal:  `bg-teal-50 text-teal-700`,
     };
+
+    const style = color === 'teal' 
+        ? { background: `${brandFrom}15`, color: brandFrom } 
+        : undefined;
+
     return (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col gap-1">
-            <span className={`text-xs font-black px-2 py-0.5 rounded-lg w-fit ${colors[color]}`}>{label}</span>
+            <span 
+                className={`text-xs font-black px-2 py-0.5 rounded-lg w-fit ${color === 'teal' ? '' : colors[color]}`}
+                style={style}
+            >
+                {label}
+            </span>
             <span className="text-xl font-black text-slate-800 tracking-tighter">{value}</span>
         </div>
     );
@@ -189,6 +213,10 @@ interface PlanCardProps {
 }
 
 function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete, onUpsertItem, onRemoveItem }: PlanCardProps) {
+    const clinic = useClinic();
+    const brandFrom = clinic.themeColorFrom || '#0d9488';
+    const brandTo = clinic.themeColorTo || '#10b981';
+
     const statusCfg = PLAN_STATUS_CONFIG[plan.status];
     const completedItems = plan.items.filter(i => i.status === "completed").length;
     const progressPct = plan.items.length > 0 ? Math.round((completedItems / plan.items.length) * 100) : 0;
@@ -254,7 +282,10 @@ function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete, onUpse
                             </span>
                         )}
                         {plan.next_appointment_id && (
-                            <span className="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
+                            <span 
+                                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                style={{ background: `${brandFrom}15`, color: brandFrom }}
+                            >
                                 Randevu planlandı
                             </span>
                         )}
@@ -262,14 +293,17 @@ function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete, onUpse
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
                     {plan.total_estimated_amount != null && (
-                        <span className="text-sm font-black text-teal-700">
+                        <span className="text-sm font-black" style={{ color: brandFrom }}>
                             {plan.total_estimated_amount.toLocaleString("tr-TR")} ₺
                         </span>
                     )}
                     {plan.items.length > 0 && (
                         <div className="hidden sm:flex items-center gap-2">
                             <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-teal-500 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
+                                <div 
+                                    className="h-full rounded-full transition-all" 
+                                    style={{ width: `${progressPct}%`, background: `linear-gradient(to right, ${brandFrom}, ${brandTo})` }} 
+                                />
                             </div>
                             <span className="text-[10px] font-black text-slate-400">{progressPct}%</span>
                         </div>
@@ -437,13 +471,16 @@ function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete, onUpse
 
                     {/* Sonraki randevu */}
                     {plan.next_appointment_id && (
-                        <div className="flex items-center gap-2 bg-teal-50 rounded-xl px-4 py-3 border border-teal-100">
-                            <svg className="w-4 h-4 text-teal-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div 
+                            className="flex items-center gap-2 rounded-xl px-4 py-3 border"
+                            style={{ background: `${brandFrom}08`, borderColor: `${brandFrom}1a` }}
+                        >
+                            <svg className="w-4 h-4 shrink-0" style={{ color: brandFrom }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             <div>
-                                <p className="text-xs font-bold text-teal-700">Sonraki randevu otomatik oluşturuldu</p>
-                                <p className="text-[10px] text-teal-600">Randevu Yönetimi sayfasından görüntüleyebilirsiniz.</p>
+                                <p className="text-xs font-bold" style={{ color: brandFrom }}>Sonraki randevu otomatik oluşturuldu</p>
+                                <p className="text-[10px] opacity-70" style={{ color: brandFrom }}>Randevu Yönetimi sayfasından görüntüleyebilirsiniz.</p>
                             </div>
                         </div>
                     )}

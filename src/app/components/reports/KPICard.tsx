@@ -1,4 +1,5 @@
 import React from "react";
+import { useClinic } from "@/app/context/ClinicContext";
 
 interface KPICardProps {
     value: string;
@@ -12,12 +13,18 @@ interface KPICardProps {
 }
 
 export function KPICard({ value, label, icon, iconBg, valueColor, small, onClick, active }: KPICardProps) {
+    const { themeColorFrom: brandFrom = '#4f46e5' } = useClinic();
+    
     return (
         <button
             onClick={onClick}
             disabled={!onClick}
-            className={`flex items-start gap-3 rounded-2xl border bg-white p-3.5 text-left transition-all ${onClick ? "cursor-pointer hover:border-indigo-200 hover:shadow-md" : ""
-                } ${active ? "ring-2 ring-indigo-500 ring-offset-2 border-indigo-200 shadow-sm" : ""}`}
+            className={`flex items-start gap-3 rounded-2xl border bg-white p-3.5 text-left transition-all ${onClick ? "cursor-pointer hover:shadow-md" : ""
+                }`}
+            style={{ 
+                borderColor: active ? brandFrom : (onClick ? undefined : undefined),
+                boxShadow: active ? `0 0 0 2px ${brandFrom}20` : undefined
+            }}
         >
             <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-sm ${iconBg}`}>
                 {icon}

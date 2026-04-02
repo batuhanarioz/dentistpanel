@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { PatientRow, PatientAppointment, PatientPayment } from "@/hooks/usePatients";
-import { useClinic } from "@/app/context/ClinicContext";
+import { useClinic, useUI } from "@/app/context/ClinicContext";
 import { isPaid, getPaymentStatusConfig, normalizePaymentMethod } from "@/constants/payments";
 import { useTreatmentPlans, useTreatmentPlanMutations, PLAN_STATUS_CONFIG, ITEM_STATUS_CONFIG } from "@/hooks/useTreatmentPlanning";
 import { CreateTreatmentPlanModal } from "@/app/components/treatments/CreateTreatmentPlanModal";
@@ -86,6 +87,14 @@ export function PatientDetailModal({
 
     // Hastanın recall geçmişi
     const { data: patientRecalls = [] } = usePatientRecallHistory(isOpen ? patient?.id : undefined);
+    const { setOverlayActive } = useUI();
+
+    useEffect(() => {
+        setOverlayActive(isOpen);
+        return () => {
+            if (isOpen) setOverlayActive(false);
+        };
+    }, [isOpen, setOverlayActive]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -143,7 +152,7 @@ export function PatientDetailModal({
                 const animationEnd = Date.now() + duration;
                 const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
 
-                const interval: ReturnType<typeof setInterval> = setInterval(function() {
+                const interval: ReturnType<typeof setInterval> = setInterval(function () {
                     const timeLeft = animationEnd - Date.now();
                     if (timeLeft <= 0) return clearInterval(interval);
                     const particleCount = 50 * (timeLeft / duration);
@@ -267,73 +276,104 @@ export function PatientDetailModal({
         no_show: "Gelmedi"
     };
 
-    return (
-        <>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto" onClick={onClose}>
-                <div className="bg-[#f0f4f8] rounded-[2rem] shadow-2xl border-none w-full max-w-3xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200 my-auto" onClick={(e) => e.stopPropagation()}>
-
-                    {/* Header Section */}
-                    <div className="relative bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600 px-6 py-5 text-white shrink-0 overflow-hidden">
-                        {/* Dekoratif daireler */}
-                        <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10" />
-                        <div className="absolute -right-2 top-12 h-16 w-16 rounded-full bg-white/5" />
-                        <div className="flex items-center justify-between relative">
-                            <div className="flex items-center gap-4">
-                                <div className="h-14 w-14 rounded-2xl bg-white flex items-center justify-center text-teal-600 text-xl font-black shadow-xl shrink-0 uppercase select-none">
-                                    {patient.full_name[0]}
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <h2 className="text-xl font-bold leading-tight">{patient.full_name}</h2>
-                                        {age !== null && (
-                                            <span className="text-[11px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full">{age} yaş</span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-3 mt-1 flex-wrap">
-                                        <p className="text-[11px] text-white/70 font-medium">Kayıt: {new Date(patient.created_at).toLocaleDateString("tr-TR")}</p>
-                                        {stats.lastVisit && (
-                                            <p className="text-[11px] text-white/70 font-medium">
-                                                Son Ziyaret: {new Date(stats.lastVisit.starts_at).toLocaleDateString("tr-TR")}
-                                            </p>
-                                        )}
-                                    </div>
-                                    {isBirthday && (
-                                        <div className="flex items-center gap-1 mt-1 bg-amber-400/20 border border-amber-400/30 px-2 py-0.5 rounded-lg w-fit animate-bounce shadow-sm">
-                                            <span className="text-[10px] font-black text-amber-200">🎂 BUGÜN DOĞUM GÜNÜ!</span>
+    return createPortal(
+        <> 
+            <div 
+                style={{ 
+                    '--brand-from': clinic.themeColorFrom || '#0d9488',
+                    '--brand-to': clinic.themeColorTo || '#10b981'
+                } as React.CSSProperties}
+                className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-900/40 backdrop-blur-xl p-4 overflow-y-auto" 
+                onClick={onClose}
+            >
+            <div className="bg-[#f0f4f8] rounded-[2rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-white/20 w-full max-w-3xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-auto ring-1 ring-black/5" onClick={(e) => e.stopPropagation()}>
+                {/* Header Section */}
+                <div 
+                                style={{ background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` }}
+                                className="relative px-6 py-5 text-white shrink-0 overflow-hidden"
+                            >
+                                {/* Dekoratif daireler */}
+                                <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10" />
+                                <div className="absolute -right-2 top-12 h-16 w-16 rounded-full bg-white/5" />
+                                <div className="flex items-center justify-between relative">
+                                    <div className="flex items-center gap-4">
+                                        <div
+                                            className="h-14 w-14 rounded-2xl bg-white flex items-center justify-center text-xl font-black shadow-xl shrink-0 uppercase select-none"
+                                            style={{ color: '#0d9488' }}
+                                        >
+                                            {patient.full_name[0]}
                                         </div>
-                                    )}
+                                        <div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h2 className="text-xl font-bold leading-tight">{patient.full_name}</h2>
+                                                {age !== null && (
+                                                    <span className="text-[11px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full">{age} yaş</span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3 mt-1 flex-wrap">
+                                                <p className="text-[11px] text-white/70 font-medium">Kayıt: {new Date(patient.created_at).toLocaleDateString("tr-TR")}</p>
+                                                {stats.lastVisit && (
+                                                    <p className="text-[11px] text-white/70 font-medium">
+                                                        Son Ziyaret: {new Date(stats.lastVisit.starts_at).toLocaleDateString("tr-TR")}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            {isBirthday && (
+                                                <div className="flex items-center gap-1 mt-1 bg-amber-400/20 border border-amber-400/30 px-2 py-0.5 rounded-lg w-fit animate-bounce shadow-sm">
+                                                    <span className="text-[10px] font-black text-amber-200">🎂 BUGÜN DOĞUM GÜNÜ!</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        <button onClick={() => downloadData('csv')} className="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors border border-white/20">CSV</button>
+                                        <button onClick={() => downloadData('txt')} className="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors border border-white/20">TXT</button>
+                                        <button onClick={onClose} className="bg-white/15 hover:bg-white/25 p-2 rounded-xl transition-colors border border-white/20 ml-1">
+                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                <button onClick={() => downloadData('csv')} className="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors border border-white/20">CSV</button>
-                                <button onClick={() => downloadData('txt')} className="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors border border-white/20">TXT</button>
-                                <button onClick={onClose} className="bg-white/15 hover:bg-white/25 p-2 rounded-xl transition-colors border border-white/20 ml-1">
-                                    <svg  className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                                        <path  strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Main Content Area */}
-                    <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+                            </div>
+                <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
 
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                            <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
-                                <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500 mb-2">
-                                    <svg  className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+                    {/* Summary Cards */}
+                        <div 
+                            style={{ 
+                                '--brand-from': clinic.themeColorFrom || '#0d9488',
+                                '--brand-to': clinic.themeColorTo || '#10b981'
+                            } as React.CSSProperties}
+                            className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4"
+                        >
+                            <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-slate-100 shadow-sm transition-all hover:border-slate-200">
+                                <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 mb-2">
+                                    <svg  className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
                                 </div>
                                 <p className="text-lg sm:text-xl font-black text-slate-800 tracking-tighter">{stats.totalVisits}</p>
                                 <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">Toplam Ziyaret</p>
                             </div>
-                            <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
-                                <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500 mb-2">
+                            <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-slate-100 shadow-sm transition-colors hover:border-[var(--brand-from)]/20"
+                                 style={{ '--brand-from': 'var(--brand-from)' } as React.CSSProperties}>
+                                <div 
+                                    className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center mb-2"
+                                    style={{ background: 'var(--brand-from)1a', color: 'var(--brand-from)' }}
+                                >
                                     <svg  className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 </div>
-                                <p className="text-lg sm:text-xl font-black text-emerald-600 tracking-tighter">{stats.completed}</p>
-                                <p className="text-[9px] sm:text-[10px] font-bold text-emerald-400 uppercase text-center">Tamamlanan</p>
+                                <p 
+                                    style={{ color: 'var(--brand-from)' }}
+                                    className="text-lg sm:text-xl font-black tracking-tighter"
+                                >
+                                    {stats.completed}
+                                </p>
+                                <p 
+                                    style={{ color: 'var(--brand-from)cc' }}
+                                    className="text-[9px] sm:text-[10px] font-bold uppercase text-center"
+                                >
+                                    Tamamlanan
+                                </p>
                             </div>
                             <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
                                 <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500 mb-2">
@@ -342,12 +382,20 @@ export function PatientDetailModal({
                                 <p className="text-lg sm:text-xl font-black text-rose-600 tracking-tighter">{stats.cancelled}</p>
                                 <p className="text-[9px] sm:text-[10px] font-bold text-rose-400 uppercase text-center">İptal</p>
                             </div>
-                            <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-slate-100 shadow-sm">
-                                <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 mb-2">
+                            <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center border border-slate-100 shadow-sm transition-colors hover:border-[var(--brand-from)]/20"
+                                 style={{ '--brand-from': 'var(--brand-from)' } as React.CSSProperties}>
+                                <div 
+                                    className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center mb-2"
+                                    style={{ background: 'var(--brand-from)1a', color: 'var(--brand-from)' }}
+                                >
                                     <svg  className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 </div>
-                                <p className="text-lg sm:text-xl font-black text-slate-800 tracking-tighter">{stats.totalPaid.toLocaleString('tr-TR')} ₺</p>
-                                <p className="text-[9px] sm:text-[10px] font-bold text-teal-600 uppercase text-center">Ödenen</p>
+                                <p 
+                                    style={{ color: 'var(--brand-from)' }}
+                                    className="text-[9px] sm:text-[10px] font-bold uppercase text-center"
+                                >
+                                    Ödenen
+                                </p>
                                 {stats.totalPending > 0 && (
                                     <p className="text-[9px] font-bold text-amber-500 mt-0.5">{stats.totalPending.toLocaleString('tr-TR')} ₺ bekliyor</p>
                                 )}
@@ -359,10 +407,18 @@ export function PatientDetailModal({
                             {/* İletişim */}
                             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
                                 <div className="flex items-center gap-2">
-                                    <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shadow-sm">
+                                    <div 
+                                        className="h-6 w-6 rounded-lg flex items-center justify-center shadow-sm"
+                                        style={{ background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` }}
+                                    >
                                         <svg  className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path  strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.824-1.281-5.117-3.573-6.398-6.398l1.293-.97c.362-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
                                     </div>
-                                    <h3 className="text-xs font-black uppercase tracking-tight text-teal-600">İletişim</h3>
+                                    <h3 
+                                        style={{ color: 'var(--brand-from)' }}
+                                        className="text-xs font-black uppercase tracking-tight"
+                                    >
+                                        İletişim
+                                    </h3>
                                 </div>
                                 <div className="space-y-3">
                                     <div>
@@ -613,13 +669,21 @@ export function PatientDetailModal({
                         {/* Ödeme Geçmişi ve Taksitler Section */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 text-teal-600">
-                                    <div className="h-6 w-6 rounded-lg bg-teal-50 flex items-center justify-center">
+                                <div className="flex items-center gap-2">
+                                    <div 
+                                        className="h-6 w-6 rounded-lg flex items-center justify-center"
+                                        style={{ background: 'var(--brand-from)1a', color: 'var(--brand-from)' }}
+                                    >
                                         <svg  className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                                             <path  strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                     </div>
-                                    <h3 className="text-xs font-black uppercase tracking-tight">Ödeme Geçmişi ve Taksitler</h3>
+                                    <h3 
+                                        style={{ color: 'var(--brand-from)' }}
+                                        className="text-xs font-black uppercase tracking-tight"
+                                    >
+                                        Ödeme Geçmişi ve Taksitler
+                                    </h3>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {stats.totalPending > 0 && (
@@ -635,10 +699,11 @@ export function PatientDetailModal({
                                             patientName: patient.full_name,
                                             amount: 0,
                                         })}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-100 rounded-xl transition-colors"
+                                        style={{ color: 'var(--brand-from)', background: 'var(--brand-from)1a', borderColor: 'var(--brand-from)33' }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black border rounded-xl hover:brightness-95 transition-all"
                                     >
                                         <svg  className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path  strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} id="fixed-svg-4" d="M12 4v16m8-8H4" />
+                                            <path  strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                                         </svg>
                                         Yeni Ödeme
                                     </button>
@@ -782,11 +847,17 @@ export function PatientDetailModal({
                                                         {/* Milestone Tracker / Progress Bar */}
                                                         <div className="mt-1.5 w-full bg-slate-100 rounded-full h-1 relative overflow-hidden group/progress">
                                                             <div 
-                                                                className="h-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(20,184,166,0.5)]"
-                                                                style={{ width: `${plan.items.length > 0 ? (completedItems / plan.items.length) * 100 : 0}%` }}
+                                                                className="h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(var(--brand-from-rgb),0.5)]"
+                                                                style={{ 
+                                                                    width: `${plan.items.length > 0 ? (completedItems / plan.items.length) * 100 : 0}%`,
+                                                                    background: `linear-gradient(to right, var(--brand-from), var(--brand-to))`
+                                                                }}
                                                             />
                                                         </div>
-                                                        <p className="text-[9px] font-bold text-teal-600 mt-1 uppercase tracking-tighter">
+                                                        <p 
+                                                            style={{ color: 'var(--brand-from)' }}
+                                                            className="text-[9px] font-bold mt-1 uppercase tracking-tighter"
+                                                        >
                                                             {plan.items.length > 0 ? Math.round((completedItems / plan.items.length) * 100) : 0}% TAMAMLANDI ({completedItems}/{plan.items.length})
                                                         </p>
                                                     </div>
@@ -1073,10 +1144,9 @@ export function PatientDetailModal({
                                 </div>
                             </div>
                         )}
+                </div>
 
-                    </div>
-
-                    {/* Footer Selection */}
+                    {/* Footer Section */}
                     <div className="p-4 sm:p-6 bg-white border-t shrink-0 flex flex-col sm:flex-row items-center justify-between gap-4">
                         {!showDeleteConfirm ? (
                             <>
@@ -1084,8 +1154,8 @@ export function PatientDetailModal({
                                     onClick={() => setShowDeleteConfirm(true)}
                                     className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black text-rose-500 hover:bg-rose-50 transition-all flex items-center justify-center gap-2 uppercase tracking-tight order-3 sm:order-1"
                                 >
-                                    <svg  className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                                        <path  strokeLinecap="round" strokeLinejoin="round" id="ignore-svg-any-3" d="m14.74 9-.34 9m-4.78 0-.34-9m9.27 1.5h-15.5m1.5-3v14m12.5-3V5.25a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75V11.25" />
+                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.34 9m-4.78 0-.34-9m9.27 1.5h-15.5m1.5-3v14m12.5-3V5.25a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75V11.25" />
                                     </svg>
                                     Kaydı Sil
                                 </button>
@@ -1094,7 +1164,8 @@ export function PatientDetailModal({
                                     <button
                                         onClick={isEditing ? handleSave : () => { setIsEditing(true); setAnamnesisEditMode(true); }}
                                         disabled={saving}
-                                        className="w-full sm:w-auto px-6 sm:px-12 h-12 rounded-2xl bg-white border-2 border-slate-100 text-xs font-black text-slate-600 hover:border-[#007f6e] hover:text-teal-600 transition-all uppercase tracking-widest shadow-sm flex items-center justify-center gap-2"
+                                        style={{ '--brand-from': 'var(--brand-from)' } as React.CSSProperties}
+                                        className="w-full sm:w-auto px-6 sm:px-12 h-12 rounded-2xl bg-white border-2 border-slate-100 text-xs font-black text-slate-600 hover:border-[var(--brand-from)] hover:text-[var(--brand-from)] transition-all uppercase tracking-widest shadow-sm flex items-center justify-center gap-2"
                                     >
                                         {saving ? "..." : (isEditing ? "Kaydet" : "Düzenle")}
                                     </button>
@@ -1197,6 +1268,7 @@ export function PatientDetailModal({
                     patientName={patient.full_name}
                 />
             )}
-        </>
+        </>,
+        document.body
     );
 }

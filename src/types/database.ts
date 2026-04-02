@@ -152,6 +152,8 @@ export interface User {
   ministry_practitioner_code: string | null;
   specialty_code: string | null;
   is_clinical_provider: boolean;
+  theme_color_from?: string | null;
+  theme_color_to?: string | null;
   created_at: string;
 }
 
@@ -614,7 +616,7 @@ export const LAB_JOB_TRANSITIONS: Record<LabJobStatus, LabJobStatus[]> = {
   cancelled: ["sent"],       // sadece admin geri alabiliyor (API tarafında)
 };
 
-// ─── Asistan Rehberi (Treatment Library) ─────────────────────────────────────
+// ─── Klinik Kılavuzu (Treatment Library) ─────────────────────────────────────
 
 export interface TreatmentLibraryItem {
   id: string;

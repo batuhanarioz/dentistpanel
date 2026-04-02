@@ -12,6 +12,7 @@ import { PaymentProjection } from "@/app/components/payments/PaymentProjection";
 import { PaymentAgingReport } from "@/app/components/payments/PaymentAgingReport";
 import { PAYMENT_METHODS, PAYMENT_STATUS_LABELS, normalizePaymentStatus, PaymentStatus } from "@/constants/payments";
 import { PaymentRow, AppointmentOption, UpdatePaymentExtras } from "@/hooks/usePaymentManagement";
+import { useClinic } from "@/app/context/ClinicContext";
 
 export default function PaymentsPage() {
   return (
@@ -71,6 +72,7 @@ function fmt(n: number) {
 }
 
 function PaymentsInner() {
+  const clinic = useClinic();
   const searchParams = useSearchParams();
   const appointmentIdParam = searchParams.get("appointmentId");
   const [dayCloseOpen, setDayCloseOpen] = useState(false);
@@ -174,7 +176,11 @@ function PaymentsInner() {
                 <button
                   key={m}
                   onClick={() => { setViewMode(m); setCurrentPage(1); }}
-                  className={`w-max whitespace-nowrap px-4 sm:px-5 py-2 sm:py-2.5 text-[9px] sm:text-[10px] font-bold rounded-lg transition-all uppercase tracking-widest ${viewMode === m ? 'bg-white text-emerald-600 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'}`}
+                  style={{ 
+                    backgroundColor: viewMode === m ? 'white' : 'transparent',
+                    color: viewMode === m ? 'var(--brand-from)' : '#64748b'
+                  }}
+                  className={`w-max whitespace-nowrap px-4 sm:px-5 py-2 sm:py-2.5 text-[9px] sm:text-[10px] font-bold rounded-lg transition-all uppercase tracking-widest ${viewMode === m ? 'shadow-sm ring-1 ring-black/5' : 'hover:text-slate-800 hover:bg-slate-200/50'}`}
                 >
                   {m === 'day' ? 'Gün' : m === 'week' ? 'Hafta' : m === 'month' ? 'Ay' : 'Özel'}
                 </button>
@@ -200,7 +206,8 @@ function PaymentsInner() {
                   <PremiumDatePicker value={selectedDate} onChange={(d) => { setSelectedDate(d); setCurrentPage(1); }} today={today} />
                   <button
                     onClick={() => { setSelectedDate(today); setCurrentPage(1); }}
-                    className="h-[42px] px-6 rounded-xl border-2 border-slate-100 bg-white text-[10px] font-black text-slate-600 hover:bg-slate-50 active:scale-95 transition-all uppercase tracking-widest"
+                    style={{ '--brand-from-15': 'var(--brand-from)26' } as React.CSSProperties}
+                    className="h-[42px] px-6 rounded-xl border-2 border-slate-100 bg-white text-[10px] font-black text-slate-600 hover:bg-[var(--brand-from-15)] hover:text-[var(--brand-from)] hover:border-[var(--brand-from-15)] active:scale-95 transition-all uppercase tracking-widest"
                   >
                     Bugün
                   </button>
@@ -212,35 +219,42 @@ function PaymentsInner() {
 
           {/* Right: Filters, Search & Add Button */}
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full 2xl:w-auto mt-2 2xl:mt-0">
-
+ 
             {/* Status Filter */}
             <select
               value={statusFilter}
               onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="h-[42px] rounded-xl border-2 border-slate-100 bg-slate-50 px-3 text-[11px] font-bold text-slate-600 focus:bg-white focus:border-emerald-500 outline-none transition-all shrink-0"
+              style={{ '--focus-border-color': 'var(--brand-from)' } as React.CSSProperties}
+              className="h-[42px] rounded-xl border-2 border-slate-100 bg-slate-50 px-3 text-[11px] font-bold text-slate-600 focus:bg-white focus:border-[var(--focus-border-color)] outline-none transition-all shrink-0"
             >
               {statusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-
+ 
             {/* Method Filter */}
             <select
               value={methodFilter}
               onChange={e => { setMethodFilter(e.target.value); setCurrentPage(1); }}
-              className="h-[42px] rounded-xl border-2 border-slate-100 bg-slate-50 px-3 text-[11px] font-bold text-slate-600 focus:bg-white focus:border-emerald-500 outline-none transition-all shrink-0"
+              style={{ '--focus-border-color': 'var(--brand-from)' } as React.CSSProperties}
+              className="h-[42px] rounded-xl border-2 border-slate-100 bg-slate-50 px-3 text-[11px] font-bold text-slate-600 focus:bg-white focus:border-[var(--focus-border-color)] outline-none transition-all shrink-0"
             >
               <option value="all">Tüm Yöntemler</option>
               {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
-
+ 
             {/* Search */}
             <div className="relative flex-1 sm:w-60 group max-w-full">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <svg 
+                className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[var(--focus-color)] transition-colors" 
+                fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"
+                style={{ '--focus-color': 'var(--brand-from)' } as React.CSSProperties}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
               </svg>
               <input
                 value={listSearch}
                 onChange={(e) => { setListSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full h-[42px] rounded-xl border-2 border-slate-100 bg-slate-50 pl-11 pr-4 text-[11px] font-bold focus:bg-white focus:border-emerald-500 outline-none transition-all placeholder:font-medium placeholder:text-slate-400"
+                style={{ '--focus-border-color': 'var(--brand-from)' } as React.CSSProperties}
+                className="w-full h-[42px] rounded-xl border-2 border-slate-100 bg-slate-50 pl-11 pr-4 text-[11px] font-bold focus:bg-white focus:border-[var(--focus-border-color)] outline-none transition-all placeholder:font-medium placeholder:text-slate-400"
                 placeholder="İsim, telefon veya fiş no..."
               />
             </div>
@@ -259,7 +273,8 @@ function PaymentsInner() {
             <button
               onClick={() => setDayCloseOpen(true)}
               title="Gün Sonu Kasa Kapatma"
-              className="h-[42px] px-4 rounded-xl border-2 border-slate-200 bg-white text-[10px] font-black text-slate-700 hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap shrink-0 uppercase tracking-widest"
+              style={{ '--brand-from-15': 'var(--brand-from)26' } as React.CSSProperties}
+              className="h-[42px] px-4 rounded-xl border-2 border-slate-200 bg-white text-[10px] font-black text-slate-700 hover:bg-[var(--brand-from-15)] hover:text-[var(--brand-from)] hover:border-[var(--brand-from-15)] active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap shrink-0 uppercase tracking-widest"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
@@ -269,7 +284,11 @@ function PaymentsInner() {
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="w-full sm:w-auto h-[42px] rounded-xl bg-emerald-600 px-6 text-[10px] font-black text-white shadow-lg shadow-emerald-200 hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap shrink-0 uppercase tracking-widest"
+              style={{ 
+                background: `linear-gradient(to right, var(--brand-from), var(--brand-to))`,
+                boxShadow: `0 10px 15px -3px var(--brand-from)33`
+              }}
+              className="w-full sm:w-auto h-[42px] rounded-xl px-6 text-[10px] font-black text-white hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap shrink-0 uppercase tracking-widest"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -286,13 +305,21 @@ function PaymentsInner() {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Filtreler:</span>
           {statusFilter !== "all" && (
-            <button onClick={() => setStatusFilter("all")} className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-[10px] font-bold hover:bg-emerald-100 transition-colors">
+            <button 
+              onClick={() => setStatusFilter("all")} 
+              style={{ '--brand-from-10': 'var(--brand-from)1a' } as React.CSSProperties}
+              className="flex items-center gap-1 px-2.5 py-1 bg-[var(--brand-from-10)] border border-[var(--brand-from-10)] text-[var(--brand-from)] rounded-lg text-[10px] font-bold hover:brightness-95 transition-colors"
+            >
               {statusOptions.find(o => o.value === statusFilter)?.label}
               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           )}
           {methodFilter !== "all" && (
-            <button onClick={() => setMethodFilter("all")} className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-[10px] font-bold hover:bg-emerald-100 transition-colors">
+            <button 
+              onClick={() => setMethodFilter("all")} 
+              style={{ '--brand-from-10': 'var(--brand-from)1a' } as React.CSSProperties}
+              className="flex items-center gap-1 px-2.5 py-1 bg-[var(--brand-from-10)] border border-[var(--brand-from-10)] text-[var(--brand-from)] rounded-lg text-[10px] font-bold hover:brightness-95 transition-colors"
+            >
               {methodFilter}
               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
@@ -306,8 +333,11 @@ function PaymentsInner() {
         <div className="hidden sm:grid grid-cols-[auto_1fr_1fr_6rem_5.5rem_6rem] gap-4 items-center px-5 py-3 bg-slate-50/50 border-b text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
           <div
             onClick={handleSelectAll}
-            className={`h-4 w-4 rounded border-2 flex items-center justify-center cursor-pointer transition-colors shrink-0 ${allCurrentSelected ? "bg-teal-500 border-teal-500" : "border-slate-300 hover:border-teal-400"
-              }`}
+            style={{ 
+                backgroundColor: allCurrentSelected ? 'var(--brand-from)' : 'transparent',
+                borderColor: allCurrentSelected ? 'var(--brand-from)' : '#cbd5e1'
+            }}
+            className={`h-4 w-4 rounded border-2 flex items-center justify-center cursor-pointer transition-colors shrink-0 ${!allCurrentSelected ? "hover:border-slate-400" : ""}`}
           >
             {allCurrentSelected && (
               <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
@@ -324,8 +354,11 @@ function PaymentsInner() {
         <div className="sm:hidden grid grid-cols-[auto_2fr_1fr_auto] gap-2 items-center px-4 py-3 bg-slate-50/50 border-b text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
           <div
             onClick={handleSelectAll}
-            className={`h-4 w-4 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${allCurrentSelected ? "bg-teal-500 border-teal-500" : "border-slate-300"
-              }`}
+            style={{ 
+                backgroundColor: allCurrentSelected ? 'var(--brand-from)' : 'transparent',
+                borderColor: allCurrentSelected ? 'var(--brand-from)' : '#cbd5e1'
+            }}
+            className="h-4 w-4 rounded border-2 flex items-center justify-center cursor-pointer transition-colors"
           />
           <span>Hasta</span>
           <span className="text-center">Tutar</span>
@@ -430,7 +463,14 @@ function PaymentsInner() {
           className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <span className="text-lg">🏦</span>
+            <div 
+              style={{ background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` }}
+              className="flex h-10 w-10 items-center justify-center rounded-xl shadow-lg shadow-indigo-100"
+            >
+              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A4.833 4.833 0 0 1 18 10.5c-2.484 0-4.5-2.015-4.5-4.5A4.833 4.833 0 0 1 13.5 3h-3c0 1.104-.896 2-2 2s-2-.896-2-2h-3C3.5 3 3.5 3 3.5 3z" />
+              </svg>
+            </div>
             <div className="text-left">
               <p className="text-sm font-black text-slate-900">Geçmiş Kasa Kapanışları</p>
               <p className="text-[10px] font-semibold text-slate-400">Son 30 günlük kapanış geçmişi</p>

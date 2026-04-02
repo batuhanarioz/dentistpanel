@@ -193,7 +193,7 @@ export function InterfaceShowcase() {
                         <div className="absolute inset-0 bg-gradient-to-br from-black via-slate-900/40 to-black z-10"></div>
                         <div className="p-12 md:p-20 relative z-20 flex flex-col lg:flex-row items-center gap-16">
                             <div className="max-w-lg lg:shrink-0">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-black text-teal-400 uppercase tracking-widest mb-8">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xl text-[10px] font-black text-teal-400 uppercase tracking-widest mb-8">
                                     <ShieldCheck size={14} /> Kusursuz Veri Yönetimi
                                 </div>
                                 <h3 className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-8 leading-[0.9]">

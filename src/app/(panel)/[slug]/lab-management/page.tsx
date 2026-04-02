@@ -6,6 +6,7 @@ import {
     LabJob, LabJobStatus, LAB_JOB_STATUSES,
 } from "@/hooks/useLabJobs";
 import { LabJobModal } from "@/app/components/lab/LabJobModal";
+import { useClinic } from "@/app/context/ClinicContext";
 
 // ─── Statü sekmeleri ──────────────────────────────────────────────────────────
 
@@ -69,6 +70,10 @@ function exportCSV(jobs: LabJob[]) {
 // ─── Sayfa ────────────────────────────────────────────────────────────────────
 
 export default function LabManagementPage() {
+    const clinic = useClinic();
+    const brandFrom = clinic.themeColorFrom || '#0d9488';
+    const brandTo = clinic.themeColorTo || '#10b981';
+
     const [activeTab, setActiveTab] = useState<string>("all");
     const [search, setSearch] = useState("");
     const [sortKey, setSortKey] = useState<SortKey>("expected_at");
@@ -174,10 +179,12 @@ export default function LabManagementPage() {
                             <button
                                 key={tab.value}
                                 onClick={() => handleTabChange(tab.value)}
-                                className={`whitespace-nowrap px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${activeTab === tab.value
-                                    ? "bg-white text-slate-900 shadow-sm ring-1 ring-black/5"
-                                    : "text-slate-500 hover:text-slate-800"
-                                    }`}
+                                className={`whitespace-nowrap px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${
+                                    activeTab === tab.value
+                                        ? "bg-white shadow-sm ring-1 ring-black/5"
+                                        : "text-slate-500 hover:text-slate-800"
+                                }`}
+                                style={activeTab === tab.value ? { color: brandFrom } : undefined}
                             >
                                 {tab.label}
                             </button>
@@ -231,7 +238,8 @@ export default function LabManagementPage() {
                         {/* Yeni iş */}
                         <button
                             onClick={handleNewJob}
-                            className="h-[42px] px-5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all flex items-center gap-2 shrink-0"
+                            style={{ background: `linear-gradient(to right, ${brandFrom}, ${brandTo})` }}
+                            className="h-[42px] px-5 rounded-xl text-white text-[10px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 shrink-0 shadow-md"
                         >
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -250,7 +258,11 @@ export default function LabManagementPage() {
                     <p className="text-5xl mb-3">🔬</p>
                     <p className="font-black text-slate-600 text-lg">Laboratuvar işi bulunamadı</p>
                     <p className="text-slate-400 text-sm mt-1">Henüz lab işi yok veya filtre eşleşmedi.</p>
-                    <button onClick={handleNewJob} className="mt-6 px-6 py-3 rounded-2xl bg-slate-900 text-white text-[11px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
+                    <button
+                        onClick={handleNewJob}
+                        style={{ background: `linear-gradient(to right, ${brandFrom}, ${brandTo})` }}
+                        className="mt-6 px-6 py-3 rounded-2xl text-white text-[11px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md"
+                    >
                         İlk Lab İşini Başlat
                     </button>
                 </div>
@@ -319,6 +331,9 @@ function LabJobCard({
     nextStatusOption?: { status: LabJobStatus; label: string };
     updating: boolean;
 }) {
+    const clinic = useClinic();
+    const brandFrom = clinic.themeColorFrom || '#0d9488';
+    const brandTo = clinic.themeColorTo || '#10b981';
     const sc = statusConfig(job.status);
     const overdue = isOverdue(job);
     const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Istanbul" });
@@ -396,7 +411,12 @@ function LabJobCard({
                                 <button
                                     onClick={() => onQuickStatus(nextStatusOption.status)}
                                     disabled={updating}
-                                    className="text-[10px] font-black px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors disabled:opacity-50"
+                                    style={{
+                                        color: brandFrom,
+                                        background: `${brandFrom}18`,
+                                        borderColor: `${brandFrom}33`,
+                                    }}
+                                    className="text-[10px] font-black px-2.5 py-1.5 rounded-xl border transition-colors disabled:opacity-50 hover:brightness-95"
                                 >
                                     {nextStatusOption.label}
                                 </button>

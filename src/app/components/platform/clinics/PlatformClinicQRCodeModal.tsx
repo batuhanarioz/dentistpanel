@@ -74,7 +74,7 @@ export function PlatformClinicQRCodeModal({ isOpen, onClose, clinicName, clinicS
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xl p-4" onClick={onClose}>
             <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                 <div className="bg-slate-900 p-8 text-center relative">
                     <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors">

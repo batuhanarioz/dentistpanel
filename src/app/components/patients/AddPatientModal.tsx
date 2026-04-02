@@ -45,11 +45,14 @@ export function AddPatientModal({ isOpen, onClose, onSave }: AddPatientModalProp
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={handleClose}>
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xl p-4" onClick={handleClose}>
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md h-[80vh] flex flex-col animate-in zoom-in-95 duration-200 overflow-hidden" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
-                <div className="px-6 py-5 bg-gradient-to-r from-teal-600 to-emerald-500 text-white relative">
+                <div 
+                    style={{ background: `linear-gradient(to right, var(--brand-from), var(--brand-to))` }}
+                    className="px-6 py-5 text-white relative shrink-0"
+                >
                     <button onClick={handleClose} className="absolute right-4 top-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
@@ -59,12 +62,12 @@ export function AddPatientModal({ isOpen, onClose, onSave }: AddPatientModalProp
                         </div>
                         <div>
                             <h2 className="text-base font-bold">Yeni Hasta Ekle</h2>
-                            <p className="text-teal-100 text-xs">* ile işaretliler zorunludur</p>
+                            <p className="text-white/70 text-xs tracking-tight">* ile işaretliler zorunludur</p>
                         </div>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-6 pb-40 space-y-4 overflow-y-auto flex-1">
                     {error && (
                         <div className="bg-rose-50 border border-rose-100 rounded-xl px-4 py-2.5 text-xs font-bold text-rose-600">{error}</div>
                     )}
@@ -78,7 +81,8 @@ export function AddPatientModal({ isOpen, onClose, onSave }: AddPatientModalProp
                                 value={full_name}
                                 onChange={e => setFullName(e.target.value)}
                                 placeholder="Ahmet Yılmaz"
-                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-teal-500 outline-none transition-all"
+                                style={{ '--focus-border-color': 'var(--brand-from)' } as React.CSSProperties}
+                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-[var(--focus-border-color)] outline-none transition-all"
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -89,7 +93,8 @@ export function AddPatientModal({ isOpen, onClose, onSave }: AddPatientModalProp
                                 value={phone}
                                 onChange={e => setPhone(e.target.value)}
                                 placeholder="05XX XXX XX XX"
-                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-teal-500 outline-none transition-all"
+                                style={{ '--focus-border-color': 'var(--brand-from)' } as React.CSSProperties}
+                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-[var(--focus-border-color)] outline-none transition-all"
                             />
                         </div>
                     </div>
@@ -110,7 +115,8 @@ export function AddPatientModal({ isOpen, onClose, onSave }: AddPatientModalProp
                             <select
                                 value={gender}
                                 onChange={e => setGender(e.target.value)}
-                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-teal-500 outline-none transition-all"
+                                style={{ '--focus-border-color': 'var(--brand-from)' } as React.CSSProperties}
+                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-[var(--focus-border-color)] outline-none transition-all"
                             >
                                 <option value="">Seçilmedi</option>
                                 <option value="Kadın">Kadın</option>
@@ -129,7 +135,8 @@ export function AddPatientModal({ isOpen, onClose, onSave }: AddPatientModalProp
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                                 placeholder="ornek@mail.com"
-                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-teal-500 outline-none transition-all"
+                                style={{ '--focus-border-color': 'var(--brand-from)' } as React.CSSProperties}
+                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-[var(--focus-border-color)] outline-none transition-all"
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -139,7 +146,8 @@ export function AddPatientModal({ isOpen, onClose, onSave }: AddPatientModalProp
                                 value={tc_identity_no}
                                 onChange={e => setTcNo(e.target.value.replace(/\D/g, ""))}
                                 placeholder="11 haneli"
-                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-teal-500 outline-none transition-all"
+                                style={{ '--focus-border-color': 'var(--brand-from)' } as React.CSSProperties}
+                                className="w-full h-10 rounded-xl border-2 border-slate-100 bg-white px-3 text-sm font-bold focus:border-[var(--focus-border-color)] outline-none transition-all"
                             />
                         </div>
                     </div>
@@ -151,7 +159,11 @@ export function AddPatientModal({ isOpen, onClose, onSave }: AddPatientModalProp
                             İptal
                         </button>
                         <button type="submit" disabled={saving}
-                            className="flex-1 h-11 bg-slate-900 text-white rounded-2xl font-extrabold text-xs shadow-xl shadow-slate-200 hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-60">
+                            style={{ 
+                                background: `linear-gradient(to right, var(--brand-from), var(--brand-to))`,
+                                boxShadow: `0 10px 15px -3px var(--brand-from)33`
+                            }}
+                            className="flex-1 h-11 text-white rounded-2xl font-extrabold text-xs hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-60">
                             {saving ? "Kaydediliyor..." : "Hasta Kaydet"}
                         </button>
                     </div>

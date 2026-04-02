@@ -15,7 +15,6 @@ export function SmartAssistantSection() {
     const { mutate: dismissItem } = useDismissAssistantItem();
     const { mutate: undoDismissItem } = useUndoDismissAssistantItem();
     const [filter, setFilter] = useState<FilterType>('ALL');
-    const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
     const handleDismiss = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -101,14 +100,22 @@ export function SmartAssistantSection() {
     return (
         <section id="smart-assistant" className="rounded-[24px] border border-slate-100 bg-white overflow-hidden flex flex-col group/card">
             <div className="flex items-center gap-2 px-5 py-5 shrink-0 border-b border-slate-50 bg-gradient-to-r from-white to-slate-50/50">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-cyan-600 shadow-md shadow-teal-200/60">
+                <div 
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-md shadow-black/5"
+                    style={{ background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` }}
+                >
                     <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                     </svg>
                 </div>
                 <div className="flex-1">
                     <h2 className="text-sm font-bold text-slate-900 tracking-tight">Akıllı Asistan</h2>
-                    <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest">{assistantItems.length} BEKLEYEN GÖREV</p>
+                    <p 
+                        className="text-[10px] font-black uppercase tracking-widest"
+                        style={{ color: 'var(--brand-from)' }}
+                    >
+                        {assistantItems.length} BEKLEYEN GÖREV
+                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="relative">
@@ -124,6 +131,9 @@ export function SmartAssistantSection() {
                             <option className="bg-white text-slate-700 font-bold" value="DELAY">GECİKMELER ({categoryCounts.DELAY || 0})</option>
                             <option className="bg-white text-slate-700 font-bold" value="BIRTHDAY">DOĞUM GÜNLERİ ({categoryCounts.BIRTHDAY || 0})</option>
                             <option className="bg-white text-slate-700 font-bold" value="FOLLOWUP">TAKİPLER ({categoryCounts.FOLLOWUP || 0})</option>
+                            <option className="bg-white text-slate-700 font-bold" value="NEW_PATIENT">YENİ HASTA ({categoryCounts.NEW_PATIENT || 0})</option>
+                            <option className="bg-white text-slate-700 font-bold" value="LAB_TRACKING">LABORATUVAR ({categoryCounts.LAB_TRACKING || 0})</option>
+                            <option className="bg-white text-slate-700 font-bold" value="INCOMPLETE">YARI TEDAVİ ({categoryCounts.INCOMPLETE || 0})</option>
                         </select>
                         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -135,18 +145,17 @@ export function SmartAssistantSection() {
 
             <div className="flex-1 overflow-y-auto px-4 md:px-5 py-4 scrollbar-thin scrollbar-thumb-slate-200 bg-slate-50/10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {isLoading && (
+                    {isLoading ? (
                         <div className="col-span-full py-12 text-center text-slate-400 text-xs animate-pulse">
                             Mesajlar hazırlanıyor...
                         </div>
-                    )}
-                    {filteredItems.map((item) => {
+                    ) : filteredItems.map((item) => {
                         const styles = getCategoryStyles(item.type);
                         return (
                             <div 
                                 id={`assist-${item.id}`}
                                 key={item.id} 
-                                className={`group p-3 transition-colors border flex flex-col min-h-[140px] rounded-2xl bg-white relative overflow-hidden hover:border-slate-300 ${styles.border.replace('border-', 'border-')} ${highlightedId === item.id ? 'ring-2 ring-indigo-500 scale-[1.02]' : ''}`}
+                                className={`group p-3 transition-colors border flex flex-col min-h-[140px] rounded-2xl bg-white relative overflow-hidden hover:border-slate-300 ${styles.border.replace('border-', 'border-')}`}
                             >
                                 <div className="flex justify-between items-start mb-2">
                                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${styles.badge}`}>{styles.icon} {categoryNames[item.type]}</span>

@@ -46,8 +46,7 @@ export const GET = withAuth(
     }));
 
     return NextResponse.json({ users: enriched });
-  },
-  { requiredRole: "ADMIN_OR_SUPER" }
+  }
 );
 
 export const POST = withAuth(

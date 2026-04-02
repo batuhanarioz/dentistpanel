@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useClinic } from "@/app/context/ClinicContext";
+import { useClinic, useUI } from "@/app/context/ClinicContext";
 import type { ExtendedStatus } from "@/hooks/useAppointments";
 import { STATUS_LABELS, STATUS_BADGE_COLORS } from "@/hooks/useAppointments";
 
@@ -43,13 +43,21 @@ export function AppointmentDrawer({
     onStatusChange,
     onEditClick,
 }: AppointmentDrawerProps) {
-    const { clinicId } = useClinic();
+    const { clinicId, themeColorFrom } = useClinic();
 
     const [appt, setAppt] = useState<DrawerAppointmentDetail | null>(null);
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState(false);
+    const { setOverlayActive } = useUI();
 
     const isOpen = !!appointmentId;
+
+    useEffect(() => {
+        setOverlayActive(isOpen);
+        return () => {
+            if (isOpen) setOverlayActive(false);
+        };
+    }, [isOpen, setOverlayActive]);
 
     const fetchDetail = useCallback(async (id: string) => {
         if (!clinicId) return;
@@ -100,15 +108,22 @@ export function AppointmentDrawer({
 
     return (
         <>
+            {/* 
+              PREMIUM LAYERING STRATEGY:
+              - Backdrop (z-100): Covers all background content including Left Menu (z-50) and Header (z-40).
+              - Drawer (z-110): Sits on top of the backdrop.
+              - backdrop-blur-xl: Provides deep high-end focus.
+              - Note: We use z-100/110 here to ensure FULL isolation of the drawer.
+            */}
             {/* Backdrop */}
             <div
-                className={`fixed inset-0 z-40 bg-slate-900/10 backdrop-blur-[4px] transition-opacity duration-500 ease-out ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+                className={`fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-xl transition-all duration-500 ease-out ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
                 onClick={onClose}
             />
 
             {/* Drawer */}
             <div
-                className={`fixed top-4 right-4 bottom-4 z-50 w-full max-w-[380px] bg-white rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] border border-slate-100 flex flex-col transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) ${isOpen ? "translate-x-0 opacity-100 scale-100" : "translate-x-12 opacity-0 scale-95 pointer-events-none"}`}
+                className={`fixed top-0 right-0 bottom-0 z-[110] w-full max-w-[420px] bg-white shadow-2xl flex flex-col transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) ${isOpen ? "translate-x-0" : "translate-x-full"}`}
             >
                 {loading || !appt ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-12">
@@ -148,8 +163,11 @@ export function AppointmentDrawer({
 
                             {/* Patient Profile */}
                             <div className="flex flex-col items-center text-center">
-                                <div className="h-20 w-20 rounded-[2.5rem] bg-gradient-to-br from-indigo-500 to-violet-600 p-1 shadow-xl shadow-indigo-100 mb-4">
-                                    <div className="h-full w-full rounded-[2.25rem] bg-white flex items-center justify-center text-2xl font-black text-indigo-600 uppercase tracking-tighter">
+                                <div 
+                                    className="h-20 w-20 rounded-[2.5rem] p-1 shadow-xl shadow-black/5 mb-4"
+                                    style={{ background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` }}
+                                >
+                                    <div className="h-full w-full rounded-[2.25rem] bg-white flex items-center justify-center text-2xl font-black uppercase tracking-tighter" style={{ color: 'var(--brand-from)' }}>
                                         {appt.patients?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2) || "?"}
                                     </div>
                                 </div>
@@ -177,36 +195,42 @@ export function AppointmentDrawer({
                         {/* ── Content Grid ── */}
                         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
 
-                            {/* Time & Date Card */}
-                            <div className="rounded-[2rem] bg-indigo-50/40 p-5 flex flex-col items-center">
-                                <div className="flex items-center gap-4 w-full">
-                                    <div className="flex-1 text-center">
-                                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Tarih</p>
-                                        <p className="text-sm font-black text-indigo-900">{fmt(appt.starts_at, "date")}</p>
-                                    </div>
-                                    <div className="h-8 w-px bg-indigo-200/50 shrink-0" />
-                                    <div className="flex-1 text-center">
-                                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Saat</p>
-                                        <p className="text-sm font-black text-indigo-900">{fmt(appt.starts_at, "time")} – {fmt(appt.ends_at, "time")}</p>
-                                    </div>
-                                </div>
-                            </div>
+                             {/* Time & Date Card */}
+                             <div 
+                                className="rounded-[2.25rem] p-5 flex flex-col items-center border"
+                                style={{ backgroundColor: `${themeColorFrom}10`, borderColor: `${themeColorFrom}20` }}
+                             >
+                                 <div className="flex items-center gap-4 w-full">
+                                     <div className="flex-1 text-center">
+                                         <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--brand-from)', opacity: 0.8 }}>Tarih</p>
+                                         <p className="text-sm font-black" style={{ color: 'var(--brand-from)' }}>{fmt(appt.starts_at, "date")}</p>
+                                     </div>
+                                     <div className="h-8 w-px shrink-0" style={{ backgroundColor: `${themeColorFrom}30` }} />
+                                     <div className="flex-1 text-center">
+                                         <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--brand-from)', opacity: 0.8 }}>Saat</p>
+                                         <p className="text-sm font-black" style={{ color: 'var(--brand-from)' }}>{fmt(appt.starts_at, "time")} – {fmt(appt.ends_at, "time")}</p>
+                                     </div>
+                                 </div>
+                             </div>
 
                             {/* Details Grid */}
                             <div className="grid grid-cols-1 gap-3">
-                                <div className="bg-white border border-slate-100 rounded-2xl p-4 transition-all hover:bg-slate-50 group/item">
+                                <div className="bg-white border border-slate-100 rounded-2xl p-4 transition-all hover:bg-slate-50">
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Uygulanan Tedavi</p>
-                                    <p className="text-[13px] font-black text-slate-800 group-hover:text-indigo-600 transition-colors capitalize">
+                                    <p className="text-[13px] font-black text-slate-800 transition-colors capitalize">
                                         {appt.treatment_type?.toLowerCase() || "Genel muayene"}
                                     </p>
                                 </div>
-                                <div className="bg-white border border-slate-100 rounded-2xl p-4 transition-all hover:bg-slate-50 group/item">
+                                <div className="bg-white border border-slate-100 rounded-2xl p-4 transition-all hover:bg-slate-50">
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Sorumlu Hekim</p>
                                     <div className="flex items-center gap-2">
-                                        <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-500 uppercase">
+                                        <div 
+                                            className="h-6 w-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white uppercase"
+                                            style={{ background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` }}
+                                        >
                                             {appt.users?.full_name?.split(' ').map(n => n[0]).join('') || "?"}
                                         </div>
-                                        <p className="text-[13px] font-black text-slate-800 group-hover:text-indigo-600 transition-colors">
+                                        <p className="text-[13px] font-black text-slate-800 transition-colors">
                                             {appt.users?.full_name || "Atanmamış"}
                                         </p>
                                     </div>

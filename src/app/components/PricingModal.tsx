@@ -59,7 +59,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
     ];
 
     return (
-        <div className="fixed inset-0 z-[200] overflow-y-auto bg-black/75 backdrop-blur-md" onClick={onClose}>
+        <div className="fixed inset-0 z-[200] overflow-y-auto bg-black/75 backdrop-blur-xl" onClick={onClose}>
             <div className="flex min-h-full items-center justify-center p-3 md:p-6">
                 <div
                     className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"

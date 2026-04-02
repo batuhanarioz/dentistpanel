@@ -127,7 +127,7 @@ export default function DashboardView() {
                 <p className="text-sm font-semibold text-slate-600 leading-snug" suppressHydrationWarning>{greeting}</p>
                 <button
                     onClick={() => apptMgmt.openNew()}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 active:scale-95 shrink-0"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white active-brand-gradient rounded-xl transition-all shadow-md shadow-black/10 active:scale-95 shrink-0"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
