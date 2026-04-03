@@ -511,7 +511,7 @@ export default function OnlineBookingManagementPage() {
                         </div>
                         <h2 className="text-xl font-black text-slate-900 mb-2">Online Randevu Sistemi Kapalı</h2>
                         <p className="text-sm font-bold text-slate-500 leading-relaxed mb-6">
-                            Bu sayfayı kullanabilmek için önce <strong>Klinik Ayarları → Online Randevu Portalı</strong> bölümünden sistemi aktif hale getirmeniz gerekiyor.
+                            Bu sayfayı kullanabilmek için önce <strong>Ekip ve Yetkiler → Klinik Ayarları → Online Randevu</strong> bölümünden sistemi aktif hale getirmeniz gerekiyor.
                         </p>
                         <div className="space-y-3">
                             <div className="p-3 bg-indigo-50 rounded-2xl text-left space-y-1.5">
@@ -534,7 +534,7 @@ export default function OnlineBookingManagementPage() {
             {/* Paylaşım ve Link Paneli - Premium Kompakt Yapı */}
             <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-3 md:py-3.5 md:px-6 rounded-[1.75rem] text-white shadow-xl shadow-indigo-100 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-8 border border-white/10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none" />
-                
+
                 <div className="relative z-10 flex items-center gap-3">
                     <div className="w-9 h-9 bg-white/10 rounded-[0.8rem] flex items-center justify-center backdrop-blur-md border border-white/20 shrink-0">
                         <svg className="w-5 h-5 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.172 13.828a4 4 0 015.656 0l4-4a4 4 0 10-5.656-5.656l-1.102 1.101" /></svg>
@@ -551,9 +551,8 @@ export default function OnlineBookingManagementPage() {
                     </div>
                     <button
                         onClick={handleCopyLink}
-                        className={`h-8 w-8 flex items-center justify-center rounded-lg transition-all shadow-lg active:scale-90 shrink-0 ${
-                            linkCopied ? "bg-emerald-500 text-white" : "bg-white text-indigo-950"
-                        }`}
+                        className={`h-8 w-8 flex items-center justify-center rounded-lg transition-all shadow-lg active:scale-90 shrink-0 ${linkCopied ? "bg-emerald-500 text-white" : "bg-white text-indigo-950"
+                            }`}
                         title="Linki Kopyala"
                     >
                         {linkCopied ? (
@@ -575,9 +574,9 @@ export default function OnlineBookingManagementPage() {
             {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { 
-                        label: "Bekleyen", 
-                        value: kpi.pending, 
+                    {
+                        label: "Bekleyen",
+                        value: kpi.pending,
                         isBrand: true,
                         icon: (
                             <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
@@ -588,51 +587,51 @@ export default function OnlineBookingManagementPage() {
                         shadow: "shadow-black/10",
                         sub: "taze talep"
                     },
-                    { 
-                        label: "Bugün Onaylanan", 
-                        value: kpi.approved, 
+                    {
+                        label: "Bugün Onaylanan",
+                        value: kpi.approved,
                         icon: (
                             <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
-                        ), 
+                        ),
                         color: "from-emerald-400 via-emerald-500 to-teal-600",
                         shadow: "shadow-emerald-200/60",
                         sub: "onaylandı"
                     },
-                    { 
-                        label: "İptal / Süresi Dolan", 
-                        value: kpi.expired, 
+                    {
+                        label: "İptal / Süresi Dolan",
+                        value: kpi.expired,
                         icon: (
                             <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                             </svg>
-                        ), 
+                        ),
                         color: "from-rose-400 via-rose-500 to-pink-600",
                         shadow: "shadow-rose-200/60",
                         sub: "işlem yapılamadı"
                     },
-                    { 
-                        label: "Son 7 Gün Toplam", 
-                        value: kpi.week, 
+                    {
+                        label: "Son 7 Gün Toplam",
+                        value: kpi.week,
                         icon: (
                             <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z" />
                             </svg>
-                        ), 
+                        ),
                         color: "from-indigo-500 to-violet-600",
                         shadow: "shadow-indigo-200/60",
                         sub: "toplam trafik"
                     },
                 ].map(({ label, value, icon, color, shadow, isBrand, sub }) => (
-                    <div 
-                        key={label} 
+                    <div
+                        key={label}
                         className={`relative rounded-[2rem] overflow-hidden px-5 py-4 shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-default flex flex-col ${shadow} ${!isBrand ? `bg-gradient-to-br ${color}` : ""}`}
                         style={isBrand ? { background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` } : {}}
                     >
                         {/* Circle Element */}
                         <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10" />
-                        
+
                         {/* Icon */}
                         <div className="absolute right-3 bottom-3 opacity-[0.14]">
                             {icon}
@@ -650,8 +649,8 @@ export default function OnlineBookingManagementPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Başlangıç Tarihi</label>
-                        <PremiumDatePicker 
-                            value={dateFrom} 
+                        <PremiumDatePicker
+                            value={dateFrom}
                             onChange={setDateFrom}
                             placeholder="Seçiniz..."
                             compact
@@ -659,8 +658,8 @@ export default function OnlineBookingManagementPage() {
                     </div>
                     <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bitiş Tarihi</label>
-                        <PremiumDatePicker 
-                            value={dateTo} 
+                        <PremiumDatePicker
+                            value={dateTo}
                             onChange={setDateTo}
                             placeholder="Seçiniz..."
                             compact

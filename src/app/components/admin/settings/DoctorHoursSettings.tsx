@@ -37,7 +37,7 @@ export function DoctorHoursSettings() {
             // ardından opsiyonel olanları deneyeceğiz.
             
             const { data: usersRes, error: usersErr } = await supabase.from("users")
-                .select("id, full_name, role, is_clinical_provider, working_hours, allowed_treatments")
+                .select("id, full_name, role, is_clinical_provider, working_hours, allowed_treatments, specialty_code")
                 .eq("clinic_id", clinicId);
 
             let rawUsers: any[] | null = usersRes;
@@ -46,7 +46,7 @@ export function DoctorHoursSettings() {
                 // Eğer hata 'allowed_treatments' kolonunun yokluğundansa, onsuz dene
                 if (usersErr.code === '42703') {
                     const { data: retryRes, error: retryErr } = await supabase.from("users")
-                        .select("id, full_name, role, is_clinical_provider, working_hours")
+                        .select("id, full_name, role, is_clinical_provider, working_hours, specialty_code")
                         .eq("clinic_id", clinicId);
                     if (retryErr) throw new Error(retryErr.message);
                     rawUsers = retryRes;
@@ -112,7 +112,8 @@ export function DoctorHoursSettings() {
                 .from("users")
                 .update({
                     working_hours: hours,
-                    allowed_treatments: treatments
+                    allowed_treatments: treatments,
+                    specialty_code: (doctorList.find(d => d.id === doctorId) as any)?.specialty_code || null
                 })
                 .eq("id", doctorId)
                 .eq("clinic_id", clinicId);
@@ -190,8 +191,8 @@ export function DoctorHoursSettings() {
                         const doc = doctorList.find(d => d.id === selectedDoctorId);
                         return (
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                    <div className="flex bg-slate-100 p-1 rounded-xl self-start">
                                         <button
                                             onClick={() => setActiveTab('hours')}
                                             className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'hours' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
@@ -205,11 +206,31 @@ export function DoctorHoursSettings() {
                                             Yapılan Tedaviler
                                         </button>
                                     </div>
+
+                                    {/* Uzmanlık Alanı - Yeni */}
+                                    <div className="flex-1 max-w-sm">
+                                        <div className="relative group">
+                                            <input
+                                                type="text"
+                                                value={(doctorList.find(d => d.id === selectedDoctorId) as any)?.specialty_code || ""}
+                                                onChange={async (e) => {
+                                                    const val = e.target.value;
+                                                    setDoctorList(prev => prev.map(d => d.id === selectedDoctorId ? { ...d, specialty_code: val } : d));
+                                                }}
+                                                placeholder="Uzmanlık Alanı (Örn: Ortodontist)"
+                                                className="w-full h-10 bg-slate-50 border border-slate-100 rounded-xl px-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-indigo-500 placeholder:text-slate-400 shadow-inner"
+                                            />
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-focus-within:text-indigo-500 transition-colors">
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="hidden lg:block">
                                         <button
                                             onClick={() => handleSaveDoctorHours(selectedDoctorId)}
                                             disabled={isLoading}
-                                            className="h-9 px-5 bg-indigo-600 hover:bg-indigo-600 text-white rounded-xl text-xs font-black shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2">
+                                            className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2">
                                             {isLoading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                                             Kaydet
                                         </button>

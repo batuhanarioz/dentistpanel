@@ -111,6 +111,8 @@ export interface ClinicSettings {
   treatment_definitions?: TreatmentDefinition[];
   /** Online randevu sistemi aktif mi? */
   is_online_booking_enabled?: boolean;
+  /** QR Check-in / Anamnez sistemi aktif mi? */
+  is_checkin_enabled?: boolean;
   online_booking_config?: {
     is_auto_approve: boolean;
     use_service_duration: boolean;
