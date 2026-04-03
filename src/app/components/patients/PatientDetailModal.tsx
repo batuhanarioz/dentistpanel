@@ -11,6 +11,7 @@ import { AnamnesisSection } from "@/app/components/patients/AnamnesisSection";
 import { useAnamnesis, useAnamnesisMutation } from "@/hooks/useAnamnesis";
 import type { TeethData, PatientAnamnesis } from "@/types/database";
 import { printReceipt } from "@/lib/receiptGenerator";
+import { useConfirm } from "@/app/context/ConfirmContext";
 import { useAppointmentManagement } from "@/hooks/useAppointmentManagement";
 import { AppointmentModal } from "@/app/components/appointments/AppointmentModal";
 import { QuickPaymentModal } from "@/app/components/dashboard/QuickPaymentModal";
@@ -44,6 +45,7 @@ export function PatientDetailModal({
     onDelete,
     onUpdate
 }: PatientDetailModalProps) {
+    const { confirm } = useConfirm();
     const clinic = useClinic();
     const [deleting, setDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -931,7 +933,14 @@ export function PatientDetailModal({
                                                             ))}
                                                         </select>
                                                         <button
-                                                            onClick={() => { if (confirm("Bu tedavi planı silinsin mi?")) removePlan.mutate(plan.id); }}
+                                                            onClick={() => {
+                                                                confirm({
+                                                                    title: "Planı Sil",
+                                                                    message: "Bu tedavi planı silinsin mi? Bu işlem geri alınamaz.",
+                                                                    variant: "danger",
+                                                                    onConfirm: () => removePlan.mutate(plan.id)
+                                                                });
+                                                            }}
                                                             className="text-[10px] font-bold text-rose-400 hover:text-rose-600 transition-colors"
                                                         >
                                                             Planı Sil

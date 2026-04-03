@@ -7,10 +7,12 @@ import { TreatmentPlanWithItems } from "@/hooks/useTreatmentPlanning";
 import { TreatmentPlanItemWithDoctor } from "@/lib/api";
 import { CreateTreatmentPlanModal } from "@/app/components/treatments/CreateTreatmentPlanModal";
 import { useClinic } from "@/app/context/ClinicContext";
+import { useConfirm } from "@/app/context/ConfirmContext";
 
 type StatusFilter = "ALL" | TreatmentPlanWithItems["status"];
 
 export default function TreatmentPlansPage() {
+    const { confirm } = useConfirm();
     const clinic = useClinic();
     const brandFrom = clinic.themeColorFrom || '#0d9488';
     const brandTo = clinic.themeColorTo || '#10b981';
@@ -147,9 +149,23 @@ export default function TreatmentPlansPage() {
                         isExpanded={expandedId === plan.id}
                         onToggle={() => setExpandedId(expandedId === plan.id ? null : plan.id)}
                         onStatusChange={(status) => updateStatus.mutate({ id: plan.id, status })}
-                        onDelete={() => { if (confirm("Bu tedavi planı silinsin mi?")) removePlan.mutate(plan.id); }}
+                        onDelete={() => {
+                            confirm({
+                                title: "Planı Sil",
+                                message: "Bu tedavi planını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+                                variant: "danger",
+                                onConfirm: () => removePlan.mutate(plan.id)
+                            });
+                        }}
                         onUpsertItem={(item) => upsertItem.mutate(item)}
-                        onRemoveItem={(itemId) => { if (confirm("Bu kalem silinsin mi?")) removeItem.mutate(itemId); }}
+                        onRemoveItem={(itemId) => {
+                            confirm({
+                                title: "İşlemi Sil",
+                                message: "Bu tedavi kalemini silmek istediğinizden emin misiniz?",
+                                variant: "danger",
+                                onConfirm: () => removeItem.mutate(itemId)
+                            });
+                        }}
                     />
                 ))}
             </div>
@@ -213,6 +229,7 @@ interface PlanCardProps {
 }
 
 function PlanCard({ plan, isExpanded, onToggle, onStatusChange, onDelete, onUpsertItem, onRemoveItem }: PlanCardProps) {
+    const { confirm } = useConfirm();
     const clinic = useClinic();
     const brandFrom = clinic.themeColorFrom || '#0d9488';
     const brandTo = clinic.themeColorTo || '#10b981';

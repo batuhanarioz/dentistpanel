@@ -540,6 +540,21 @@ export async function getClinicSettings(clinicId: string): Promise<ClinicSetting
     return data;
 }
 
+export async function getPendingOnlineBookingsCount(clinicId: string): Promise<number> {
+    if (!clinicId) return 0;
+    const { count, error } = await supabase
+        .from("online_booking_requests")
+        .select("*", { count: "exact", head: true })
+        .eq("clinic_id", clinicId)
+        .eq("status", "pending");
+
+    if (error) {
+        console.error("getPendingOnlineBookingsCount error:", error);
+        return 0;
+    }
+    return count ?? 0;
+}
+
 export async function updateClinicSettings(clinicId: string, settings: Partial<ClinicSettings>) {
     if (!clinicId) return { error: "Clinic ID is required" };
 

@@ -17,7 +17,7 @@ export function useGuide() {
     return useQuery<TreatmentLibraryItem[]>({
         queryKey: ["guide", clinicId],
         enabled: !!clinicId,
-        staleTime: 60_000,
+        staleTime: 15 * 60_000, // 15 dakika — tedavi kütüphanesi nadiren değişir
         queryFn: async () => {
             const token = await getToken();
             const res = await fetch("/api/treatment-library", {

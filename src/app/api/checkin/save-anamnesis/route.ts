@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
         ?? req.headers.get("x-real-ip")
         ?? "unknown";
 
-    const { allowed } = rateLimit(
+    const { allowed } = await rateLimit(
         `checkin_save:${ip}`,
         RATE_LIMIT,
         RATE_WINDOW_MS
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
         appointmentId?: string;
         slug?: string;
         anamnesisData?: Record<string, unknown>;
+        skipAnamnesis?: boolean;
     };
 
     try {
@@ -36,9 +37,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
     }
 
-    const { appointmentId, slug, anamnesisData } = body;
+    const { appointmentId, slug, anamnesisData, skipAnamnesis } = body;
 
-    if (!appointmentId || !slug || !anamnesisData) {
+    if (!appointmentId || !slug) {
+        return NextResponse.json({ error: "Eksik bilgi." }, { status: 400 });
+    }
+
+    if (!skipAnamnesis && !anamnesisData) {
         return NextResponse.json({ error: "Eksik bilgi." }, { status: 400 });
     }
 
@@ -77,6 +82,25 @@ export async function POST(req: NextRequest) {
         );
     }
 
+    // KVKK rızasını kaydet (form doldurma veya atlama — her ikisi de KVKK onayından geçti)
+    await supabaseAdmin.from("patient_consents").insert({
+        clinic_id: clinic.id,
+        patient_id: appointment.patient_id,
+        consent_type: "kvkk_checkin",
+        ip_address: ip,
+        user_agent: req.headers.get("user-agent") ?? null,
+    });
+
+    // skipAnamnesis modunda sadece arrived status güncellemesi yap, anamneze dokunma
+    if (skipAnamnesis) {
+        await supabaseAdmin
+            .from("appointments")
+            .update({ status: "arrived" })
+            .eq("id", appointmentId)
+            .eq("status", "confirmed");
+        return NextResponse.json({ success: true });
+    }
+
     // Güvenli alan listesi — sadece izin verilen alanlar kaydedilir
     const ALLOWED_FIELDS = new Set([
         "systemic_conditions", "systemic_other",
@@ -92,7 +116,7 @@ export async function POST(req: NextRequest) {
     ]);
 
     const safeData: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(anamnesisData)) {
+    for (const [key, value] of Object.entries(anamnesisData!)) {
         if (ALLOWED_FIELDS.has(key)) {
             safeData[key] = value;
         }

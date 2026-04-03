@@ -25,9 +25,26 @@ type Props = {
   excludeRef?: React.RefObject<HTMLElement | null>;
   /** value boşken gösterilecek placeholder */
   placeholder?: string;
+  minDate?: string;
+  maxDate?: string;
+  isDateDisabled?: (date: string) => boolean;
 };
 
-export function PremiumDatePicker({ value, onChange, today: todayProp, className = "", compact, open: openProp, onOpenChange, align = "left", excludeRef, placeholder = "Tarih seçin" }: Props) {
+export function PremiumDatePicker({
+  value,
+  onChange,
+  today: todayProp,
+  className = "",
+  compact,
+  open: openProp,
+  onOpenChange,
+  align = "left",
+  excludeRef,
+  placeholder = "Tarih seçin",
+  minDate,
+  maxDate,
+  isDateDisabled
+}: Props) {
   const today = todayProp ?? localDateStr();
   const isControlled = openProp !== undefined;
   const [internalOpen, setInternalOpen] = useState(false);
@@ -38,11 +55,17 @@ export function PremiumDatePicker({ value, onChange, today: todayProp, className
   };
   const isEmpty = !value || value.trim() === "";
   const [view, setView] = useState(() => {
-    const [y, m] = (value || "").split("-").map(Number);
+    const dStr = value || today;
+    const [y, m] = dStr.split("-").map(Number);
     const safeYear = y > 0 ? y : new Date().getFullYear();
     const safeMonth = m >= 1 && m <= 12 ? m - 1 : new Date().getMonth();
     return { year: safeYear, month: safeMonth };
   });
+
+  // Dinamik yıl aralığı (min/max date varsa ona göre daralt)
+  const dropdownMinYear = minDate ? Number(minDate.split("-")[0]) : CURRENT_YEAR - 100;
+  const dropdownMaxYear = maxDate ? Number(maxDate.split("-")[0]) : CURRENT_YEAR + 10;
+
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,9 +90,9 @@ export function PremiumDatePicker({ value, onChange, today: todayProp, className
   const displayLabel = isEmpty
     ? placeholder
     : (() => {
-        const [y, m, d] = value.split("-").map(Number);
-        return `${d}.${String(m).padStart(2, "0")}.${y}`;
-      })();
+      const [y, m, d] = value.split("-").map(Number);
+      return `${d}.${String(m).padStart(2, "0")}.${y}`;
+    })();
 
   const firstDay = new Date(view.year, view.month, 1);
   const lastDay = new Date(view.year, view.month + 1, 0);
@@ -140,7 +163,7 @@ export function PremiumDatePicker({ value, onChange, today: todayProp, className
                 onChange={(e) => setYear(Number(e.target.value))}
                 className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               >
-                {Array.from({ length: YEAR_RANGE.max - YEAR_RANGE.min + 1 }, (_, i) => YEAR_RANGE.min + i).map((y) => (
+                {Array.from({ length: dropdownMaxYear - dropdownMinYear + 1 }, (_, i) => dropdownMinYear + i).map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
@@ -167,14 +190,21 @@ export function PremiumDatePicker({ value, onChange, today: todayProp, className
                 const dateStr = toDateStr(view.year, view.month, day);
                 const isSelected = dateStr === value;
                 const isToday = dateStr === today;
+
+                const isBeforeMin = minDate ? dateStr < minDate : false;
+                const isAfterMax = maxDate ? dateStr > maxDate : false;
+                const isDisabledByProp = isDateDisabled ? isDateDisabled(dateStr) : false;
+                const isDisabled = isBeforeMin || isAfterMax || isDisabledByProp;
+
                 return (
                   <button
                     key={dateStr}
                     type="button"
+                    disabled={isDisabled}
                     onClick={() => { onChange(dateStr); setOpen(false); }}
                     className={[
                       "h-9 w-9 rounded-xl text-sm font-medium transition-colors",
-                      isSelected ? "bg-indigo-600 text-white shadow-md" : "text-slate-700 hover:bg-slate-100",
+                      isDisabled ? "opacity-20 cursor-not-allowed grayscale" : (isSelected ? "bg-indigo-600 text-white shadow-md" : "text-slate-700 hover:bg-slate-100"),
                       isToday && !isSelected ? "ring-2 ring-indigo-300 ring-offset-1" : "",
                     ].join(" ")}
                   >

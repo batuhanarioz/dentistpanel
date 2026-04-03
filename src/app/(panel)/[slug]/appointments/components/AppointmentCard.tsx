@@ -36,11 +36,13 @@ interface AppointmentCardProps {
     event: AppEvent;
     top: number;
     height: number;
+    width?: number; // percentage
+    left?: number;  // percentage
     slotHeight: number;
     onClick: () => void;
 }
 
-export function AppointmentCard({ event, top, height, slotHeight, onClick }: AppointmentCardProps) {
+export function AppointmentCard({ event, top, height, width = 100, left = 0, slotHeight, onClick }: AppointmentCardProps) {
     const isUltraCompact = height < 35;
     const isCompact = height >= 35 && height < 75;
 
@@ -75,8 +77,14 @@ export function AppointmentCard({ event, top, height, slotHeight, onClick }: App
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={(e) => { e.stopPropagation(); onClick(); }}
-            style={{ top: `${top}px`, height: `${height}px`, zIndex: 10 }}
-            className={`absolute left-[2px] right-[2px] rounded-lg border shadow-sm cursor-grab active:cursor-grabbing select-none overflow-hidden group transition-all hover:shadow-lg hover:z-[60] hover:-translate-y-0.5 ${colorClass} ${accentClass}`}
+            style={{ 
+                top: `${top}px`, 
+                height: `${height}px`, 
+                width: `calc(${width}% - 4px)`, 
+                left: `calc(${left}% + 2px)`, 
+                zIndex: 10 
+            }}
+            className={`absolute rounded-lg border shadow-sm cursor-grab active:cursor-grabbing select-none overflow-hidden group transition-all hover:shadow-lg hover:z-[60] hover:-translate-y-0.5 ${colorClass} ${accentClass}`}
         >
             {/* ── Content ── */}
             {isUltraCompact ? (

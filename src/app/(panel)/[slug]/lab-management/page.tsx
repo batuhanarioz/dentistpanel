@@ -82,11 +82,13 @@ export default function LabManagementPage() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editJob, setEditJob] = useState<LabJob | null>(null);
 
-    const { data: jobs = [], isLoading } = useLabJobs(activeTab);
+    // Tüm işleri tek sorguda çek — tab filtresi + istatistikler client-side hesaplanır
+    const { data: allJobsData = [], isLoading } = useLabJobs("all");
     const updateMutation = useUpdateLabJob();
 
-    // Arama filtresi (client-side)
-    const filtered = jobs
+    // Tab filtresi + arama + sıralama — client-side, ekstra API çağrısı yok
+    const filtered = allJobsData
+        .filter(j => activeTab === "all" || j.status === activeTab)
         .filter(j => {
             if (!search.trim()) return true;
             const q = search.toLowerCase();
@@ -119,15 +121,13 @@ export default function LabManagementPage() {
         setPage(1);
     }
 
-
-    // İstatistikler
-    const allJobs = useLabJobs("all");
+    // İstatistikler — allJobsData'dan türetilir, ayrı sorgu yok
     const stats = {
-        sent: (allJobs.data ?? []).filter(j => j.status === "sent").length,
-        in_progress: (allJobs.data ?? []).filter(j => j.status === "in_progress").length,
-        try_in: (allJobs.data ?? []).filter(j => j.status === "try_in").length,
-        received: (allJobs.data ?? []).filter(j => j.status === "received").length,
-        overdue: (allJobs.data ?? []).filter(j => isOverdue(j)).length,
+        sent: allJobsData.filter(j => j.status === "sent").length,
+        in_progress: allJobsData.filter(j => j.status === "in_progress").length,
+        try_in: allJobsData.filter(j => j.status === "try_in").length,
+        received: allJobsData.filter(j => j.status === "received").length,
+        overdue: allJobsData.filter(j => isOverdue(j)).length,
     };
 
     function openEdit(job: LabJob) {

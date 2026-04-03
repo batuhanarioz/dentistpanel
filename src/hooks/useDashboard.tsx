@@ -96,14 +96,27 @@ export function useDashboard() {
             const dateB = new Date(b.startsAt).getTime();
             const now = new Date().getTime();
 
-            // Completed appointments always go to the bottom
-            if (a.status === "completed" && b.status !== "completed") return 1;
-            if (a.status !== "completed" && b.status === "completed") return -1;
+            // Completed, Cancelled, and No-Show go to the bottom
+            const bottomStatus = ["completed", "cancelled", "no_show"];
+            const isBottomA = bottomStatus.includes(a.status);
+            const isBottomB = bottomStatus.includes(b.status);
+            
+            if (isBottomA && !isBottomB) return 1;
+            if (!isBottomA && isBottomB) return -1;
+
+            // Within the bottom group, sort by status priority (Completed > No-Show > Cancelled)
+            if (isBottomA && isBottomB) {
+                const priority: Record<string, number> = { completed: 1, no_show: 2, cancelled: 3 };
+                if (priority[a.status] !== priority[b.status]) {
+                    return priority[a.status] - priority[b.status];
+                }
+            }
 
             // Prioritize upcoming confirmed appointments if it's today
             if (viewOffsetAppointments === 0) {
-                const isUpcomingA = a.status === "confirmed" && dateA > now;
-                const isUpcomingB = b.status === "confirmed" && dateB > now;
+                const activeStati = ["confirmed", "arrived", "in_treatment"];
+                const isUpcomingA = activeStati.includes(a.status) && dateA > now;
+                const isUpcomingB = activeStati.includes(b.status) && dateB > now;
 
                 if (isUpcomingA && !isUpcomingB) return -1;
                 if (!isUpcomingA && isUpcomingB) return 1;

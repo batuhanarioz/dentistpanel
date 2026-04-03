@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
 import { UserRole, Announcement, Clinic } from "@/types/database";
+import { toast } from "react-hot-toast";
+import { useConfirm } from "@/app/context/ConfirmContext";
 import { SuperAdminList } from "@/app/components/platform/clinics/SuperAdminList";
 import { usePageHeader } from "@/app/components/AppShell";
 import { format } from "date-fns";
@@ -29,6 +31,7 @@ type DiscountCode = {
 export default function PlatformSettingsPage() {
   usePageHeader("Sistem Ayarları");
   const clinic = useClinic();
+  const { confirm } = useConfirm();
 
   const [superAdmins, setSuperAdmins] = useState<SuperAdminUser[]>([]);
   const [clinics, setClinics] = useState<Clinic[]>([]);
@@ -152,8 +155,9 @@ export default function PlatformSettingsPage() {
       setSaving(false);
       setPricingSettingsLastSaved(new Date().toISOString());
       setActiveModal(null);
+      toast.success("Fiyatlandırma ayarları başarıyla güncellendi.");
     } else {
-      alert(`Hata: ${error.message}`);
+      toast.error(`Hata: ${error.message}`);
       setSaving(false);
     }
   };
@@ -201,20 +205,27 @@ export default function PlatformSettingsPage() {
   };
 
   const handleRevokeAdmin = async (userId: string, name: string | null) => {
-    if (!confirm(`"${name || userId}" kullanıcısının Super Admin yetkisini almak istediğinizden emin misiniz?`)) return;
-    setRevokingId(userId);
+    confirm({
+      title: "Yetkiyi Kaldır",
+      message: `"${name || userId}" kullanıcısının Super Admin yetkisini almak istediğinizden emin misiniz?`,
+      variant: "danger",
+      onConfirm: async () => {
+        setRevokingId(userId);
 
-    const { error } = await supabase
-      .from("users")
-      .update({ role: UserRole.ADMIN })
-      .eq("id", userId);
+        const { error } = await supabase
+          .from("users")
+          .update({ role: UserRole.ADMIN })
+          .eq("id", userId);
 
-    setRevokingId(null);
-    if (error) {
-      alert(`Hata: ${error.message}`);
-      return;
-    }
-    await loadData();
+        setRevokingId(null);
+        if (error) {
+          toast.error(`Hata: ${error.message}`);
+          return;
+        }
+        toast.success("Super Admin yetkisi kaldırıldı.");
+        await loadData();
+      }
+    });
   };
 
   const handleCreateAnnouncement = async (e: React.FormEvent) => {
@@ -248,9 +259,20 @@ export default function PlatformSettingsPage() {
   };
 
   const handleDeleteAnnouncement = async (id: string) => {
-    if (!confirm("Bu duyuruyu silmek istediğinizden emin misiniz?")) return;
-    const { error } = await supabase.from("announcements").delete().eq("id", id);
-    if (!error) await loadData();
+    confirm({
+      title: "Duyuruyu Sil",
+      message: "Bu duyuruyu silmek istediğinizden emin misiniz?",
+      variant: "danger",
+      onConfirm: async () => {
+        const { error } = await supabase.from("announcements").delete().eq("id", id);
+        if (error) {
+          toast.error(`Hata: ${error.message}`);
+          return;
+        }
+        toast.success("Duyuru silindi.");
+        await loadData();
+      }
+    });
   };
 
   const handleCreateDiscountCode = async (e: React.FormEvent) => {
@@ -271,8 +293,9 @@ export default function PlatformSettingsPage() {
     });
 
     if (error) {
-      alert(error.message.includes("unique") ? "Bu kod zaten mevcut." : `Hata: ${error.message}`);
+      toast.error(error.message.includes("unique") ? "Bu kod zaten mevcut." : `Hata: ${error.message}`);
     } else {
+      toast.success("İndirim kodu oluşturuldu.");
       setDcCode("");
       setDcValue(10);
       setDcType("percent");
@@ -291,9 +314,20 @@ export default function PlatformSettingsPage() {
   };
 
   const handleDeleteDiscountCode = async (id: string, code: string) => {
-    if (!confirm(`"${code}" kodunu silmek istediğinizden emin misiniz?`)) return;
-    await supabase.from("discount_codes").delete().eq("id", id);
-    await loadData();
+    confirm({
+      title: "Kodu Sil",
+      message: `"${code}" kodunu silmek istediğinizden emin misiniz?`,
+      variant: "danger",
+      onConfirm: async () => {
+        const { error } = await supabase.from("discount_codes").delete().eq("id", id);
+        if (error) {
+          toast.error(`Hata: ${error.message}`);
+          return;
+        }
+        toast.success("İndirim kodu silindi.");
+        await loadData();
+      }
+    });
   };
 
   const typeColors = {

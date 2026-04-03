@@ -15,6 +15,7 @@ export type AppointmentView = "grid" | "week" | "list";
 export type ZoomLevel = 15 | 30 | 60;
 
 export type ExtendedStatus =
+    | "pending"
     | "confirmed"
     | "scheduled"
     | "arrived"
@@ -54,6 +55,7 @@ export interface DoctorOption {
 // ─── Status Display Helpers ───────────────────────────────────────────────────
 
 export const STATUS_LABELS: Record<ExtendedStatus, string> = {
+    pending: "Onay Bekliyor",
     confirmed: "Planlandı",
     scheduled: "Planlandı",
     arrived: "Geldi",
@@ -64,6 +66,7 @@ export const STATUS_LABELS: Record<ExtendedStatus, string> = {
 };
 
 export const STATUS_BADGE_COLORS: Record<ExtendedStatus, string> = {
+    pending: "bg-orange-100 text-orange-800",
     confirmed: "bg-blue-100 text-blue-800",
     scheduled: "bg-blue-100 text-blue-800",
     arrived: "bg-sky-100 text-sky-800",
@@ -142,7 +145,7 @@ export function useAppointments() {
             const { data, error } = await supabase
                 .from("appointments")
                 .select(`
-                    id, starts_at, ends_at, status, treatment_type, patient_note, treatment_note, clinic_id, doctor_id,
+                    id, starts_at, ends_at, status, treatment_type, patient_note, treatment_note, clinic_id, doctor_id, channel,
                     patients(id, full_name, phone, email, birth_date),
                     doctor:users!doctor_id(id, full_name)
                 `)
@@ -172,6 +175,7 @@ export function useAppointments() {
                     doctorId: row.doctor_id,
                     treatmentType: row.treatment_type || "",
                     status: row.status as ExtendedStatus,
+                    channel: (row as any).channel,
                     patientNote: row.patient_note,
                     treatmentNote: (row as unknown as { treatment_note: string }).treatment_note,
                 };
@@ -195,6 +199,7 @@ export function useAppointments() {
             doctorName: ca.doctor || "Hekim atanmadı",
             treatmentType: ca.treatmentType || "",
             status: ca.status as ExtendedStatus,
+            channel: ca.channel,
             patientNote: ca.patientNote,
             treatmentNote: ca.treatmentNote,
         }));

@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
         ?? req.headers.get("x-real-ip")
         ?? "unknown";
 
-    const { allowed, remaining, resetAt } = rateLimit(
+    const { allowed } = await rateLimit(
         `checkin_verify:${ip}`,
         RATE_LIMIT,
         RATE_WINDOW_MS
@@ -21,13 +21,7 @@ export async function POST(req: NextRequest) {
     if (!allowed) {
         return NextResponse.json(
             { error: "Çok fazla deneme. Lütfen personelden yardım isteyin." },
-            {
-                status: 429,
-                headers: {
-                    "X-RateLimit-Remaining": "0",
-                    "Retry-After": String(Math.ceil((resetAt - Date.now()) / 1000)),
-                },
-            }
+            { status: 429 }
         );
     }
 
@@ -83,10 +77,7 @@ export async function POST(req: NextRequest) {
     if (codeError || !checkin) {
         return NextResponse.json(
             { error: "Geçersiz veya süresi dolmuş kod." },
-            {
-                status: 401,
-                headers: { "X-RateLimit-Remaining": String(remaining) },
-            }
+            { status: 401 }
         );
     }
 

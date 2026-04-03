@@ -1,40 +1,94 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useChecklist } from "@/hooks/useChecklist";
 import { useAnnouncements } from "@/hooks/useAnnouncements";
 import { AnnouncementModal } from "./AnnouncementModal";
 import { format } from "date-fns";
 import { Announcement } from "@/types/database";
 import { tr } from "date-fns/locale";
-import { supabase } from "@/lib/supabaseClient";
 import { useClinic, useUI } from "@/app/context/ClinicContext";
 import { useRouter } from "next/navigation";
-import { useSmartAssistant } from "@/hooks/useSmartAssistant";
+import { useSmartAssistant, useDismissAssistantItem } from "@/hooks/useSmartAssistant";
+import { useOnlineBookings } from "@/hooks/useOnlineBookings";
 
-
+const shakeAnimation = `
+@keyframes notification-shake {
+  0% { transform: rotate(0); }
+  15% { transform: rotate(10deg); }
+  30% { transform: rotate(-10deg); }
+  45% { transform: rotate(5deg); }
+  60% { transform: rotate(-5deg); }
+  75% { transform: rotate(2deg); }
+  85% { transform: rotate(-2deg); }
+  100% { transform: rotate(0); }
+}
+.animate-bell-shake {
+  animation: notification-shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+}
+`;
 
 export function NotificationDropdown() {
     const { controlItems, checklistLoading } = useChecklist(0);
     const { announcements, markAsRead } = useAnnouncements();
     const { assistantItems } = useSmartAssistant();
-    const { userId, clinicSlug } = useClinic();
+    const { pendingCount: onlinePendingCount } = useOnlineBookings();
+    const dismissAsset = useDismissAssistantItem();
+    const { clinicSlug } = useClinic();
     const router = useRouter();
+
     const [isOpen, setIsOpen] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const fetchPanelNotifications = useCallback(async () => {
-        // panel_notifications tablosu henüz veritabanında mevcut değilse hata fırlatmaması için kaldırıldı.
+    useEffect(() => {
+        const saved = localStorage.getItem('isMuted');
+        if (saved === 'true') setIsMuted(true);
     }, []);
 
-    const markPanelNotificationRead = async (id: string) => {
-        // panel_notifications tablosu henüz veritabanında mevcut değilse hata fırlatmaması için kaldırıldı.
+    const toggleMute = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newState = !isMuted;
+        setIsMuted(newState);
+        localStorage.setItem('isMuted', newState.toString());
     };
 
-    const pendingCount = (controlItems?.length || 0) + (announcements?.length || 0) + (assistantItems?.length || 0);
-
+    const pendingCount = (controlItems?.length || 0) + (announcements?.length || 0) + (assistantItems?.length || 0) + onlinePendingCount;
+    const [isShaking, setIsShaking] = useState(false);
+    const prevCountRef = useRef(pendingCount);
     const { setOverlayActive } = useUI();
+
+    const playNotificationSound = () => {
+        try {
+            const audio = new Audio('/sounds/notification.mp3');
+            audio.volume = 0.8;
+            audio.play().catch(e => {
+                console.warn("Audio play blocked by browser. User interaction might be required first.", e);
+            });
+        } catch (e) {
+            console.error("Audio error:", e);
+        }
+    };
+
+    useEffect(() => {
+        if (pendingCount > prevCountRef.current) {
+            setIsShaking(true);
+            setTimeout(() => setIsShaking(false), 800);
+
+            if (!isMuted) {
+                playNotificationSound();
+            }
+        }
+        prevCountRef.current = pendingCount;
+    }, [pendingCount, isMuted]);
+
+    useEffect(() => {
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = shakeAnimation;
+        document.head.appendChild(styleSheet);
+        return () => { document.head.removeChild(styleSheet); };
+    }, []);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -48,55 +102,38 @@ export function NotificationDropdown() {
 
     useEffect(() => {
         setOverlayActive(isOpen);
-        return () => {
-            if (isOpen) setOverlayActive(false);
-        };
+        return () => { if (isOpen) setOverlayActive(false); };
     }, [isOpen, setOverlayActive]);
 
-    const getIcon = (code: string) => {
-        switch (code) {
-            case 'STATUS_UPDATE': return (
-                <div className="p-2 bg-rose-100 text-rose-600 rounded-xl">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                </div>
-            );
-            case 'MISSING_PAYMENT': return (
-                <div className="p-2 bg-orange-100 text-orange-600 rounded-xl">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-            );
-            case 'MISSING_NOTE': return (
-                <div className="p-2 bg-amber-100 text-amber-600 rounded-xl">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                </div>
-            );
-            default: return (
-                <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                </div>
-            );
+    const handleDismissAllType = async (type: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const itemsToDismiss = assistantItems.filter(i => i.type === type);
+        for (const item of itemsToDismiss) {
+            await dismissAsset.mutateAsync(item.id);
         }
     };
 
-    const getAnnIcon = (type: string) => {
-        const colors = type === 'danger' ? 'bg-rose-100 text-rose-600' :
-            type === 'warning' ? 'bg-amber-100 text-amber-600' :
-                type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600';
-        return (
-            <div className={`p-2 ${colors} rounded-xl`}>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.6} d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.062.51.11.77.143l3.61 2.888a.75.75 0 0 0 1.25-.561V5.722a.75.75 0 0 0-1.25-.561l-3.61 2.888a24.42 24.42 0 0 1-.77.143m0 9.18V8.752" />
-                </svg>
+    const handleAnnouncementDismiss = async (annId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        await markAsRead(annId);
+    };
+
+    const getIcon = (code: string) => {
+        const icons: Record<string, JSX.Element> = {
+            STATUS_UPDATE: <div className="p-2 bg-rose-100 text-rose-600 rounded-xl"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg></div>,
+            MISSING_PAYMENT: <div className="p-2 bg-orange-100 text-orange-600 rounded-xl"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>,
+            MISSING_NOTE: <div className="p-2 bg-amber-100 text-amber-600 rounded-xl"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></div>,
+        };
+        return icons[code] || (
+            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
             </div>
         );
+    };
+
+    const getAnnIcon = (type: string) => {
+        const colors = type === 'danger' ? 'bg-rose-100 text-rose-600' : type === 'warning' ? 'bg-amber-100 text-amber-600' : type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600';
+        return <div className={`p-2 ${colors} rounded-xl`}><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.6} d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.062.51.11.77.143l3.61 2.888a.75.75 0 0 0 1.25-.561V5.722a.75.75 0 0 0-1.25-.561l-3.61 2.888a24.42 24.42 0 0 1-.77.143m0 9.18V8.752" /></svg></div>;
     };
 
     const categoryStyles: Record<string, { icon: string; bg: string; text: string; name: string }> = {
@@ -113,140 +150,83 @@ export function NotificationDropdown() {
 
     const assistantGroups = useMemo(() => {
         const groups: Record<string, number> = {};
-        assistantItems.forEach(item => {
-            groups[item.type] = (groups[item.type] || 0) + 1;
-        });
+        assistantItems.forEach(item => { groups[item.type] = (groups[item.type] || 0) + 1; });
         return groups;
     }, [assistantItems]);
 
-    const handleNotificationClick = (id: string) => {
-        router.push(`/${clinicSlug}#task-${id}`);
-        setIsOpen(false);
-    };
-
     return (
         <div className="relative" ref={dropdownRef}>
-            {/* Bildirim Butonu */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className={`relative group flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${isOpen ? 'active-brand-gradient text-white shadow-lg shadow-black/10' : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700 hover:shadow-md'
-                    }`}
-            >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-
-                {pendingCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-white animate-in zoom-in" style={{ backgroundColor: 'var(--brand-from)' }}>
-                        {pendingCount}
-                    </span>
-                )}
+            <button onClick={() => setIsOpen(!isOpen)} className={`relative group flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${isOpen ? 'active-brand-gradient text-white' : 'bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:shadow-md'} ${isShaking ? 'animate-bell-shake' : ''}`}>
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                {pendingCount > 0 && <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-white" style={{ background: 'var(--brand-from)' }}>{pendingCount}</span>}
             </button>
 
-            {/* Dropdown Panel */}
             {isOpen && (
-                <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-2xl border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
-                    {/* Header */}
+                <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-2xl border border-slate-100 shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2">
                     <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                        <h3 className="text-sm font-bold text-slate-900">Bildirimler</h3>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-white px-2 py-1 rounded-lg border border-slate-100">
-                            {format(new Date(), 'd MMMM', { locale: tr })}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-slate-900">Bildirimler</h3>
+                            <div className="flex items-center gap-1.5 ml-1">
+                                <button
+                                    onClick={toggleMute}
+                                    title={isMuted ? "Sesi Aç" : "Sesi Kapat"}
+                                    className={`p-1.5 rounded-lg transition-all ${isMuted ? 'bg-rose-50 text-rose-500' : 'bg-slate-100 text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    {isMuted ?
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path d="M17 14l2-2m0 0l2-2m-2 2l-2-2" strokeWidth={2} /></svg> :
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase bg-white px-2 py-1 rounded-lg border border-slate-100">{format(new Date(), 'd MMMM', { locale: tr })}</span>
                     </div>
 
-                    {/* Content */}
-                    <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
-                        {checklistLoading ? (
-                            <div className="p-10 text-center text-slate-400 text-xs animate-pulse">Yükleniyor...</div>
-                        ) : pendingCount === 0 ? (
-                            <div className="p-10 text-center">
-                                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-emerald-500">
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <p className="text-sm font-bold text-slate-900">Hepsi Tamam!</p>
-                                <p className="text-xs text-slate-500 mt-1">Bekleyen kontrol veya mesaj bulunmuyor.</p>
-                            </div>
-                        ) : (
+                    <div className="max-h-[400px] overflow-y-auto scrollbar-thin">
+                        {checklistLoading ? <div className="p-10 text-center text-slate-400 text-xs animate-pulse">Yükleniyor...</div> : pendingCount === 0 ? <div className="p-10 text-center"><p className="text-sm font-bold">Hepsi Tamam!</p></div> :
                             <div className="divide-y divide-slate-50">
-                                {/* PLATFORM DUYURULARI */}
-                                {announcements.map((ann) => (
-                                    <div
-                                        key={`ann-${ann.id}`}
-                                        onClick={() => { setSelectedAnnouncement(ann); setIsOpen(false); }}
-                                        className="p-4 bg-slate-50/50 hover:bg-slate-100 transition-colors group cursor-pointer border-l-4 border-transparent hover:border-indigo-400"
-                                    >
-                                        <div className="flex gap-3">
-                                            <div className="shrink-0 group-hover:scale-110 transition-transform">{getAnnIcon(ann.type)}</div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between gap-2 mb-1">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--brand-from)' }}>Sistem Duyurusu</span>
-                                                </div>
-                                                <p className="text-xs font-black text-slate-900 leading-tight mb-1">{ann.title}</p>
-                                                <p className="text-[11px] text-slate-600 font-medium leading-relaxed line-clamp-2">{ann.content}</p>
-                                            </div>
+                                {announcements.map(ann => (
+                                    <div key={`ann-${ann.id}`} className="p-4 bg-slate-50/50 hover:bg-slate-100 transition-colors cursor-pointer relative group">
+                                        <div className="flex gap-3" onClick={() => { setSelectedAnnouncement(ann); setIsOpen(false); }}>
+                                            <div className="shrink-0">{getAnnIcon(ann.type)}</div>
+                                            <div className="flex-1 min-w-0"><span className="text-[10px] font-black uppercase" style={{ color: 'var(--brand-from)' }}>Sistem Duyurusu</span><p className="text-xs font-black text-slate-900 truncate">{ann.title}</p></div>
                                         </div>
+                                        <button onClick={(e) => handleAnnouncementDismiss(ann.id, e)} className="absolute top-4 right-4 p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></button>
                                     </div>
                                 ))}
 
-                                {/* Kontrol Listesi Bildirimleri */}
-                                {controlItems.map((item) => (
-                                    <div
-                                        key={`control-${item.id}`}
-                                        onClick={() => handleNotificationClick(item.id)}
-                                        className="p-4 hover:bg-slate-50 transition-colors group cursor-pointer"
-                                    >
-                                        <div className="flex gap-3">
-                                            <div className="shrink-0 group-hover:scale-110 transition-transform">{getIcon(item.code)}</div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between gap-2 mb-0.5">
-                                                    <span className="text-xs font-bold text-slate-900 truncate">{item.patientName}</span>
-                                                    <span className="text-[10px] text-slate-400 font-medium shrink-0">{item.timeLabel.split('-')[0].trim()}</span>
-                                                </div>
-                                                <p className="text-[11px] text-slate-600 font-medium leading-relaxed">{item.title}</p>
-                                            </div>
-                                        </div>
+                                {controlItems.map(item => (
+                                    <div key={`control-${item.id}`} onClick={() => { router.push(`/${clinicSlug}#task-${item.id}`); setIsOpen(false); }} className="p-4 hover:bg-slate-50 transition-colors cursor-pointer flex gap-3">
+                                        <div className="shrink-0">{getIcon(item.code)}</div>
+                                        <div className="flex-1 min-w-0"><div className="flex justify-between items-center"><span className="text-xs font-bold truncate">{item.patientName}</span><span className="text-[10px] text-slate-400">{item.timeLabel.split('-')[0].trim()}</span></div><p className="text-[11px] text-slate-600 truncate">{item.title}</p></div>
                                     </div>
                                 ))}
 
-                                {/* AKILLI ASİSTAN KATEGORİ GRUPLARI */}
+                                {onlinePendingCount > 0 && (
+                                    <div onClick={() => { router.push(`/${clinicSlug}/online-bookings`); setIsOpen(false); }} className="p-4 bg-white hover:bg-slate-50 border-l-4 border-indigo-500 cursor-pointer flex gap-3">
+                                        <div className="shrink-0 p-2 bg-indigo-100 text-indigo-600 rounded-xl">📅</div>
+                                        <div className="flex-1 min-w-0"><div className="flex justify-between items-center"><span className="text-xs font-bold">Online Randevu Talebi</span><span className="text-[10px] font-black text-indigo-600">{onlinePendingCount}</span></div><p className="text-[11px] text-slate-600">İncelemek için dokunun.</p></div>
+                                    </div>
+                                )}
+
                                 {Object.entries(assistantGroups).map(([type, count]) => {
                                     const style = categoryStyles[type] || { icon: "✨", bg: "bg-slate-100", text: "text-slate-600", name: type };
                                     return (
-                                        <div 
-                                            key={`asst-group-${type}`}
-                                            onClick={() => { router.push(`/${clinicSlug}/communication`); setIsOpen(false); }}
-                                            className="p-4 bg-white hover:bg-slate-50 transition-colors group cursor-pointer border-l-4 border-emerald-400"
-                                        >
-                                            <div className="flex gap-3">
-                                                <div className={`shrink-0 p-2 ${style.bg} ${style.text} rounded-xl group-hover:scale-110 transition-transform flex items-center justify-center text-sm`}>
-                                                    {style.icon}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between gap-2 mb-0.5">
-                                                        <span className="text-xs font-bold text-slate-900">{style.name}</span>
-                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tight shrink-0">{count} Kayıt</span>
-                                                    </div>
-                                                    <p className="text-[11px] text-slate-600 font-medium leading-relaxed">Gönderilmeyi bekleyen {count} adet bildirim mevcut.</p>
-                                                </div>
+                                        <div key={`asst-group-${type}`} className="p-4 bg-white hover:bg-slate-50 border-l-4 border-emerald-400 relative group">
+                                            <div className="flex gap-3" onClick={() => { router.push(`/${clinicSlug}/communication`); setIsOpen(false); }}>
+                                                <div className={`shrink-0 p-2 ${style.bg} ${style.text} rounded-xl flex items-center justify-center text-sm`}>{style.icon}</div>
+                                                <div className="flex-1 min-w-0"><div className="flex justify-between items-center"><span className="text-xs font-bold">{style.name}</span><span className="text-[10px] font-black text-emerald-600">{count}</span></div><p className="text-[11px] text-slate-600">Görmek için dokunun.</p></div>
                                             </div>
+                                            <button onClick={(e) => handleDismissAllType(type, e)} className="absolute top-4 right-4 p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                                         </div>
                                     );
                                 })}
                             </div>
-                        )}
+                        }
                     </div>
 
-                    {/* Footer */}
                     <div className="p-3 border-t border-slate-50 bg-slate-50/30 text-center">
-                        <button
-                            onClick={() => { router.push(`/${clinicSlug}`); setIsOpen(false); }}
-                            className="text-[11px] font-bold transition-colors"
-                            style={{ color: 'var(--brand-from)' }}
-                        >
-                            Tüm Kontrolleri Gör
-                        </button>
+                        <button onClick={() => { router.push(`/${clinicSlug}`); setIsOpen(false); }} className="text-[11px] font-bold" style={{ color: 'var(--brand-from)' }}>Tüm Kontrolleri Gör</button>
                     </div>
                 </div>
             )}

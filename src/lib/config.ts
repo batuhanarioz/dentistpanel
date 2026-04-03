@@ -9,21 +9,30 @@
 
 const PRODUCTION_DOMAIN = "https://clinic.nextgency360.com";
 
-export const getBaseUrl = (): string => {
-    // 1. Explicit override — dev'de test etmek veya production'ı zorlamak için
+export const getBaseUrl = (forceProduction: boolean = false): string => {
+    // 1. Force Production (Useful for SuperAdmins generating production QRs from localhost)
+    if (forceProduction) {
+        return PRODUCTION_DOMAIN;
+    }
+
+    // 2. Explicit override — dev'de test etmek veya production'ı zorlamak için
     if (process.env.NEXT_PUBLIC_CHECKIN_BASE_URL) {
         return process.env.NEXT_PUBLIC_CHECKIN_BASE_URL.replace(/\/$/, "");
     }
 
-    // 2. Tarayıcı ortamında mevcut origin kullan (production'da doğru domain döner)
+    // 3. Tarayıcı ortamında mevcut origin kullan
     if (typeof window !== "undefined") {
         return window.location.origin;
     }
 
-    // 3. SSR fallback
+    // 4. SSR fallback
     return PRODUCTION_DOMAIN;
 };
 
-export const getCheckinUrl = (slug: string): string => {
-    return `${getBaseUrl()}/check-in/${slug}`;
+export const getCheckinUrl = (slug: string, forceProduction: boolean = false): string => {
+    return `${getBaseUrl(forceProduction)}/check-in/${slug}`;
+};
+
+export const getBookingUrl = (slug: string, forceProduction: boolean = false): string => {
+    return `${getBaseUrl(forceProduction)}/randevu/${slug}`;
 };

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useClinic } from "@/app/context/ClinicContext";
 import { UserRole } from "@/types/database";
+import { toast } from "react-hot-toast";
 
 export type WorkingHourDay = {
     enabled: boolean;
@@ -228,7 +229,7 @@ export function useAdminUsers() {
             body: JSON.stringify({ id: deleteTarget.id }),
         });
         const data = await res.json();
-        if (data.error) alert(data.error);
+        if (data.error) toast.error(data.error);
         else { setDeleteTarget(null); await refreshUsers(); }
     };
 

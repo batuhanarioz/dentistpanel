@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useClinic } from "@/app/context/ClinicContext";
 import { getDashboardData, getTodayPayments, getDashboardDataRange, getOverduePendingPayments } from "@/lib/api";
@@ -104,7 +104,7 @@ export function useSmartAssistant() {
                 .select("checklist_definitions(code)")
                 .eq("clinic_id", clinic.clinicId)
                 .eq("role", userRole);
-            
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return (data || []).map((d: any) => (d.checklist_definitions as any)?.code);
         },
@@ -125,8 +125,51 @@ export function useSmartAssistant() {
         },
         enabled: !!clinic.clinicId,
         staleTime: 30000, // 30 seconds cache
-        refetchInterval: 60000, 
+        refetchInterval: 60000,
     });
+
+    const queryClient = useQueryClient();
+
+    // Real-time dinleme: Randevular veya ödemeler değiştiğinde asistan verilerini tazele
+    useEffect(() => {
+        if (!clinic.clinicId) return;
+
+        // Benzersiz bir kanal ismi oluşturarak "after subscribe" hatasını önlüyoruz
+        const channelName = `smart_assistant_realtime_${clinic.clinicId}_${Math.random().toString(36).substring(7)}`;
+        const channel = supabase
+            .channel(channelName)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "appointments",
+                    filter: `clinic_id=eq.${clinic.clinicId}`,
+                },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ["assistantAppointments", today, clinic.clinicId] });
+                    queryClient.invalidateQueries({ queryKey: ["assistantPastAppointments"] });
+                }
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "payments",
+                    filter: `clinic_id=eq.${clinic.clinicId}`,
+                },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ["assistantPayments", today, clinic.clinicId] });
+                    queryClient.invalidateQueries({ queryKey: ["assistantOverduePayments", today, clinic.clinicId] });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [clinic.clinicId, today, queryClient]);
 
     const allItemsObj = useMemo(() => {
         if (!settings) return { pending: [], dismissed: [] };
@@ -243,7 +286,7 @@ export function useSmartAssistant() {
                             ? replacePlaceholders(settings.message_templates.BIRTHDAY, {
                                 patient_name: appt.patientName,
                                 clinic_name: clinic.clinicName || "Klinik",
-                              })
+                            })
                             : `İyi ki doğdunuz ${appt.patientName}! 🎂 ${clinic.clinicName || "Klinik"} ailesi olarak yeni yaşınızda sağlık dileriz.`;
                         items.push({
                             id: `bdy-${appt.id}`,
@@ -277,7 +320,7 @@ export function useSmartAssistant() {
                             patient_name: appt.patientName,
                             clinic_name: clinic.clinicName || "Klinik",
                             treatment_type: appt.treatmentType || "randevu"
-                          })
+                        })
                         : `Sayın ${appt.patientName}, yoğunluk nedeniyle randevunuza yaklaşık ${Math.round(diffMins)} dakika gecikmeyle başlayabileceğiz.`;
                     items.push({
                         id: `del-${appt.id}`,
@@ -382,7 +425,7 @@ export function useSmartAssistant() {
                             patient_name: appt.patientName,
                             clinic_name: clinic.clinicName || "Klinik",
                             treatment_type: appt.treatmentType || "randevu"
-                          })
+                        })
                         : `${appt.treatmentType} işlemi sonrası ${appt.patientName} aranarak durumu sorulmalıdır.`;
                     items.push({
                         id: `fol-past-${appt.id}`,
@@ -401,44 +444,12 @@ export function useSmartAssistant() {
             });
         }
 
-        // BIRTHDAY — son 3 günde doğum günü geçmiş olan ve görülmemiş hastalar
-        if (isAllowed("BIRTHDAY")) {
-            pastAppointments.forEach((appt) => {
-                const pDate = (appt as { birthDate?: string }).birthDate;
-                if (!pDate) return;
-                const birthDate = new Date(pDate);
-                const apptDay = new Date(appt.startsAt);
-                if (birthDate.getMonth() === apptDay.getMonth() && birthDate.getDate() === apptDay.getDate()) {
-                    const pastDate = apptDateStr(appt);
-                    const bdyMessage = settings.message_templates.BIRTHDAY
-                        ? replacePlaceholders(settings.message_templates.BIRTHDAY, {
-                            patient_name: appt.patientName,
-                            clinic_name: clinic.clinicName || "Klinik",
-                          })
-                        : `İyi ki doğdunuz ${appt.patientName}! 🎂 ${clinic.clinicName || "Klinik"} ailesi olarak geç de olsa kutluyoruz.`;
-                    items.push({
-                        id: `bdy-past-${appt.id}`,
-                        type: "BIRTHDAY",
-                        patientName: appt.patientName,
-                        patientId: appt.patientId,
-                        patientPhone: appt.patientPhone || "",
-                        title: "Doğum Günü (Kaçırıldı)",
-                        timeLabel: new Date(appt.startsAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short" }),
-                        message: bdyMessage,
-                        status: "pending",
-                        isPastDay: true,
-                        pastDate,
-                    });
-                }
-            });
-        }
-
         // PAYMENT — vadesi geçmiş bekleyen ödemeler
         if (settings.notification_settings.is_payment_enabled && isAllowed("PAYMENT")) {
             overduePayments.forEach((pay) => {
                 const message = replacePlaceholders(settings.message_templates.PAYMENT, {
                     patient_name: pay.patientName,
-                    amount: pay.amount.toString(),
+                    amount: pay.amount?.toString() || "0",
                     clinic_name: clinic.clinicName || "Klinik"
                 });
                 items.push({
@@ -478,8 +489,8 @@ export function useSmartAssistant() {
         };
     }, [appointments, payments, pastAppointments, overduePayments, allowedTypes, clinic.clinicName, clinic.userRole, settings, today, dbDismissedIds]);
 
-    const s_assistantItems = allItemsObj.pending;
-    const s_dismissedAssistantItems = allItemsObj.dismissed;
+    const s_assistantItems = dismissedIdsLoading ? [] : allItemsObj.pending;
+    const s_dismissedAssistantItems = dismissedIdsLoading ? [] : allItemsObj.dismissed;
     const missedCount = s_assistantItems.filter(i => i.isPastDay).length;
 
     return {
@@ -499,9 +510,9 @@ export function useDismissAssistantItem() {
             const token = await getToken();
             const res = await fetch("/api/assistant/dismiss", {
                 method: "POST",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}` 
+                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({ itemId })
             });
@@ -523,9 +534,9 @@ export function useUndoDismissAssistantItem() {
             const token = await getToken();
             const res = await fetch("/api/assistant/dismiss", {
                 method: "DELETE",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}` 
+                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({ itemId })
             });

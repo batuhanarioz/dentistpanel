@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 import { useCheckin, CheckinAppointment } from "@/hooks/useCheckin";
 import { AnamnesisSection } from "@/app/components/patients/AnamnesisSection";
-import { PatientAnamnesis, EMPTY_ANAMNESIS } from "@/types/database";
+import { PatientAnamnesis } from "@/types/database";
 import toast from "react-hot-toast";
 
 type Draft = Omit<PatientAnamnesis, "id" | "clinic_id" | "patient_id" | "updated_at" | "updated_by">;
@@ -29,18 +28,14 @@ export default function PublicCheckinPage() {
     useEffect(() => {
         const fetchClinic = async () => {
             try {
-                const { data, error } = await supabase
-                    .from("clinics")
-                    .select("id, name")
-                    .eq("slug", slug)
-                    .single();
-
-                if (error || !data) {
+                const res = await fetch(`/api/checkin/clinic-name?slug=${encodeURIComponent(slug)}`);
+                if (!res.ok) {
                     setErrorMsg("Klinik bulunamadı veya bağlantı hatası oluştu.");
                     setStep("ERROR");
                     return;
                 }
-                setClinic(data);
+                const json = await res.json() as { id: string; name: string };
+                setClinic(json);
             } catch {
                 setErrorMsg("Sistem hatası oluştu. Lütfen daha sonra tekrar deneyiniz.");
                 setStep("ERROR");
@@ -78,25 +73,31 @@ export default function PublicCheckinPage() {
         const result = await verifyCode(code, slug);
         if (result) {
             setSelectedAppointment(result);
-            await loadAnamnesis(result.patientId);
+            await loadAnamnesis(result.id);
             setStep("FILL_FORM");
         }
     }, [code, slug, verifyCode]);
 
-    // Anamnez Verisini Yükle
-    const loadAnamnesis = async (patientId: string) => {
-        if (!patientId) return;
-        const { data } = await supabase
-            .from("patient_anamnesis")
-            .select("*")
-            .eq("patient_id", patientId)
-            .maybeSingle();
-        setAnamnesisData(data ?? null);
+    // Anamnez Verisini Yükle — server-side API üzerinden (anon PII koruması)
+    const loadAnamnesis = async (appointmentId: string) => {
+        if (!appointmentId) return;
+        try {
+            const res = await fetch("/api/checkin/anamnesis", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ appointmentId, slug }),
+            });
+            if (!res.ok) { setAnamnesisData(null); return; }
+            const json = await res.json() as { anamnesis: PatientAnamnesis | null };
+            setAnamnesisData(json.anamnesis);
+        } catch {
+            setAnamnesisData(null);
+        }
     };
 
     const handleSelectAppointment = async (appt: CheckinAppointment) => {
         setSelectedAppointment(appt);
-        await loadAnamnesis(appt.patientId);
+        await loadAnamnesis(appt.id);
         setStep("FILL_FORM");
     };
 
@@ -126,7 +127,7 @@ export default function PublicCheckinPage() {
 
     const handleSkipAnamnesis = async () => {
         if (!selectedAppointment) return;
-        // Sadece arrived status'una geç, mevcut anamnezi koruyarak
+        // Sadece arrived status'una geç — anamnez verisine dokunma
         try {
             await fetch("/api/checkin/save-anamnesis", {
                 method: "POST",
@@ -134,7 +135,7 @@ export default function PublicCheckinPage() {
                 body: JSON.stringify({
                     appointmentId: selectedAppointment.id,
                     slug,
-                    anamnesisData: anamnesisData ?? EMPTY_ANAMNESIS,
+                    skipAnamnesis: true,
                 }),
             });
         } catch {

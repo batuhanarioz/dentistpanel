@@ -97,6 +97,12 @@ export function AppointmentDetails({
                     className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none"
                 >
                     <option value="">Belirtilmedi</option>
+                    {/* Dinamik Kanal: Eğer veritabanındaki kanal listede yoksa (QR, Online vb.), otomatik ekle */}
+                    {form.channel && !channelOptions.includes(form.channel) && (
+                        <option value={form.channel}>
+                            {form.channel === "QR" ? "QR (Online Portal)" : form.channel}
+                        </option>
+                    )}
                     {channelOptions.map(name => (
                         <option key={name} value={name}>{name}</option>
                     ))}

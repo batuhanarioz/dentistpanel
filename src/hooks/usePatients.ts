@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toast } from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { UserRole } from "@/types/database";
 import { useClinic } from "@/app/context/ClinicContext";
@@ -92,7 +93,13 @@ export function usePatients() {
         staleTime: 2 * 60 * 1000,
     });
 
-    // Fetch Patient Row (for cases where the patient is not in the current list/page)
+    // Mevcut listede hasta varsa DB round-trip'ten kaçın
+    const patientInList = useMemo(
+        () => patients.find((p: PatientRow) => p.id === selectedPatientId) ?? null,
+        [patients, selectedPatientId]
+    );
+
+    // Fetch Patient Row — sadece hasta aktif listede yoksa çek
     const { data: fetchedPatientRow } = useQuery({
         queryKey: ["patient-row", selectedPatientId],
         queryFn: async () => {
@@ -100,7 +107,7 @@ export function usePatients() {
             if (error) throw error;
             return data as PatientRow;
         },
-        enabled: !!selectedPatientId,
+        enabled: !!selectedPatientId && !patientInList,
         staleTime: 5 * 60 * 1000,
     });
 
@@ -109,10 +116,9 @@ export function usePatients() {
 
     const selectedPatient = useMemo(() => {
         if (!selectedPatientId) return null;
-        // Priority: directly fetched row > list search
         if (fetchedPatientRow) return fetchedPatientRow;
-        return patients.find((p: PatientRow) => p.id === selectedPatientId) || null;
-    }, [patients, selectedPatientId, fetchedPatientRow]);
+        return patientInList;
+    }, [selectedPatientId, fetchedPatientRow, patientInList]);
 
     // Use current search/page results
     const filteredPatients = patients;
@@ -156,14 +162,14 @@ export function usePatients() {
         if (!clinic.clinicId) return false;
         const validation = patientSchema.safeParse(data);
         if (!validation.success) {
-            alert("Geçersiz bilgiler: " + validation.error.issues[0].message);
+            toast.error("Geçersiz bilgiler: " + validation.error.issues[0].message);
             return false;
         }
         const payload = toPatientDbPayload(validation.data);
         const { error } = await supabase.from("patients").insert({ ...payload, clinic_id: clinic.clinicId });
         if (error) {
             Sentry.captureException(error, { tags: { section: "patients", action: "create" } });
-            alert(error.message);
+            toast.error(error.message);
             return false;
         }
         queryClient.invalidateQueries({ queryKey: ["patients"] });
@@ -176,7 +182,7 @@ export function usePatients() {
         const { error } = await supabase.from("patients").delete().eq("id", id).eq("clinic_id", clinic.clinicId);
         if (error) {
             Sentry.captureException(error, { tags: { section: "patients", action: "delete" } });
-            alert(error.message);
+            toast.error(error.message);
             return false;
         }
         queryClient.invalidateQueries({ queryKey: ["patients"] });
@@ -188,14 +194,14 @@ export function usePatients() {
         if (!clinic.clinicId) return false;
         const validation = updatePatientSchema.safeParse(updates);
         if (!validation.success) {
-            alert("Yeni bilgiler geçersiz: " + validation.error.issues[0].message);
+            toast.error("Yeni bilgiler geçersiz: " + validation.error.issues[0].message);
             return false;
         }
 
         const { error } = await supabase.from("patients").update(toPatientDbPayload(validation.data as Parameters<typeof toPatientDbPayload>[0])).eq("id", id).eq("clinic_id", clinic.clinicId);
         if (error) {
             Sentry.captureException(error, { tags: { section: "patients", action: "update" } });
-            alert(error.message);
+            toast.error(error.message);
             return false;
         }
         queryClient.invalidateQueries({ queryKey: ["patients"] });

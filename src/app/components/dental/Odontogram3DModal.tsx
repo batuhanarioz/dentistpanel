@@ -126,7 +126,7 @@ export default function Odontogram3DModal({ open, onClose, patientId, patientNam
     const selectedData = selected ? draft[selected] : null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex flex-col sm:flex-row" style={{ background: "rgba(0,0,0,0.92)" }}>
+        <div className="fixed inset-0 z-[400] flex flex-col sm:flex-row" style={{ background: "rgba(0,0,0,0.92)" }}>
 
             {/* ── Canvas alanı: mobilde üst (%58), desktop'ta sol (flex-1) ── */}
             <div className="relative flex flex-col flex-1 h-[58svh] sm:h-auto">

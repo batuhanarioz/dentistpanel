@@ -150,6 +150,7 @@ export function AuthGuard({ children }: Props) {
     planId: "starter",
     themeColorFrom: undefined,
     themeColorTo: undefined,
+    refreshClinicData: async () => {},
   });
 
   const [isOverlayActive, setIsOverlayActive] = useState(false);
@@ -176,6 +177,66 @@ export function AuthGuard({ children }: Props) {
   const setOverlayActive = (active: boolean, full?: boolean) => {
     setIsOverlayActive(active);
     setIsFullOverlay(active ? !!full : false);
+  };
+
+  const loadClinicData = async (targetClinicId: string, currentRole: UserRole, currentUserId: string, currentUserName: string | null, currentUserEmail: string | null, isClinical: boolean, themeFrom?: string, themeTo?: string) => {
+    const [
+      cData,
+      { data: autoResData, error: autoResError },
+      { data: settingsResData, error: settingsResError },
+      { data: addonsResData, error: addonsResError }
+    ] = await Promise.all([
+      getClinicById(targetClinicId),
+      supabase.from("clinic_automations").select("automation_id, is_visible, is_enabled, schedule_time, schedule_day").eq("clinic_id", targetClinicId),
+      supabase.from("clinic_settings").select("*").eq("clinic_id", targetClinicId).maybeSingle(),
+      supabase.from("clinic_addons").select("*, addon_products(*)").eq("clinic_id", targetClinicId).eq("is_visible", true).order("created_at", { ascending: true })
+    ]);
+
+    if (!cData) return null;
+
+    let automations: ClinicAutomation[] = [];
+    if (!autoResError && autoResData) {
+      automations = (autoResData as any).map((a: any) => ({
+        id: a.automation_id,
+        name: SYSTEM_AUTOMATIONS.find(s => s.id === a.automation_id)?.name || a.automation_id,
+        visible: a.is_visible,
+        enabled: a.is_enabled,
+        time: a.schedule_time ? a.schedule_time.substring(0, 5) : "09:00",
+        day: a.schedule_day ?? undefined
+      }));
+    }
+
+    const isSuperAdmin = currentRole === UserRole.SUPER_ADMIN;
+    const isAdmin = currentRole === UserRole.ADMIN || isSuperAdmin;
+
+    return {
+      clinicId: cData.id,
+      clinicName: cData.name,
+      clinicSlug: cData.slug,
+      userRole: currentRole,
+      isSuperAdmin,
+      isAdmin,
+      userId: currentUserId,
+      userName: currentUserName,
+      userEmail: currentUserEmail,
+      is_clinical_provider: isClinical,
+      workingHours: (cData.working_hours as WorkingHours) || DEFAULT_WORKING_HOURS,
+      workingHoursOverrides: cData.working_hours_overrides || [],
+      subscriptionStatus: (cData as any).subscription_status || (isSuperAdmin ? "active" : "trialing"),
+      billingCycle: (cData as any).billing_cycle || (isSuperAdmin ? "annual" : "monthly"),
+      currentPeriodEnd: (cData as any).current_period_end || null,
+      lastPaymentDate: (cData as any).last_payment_date || null,
+      n8nWorkflows: automations,
+      clinicSettings: settingsResData || null,
+      clinicAddons: (addonsResData as ClinicAddon[]) || [],
+      planId: (cData as any).planId || "starter",
+      themeColorFrom: themeFrom || (cData as any).theme_color_from,
+      themeColorTo: themeTo || (cData as any).theme_color_to,
+      refreshClinicData: async () => {
+        const fresh = await loadClinicData(targetClinicId, currentRole, currentUserId, currentUserName, currentUserEmail, isClinical, themeFrom, themeTo);
+        if (fresh) setClinicCtx(fresh);
+      }
+    };
   };
 
   // Sayfa değiştiğinde yükleme ekranını otomatik kapat
@@ -301,80 +362,35 @@ export function AuthGuard({ children }: Props) {
           }
         }
 
-        let clinicData: Partial<Clinic> | null = null;
-        let clinicSettingsData: ClinicSettings | null = null;
-        let automationsData: ClinicAutomation[] = [];
-        let clinicAddonsData: ClinicAddon[] = [];
-
         if (targetClinicId) {
-          // Paralel sorgularla hedef kliniğin tüm verilerini çek
-          // RLS (Güvenlik Kuralı) hatasını (invalid_clinic) aşmak için kliniğin ana verisini Server Action üzerinden çekiyoruz.
-          const [
-            cData,
-            { data: autoResData, error: autoResError },
-            { data: settingsResData, error: settingsResError },
-            { data: addonsResData, error: addonsResError }
-          ] = await Promise.all([
-            getClinicById(targetClinicId),
-            supabase.from("clinic_automations").select("automation_id, is_visible, is_enabled, schedule_time, schedule_day").eq("clinic_id", targetClinicId),
-            supabase.from("clinic_settings").select("*").eq("clinic_id", targetClinicId).maybeSingle(),
-            supabase.from("clinic_addons").select("*, addon_products(*)").eq("clinic_id", targetClinicId).eq("is_visible", true).order("created_at", { ascending: true })
-          ]);
-
-          if (!cData) {
-            // Seçilen klinik bulunamazsa veya inaktifse, seçimi temizle ve başa dön
-            localStorage.removeItem("activeClinicId");
-            router.replace("/select-clinic?error=invalid_clinic");
-            return;
+          const freshData = await loadClinicData(
+            targetClinicId, 
+            role, 
+            appUser.id, 
+            appUser.full_name, 
+            appUser.email, 
+            appUser.is_clinical_provider,
+            appUser.theme_color_from,
+            appUser.theme_color_to
+          );
+          if (freshData) {
+            setClinicCtx(freshData);
           }
-          clinicData = cData;
-
-          if (!cData.is_active) {
-            await supabase.auth.signOut();
-            router.replace("/login?error=inactive");
-            return;
-          }
-
-          if (!autoResError && autoResData) {
-            automationsData = (autoResData as unknown as Array<{ automation_id: string; is_visible: boolean; is_enabled: boolean; schedule_time: string | null; schedule_day: string | null }>).map((a) => ({
-              id: a.automation_id,
-              name: SYSTEM_AUTOMATIONS.find(s => s.id === a.automation_id)?.name || a.automation_id,
-              visible: a.is_visible,
-              enabled: a.is_enabled,
-              time: a.schedule_time ? a.schedule_time.substring(0, 5) : "09:00",
-              day: a.schedule_day ?? undefined
+        } else {
+            // No clinic ID (e.g. Super Admin not in clinic)
+            setClinicCtx(prev => ({
+                ...prev,
+                userId: appUser.id,
+                userName: appUser.full_name,
+                userEmail: appUser.email,
+                userRole: role,
+                isSuperAdmin,
+                isAdmin,
+                is_clinical_provider: appUser.is_clinical_provider,
+                themeColorFrom: appUser.theme_color_from,
+                themeColorTo: appUser.theme_color_to
             }));
-            automationsRef.current = automationsData;
-          }
-          if (!settingsResError && settingsResData) clinicSettingsData = settingsResData;
-          if (!addonsResError && addonsResData) clinicAddonsData = addonsResData as ClinicAddon[];
         }
-
-        // 5. ClinicContext'i doldur
-        setClinicCtx({
-          clinicId: clinicData?.id || null,
-          clinicName: clinicData?.name || null,
-          clinicSlug: clinicData?.slug || null,
-          userRole: role,
-          isSuperAdmin,
-          isAdmin,
-          userId: appUser.id,
-          userName: appUser.full_name,
-          userEmail: appUser.email,
-          is_clinical_provider: appUser.is_clinical_provider,
-          workingHours: (clinicData?.working_hours as WorkingHours) || DEFAULT_WORKING_HOURS,
-          workingHoursOverrides: clinicData?.working_hours_overrides || [],
-          subscriptionStatus: (clinicData as unknown as Clinic)?.subscription_status || (isSuperAdmin ? "active" : "trialing"),
-          billingCycle: (clinicData as unknown as Clinic)?.billing_cycle || (isSuperAdmin ? "annual" : "monthly"),
-          currentPeriodEnd: (clinicData as unknown as Clinic)?.current_period_end || null,
-          lastPaymentDate: (clinicData as unknown as Clinic)?.last_payment_date || null,
-          n8nWorkflows: automationsRef.current,
-          clinicSettings: clinicSettingsData,
-          clinicAddons: clinicAddonsData,
-          planId: (clinicData as unknown as { planId?: string })?.planId || "starter",
-          themeColorFrom: appUser.theme_color_from || (clinicData as any)?.theme_color_from,
-          themeColorTo: appUser.theme_color_to || (clinicData as any)?.theme_color_to,
-        });
 
         setLoadingStep("ready");
         setAllowed(true);
@@ -442,21 +458,17 @@ export function AuthGuard({ children }: Props) {
             }));
           }
 
-          setClinicCtx(prev => ({
-            ...prev,
-            clinicId: clinicData.id,
-            clinicName: clinicData.name,
-            clinicSlug: clinicData.slug,
-            workingHours: (clinicData.working_hours as WorkingHours) || DEFAULT_WORKING_HOURS,
-            workingHoursOverrides: clinicData.working_hours_overrides || [],
-            subscriptionStatus: (clinicData as unknown as Clinic).subscription_status || "active",
-            billingCycle: (clinicData as unknown as Clinic).billing_cycle || "annual",
-            currentPeriodEnd: clinicData.current_period_end || null,
-            lastPaymentDate: clinicData.last_payment_date || null,
-            n8nWorkflows: automations,
-            clinicSettings: settingsResData.data,
-            isAdmin: true, // Super admin kliniğin içindeyken klinikte de admin sayılır
-          }));
+          const fresh = await loadClinicData(
+            clinicData.id, 
+            clinicCtx.userRole!, 
+            clinicCtx.userId!, 
+            clinicCtx.userName, 
+            clinicCtx.userEmail, 
+            clinicCtx.is_clinical_provider!,
+            clinicCtx.themeColorFrom,
+            clinicCtx.themeColorTo
+          );
+          if (fresh) setClinicCtx(fresh);
         } catch (err) {
           console.error("Error switching clinic context for superadmin:", err);
         }
@@ -561,6 +573,7 @@ export function AuthGuard({ children }: Props) {
         n8nWorkflows: clinicCtx.n8nWorkflows,
         clinicSettings: clinicCtx.clinicSettings,
         clinicAddons: clinicCtx.clinicAddons,
+        refreshClinicData: clinicCtx.refreshClinicData,
       }}>
         <UIContext.Provider value={{ isOverlayActive, isFullOverlay, setOverlayActive }}>
           {children}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import type { AppEvent, DoctorOption, ZoomLevel } from "@/hooks/useAppointments";
 import { AppointmentCard } from "./AppointmentCard";
 
@@ -44,14 +44,79 @@ export function DoctorColumn({
     const slotsPerHour = 60 / SLOT_DURATION;
     const totalSlots = (endHour - startHour) * slotsPerHour;
 
-    // ── Card position calculation ──────────────────────────────────────────────
-    function getCardPosition(event: AppEvent): { top: number; height: number } {
-        const minutesFromStart = (event.startHour - startHour) * 60 + event.startMinute;
-        const slotsFromStart = minutesFromStart / SLOT_DURATION;
-        const top = slotsFromStart * slotHeight;
-        const height = (event.durationMinutes / SLOT_DURATION) * slotHeight;
-        return { top, height };
-    }
+    // ── Overlap Layout Algorithm ──────────────────────────────────────────────
+    const eventLayouts = useMemo(() => {
+        // 1. Sort by start time
+        const sorted = [...events].sort((a, b) => {
+            const aStart = a.startHour * 60 + a.startMinute;
+            const bStart = b.startHour * 60 + b.startMinute;
+            return aStart - bStart || a.durationMinutes - b.durationMinutes;
+        });
+
+        const layouts = new Map<string, { top: number; height: number; left: number; width: number }>();
+
+        // Helper to check if event overlaps with any in a column
+        function overlaps(e: AppEvent, col: AppEvent[]) {
+            const eStart = e.startHour * 60 + e.startMinute;
+            const eEnd = eStart + e.durationMinutes;
+            return col.some(c => {
+                const cStart = c.startHour * 60 + c.startMinute;
+                const cEnd = cStart + c.durationMinutes;
+                // Small buffer to avoid overlap when one ends exactly when another starts
+                return eStart < (cEnd - 0.5) && (eEnd - 0.5) > cStart;
+            });
+        }
+
+        // Group events into overlapping clusters
+        const clusters: AppEvent[][] = [];
+        let currentCluster: AppEvent[] = [];
+        let clusterEnd = 0;
+
+        for (const e of sorted) {
+            const eStart = e.startHour * 60 + e.startMinute;
+            if (eStart >= (clusterEnd - 0.5) && currentCluster.length > 0) {
+                clusters.push(currentCluster);
+                currentCluster = [];
+                clusterEnd = 0;
+            }
+            currentCluster.push(e);
+            clusterEnd = Math.max(clusterEnd, eStart + e.durationMinutes);
+        }
+        if (currentCluster.length > 0) clusters.push(currentCluster);
+
+        // For each cluster, assign columns
+        for (const cluster of clusters) {
+            const clusterColumns: AppEvent[][] = [];
+            for (const e of cluster) {
+                let placed = false;
+                for (let i = 0; i < clusterColumns.length; i++) {
+                    if (!overlaps(e, clusterColumns[i])) {
+                        clusterColumns[i].push(e);
+                        placed = true;
+                        break;
+                    }
+                }
+                if (!placed) clusterColumns.push([e]);
+            }
+
+            const numCols = clusterColumns.length;
+            for (let i = 0; i < numCols; i++) {
+                for (const e of clusterColumns[i]) {
+                    const minutesFromStart = (e.startHour - startHour) * 60 + e.startMinute;
+                    const top = (minutesFromStart / SLOT_DURATION) * slotHeight;
+                    const height = (e.durationMinutes / SLOT_DURATION) * slotHeight;
+                    layouts.set(e.id, {
+                        top,
+                        height,
+                        left: (i / numCols) * 100,
+                        width: 100 / numCols
+                    });
+                }
+            }
+        }
+
+        return layouts;
+    }, [events, startHour, slotHeight, SLOT_DURATION]);
 
     // ── Drag & Drop handlers ───────────────────────────────────────────────────
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -97,7 +162,7 @@ export function DoctorColumn({
         // Clamp to valid range
         const clampedY = Math.max(0, Math.min(rawY, totalHeight));
 
-        // Snap to 15m slots
+        // Snap to slot boundaries
         const slotIdx = Math.round(clampedY / slotHeight);
         const snappedMinutes = slotIdx * SLOT_DURATION;
 
@@ -146,13 +211,17 @@ export function DoctorColumn({
 
                 {/* Appointment Cards */}
                 {events.map((event) => {
-                    const { top, height } = getCardPosition(event);
+                    const layout = eventLayouts.get(event.id);
+                    if (!layout) return null;
+
                     return (
                         <AppointmentCard
                             key={event.id}
                             event={event}
-                            top={top}
-                            height={height}
+                            top={layout.top}
+                            height={layout.height}
+                            width={layout.width}
+                            left={layout.left}
                             slotHeight={slotHeight}
                             onClick={() => onCardClick(event.id)}
                         />

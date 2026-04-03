@@ -2,8 +2,10 @@ import { useMemo } from "react";
 import { localDateStr, formatTime } from "@/lib/dateUtils";
 import { useClinic } from "@/app/context/ClinicContext";
 import { UserRole } from "@/types/database";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getChecklistItems, getChecklistConfigs } from "@/lib/api";
+import { useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export type ControlItemType = "status" | "approval" | "doctor" | "payment";
 export type ControlItemTone = "critical" | "high" | "medium" | "low";
@@ -67,6 +69,35 @@ export function useChecklist(dateOffset: number = 0) {
         enabled: !!clinic.clinicId,
         staleTime: 30 * 60 * 1000, // 30 dakika — config nadiren değişir
     });
+
+    const queryClient = useQueryClient();
+
+    // Real-time dinleme: checklist_items tablosunda bir değişiklik olduğunda veriyi tazele
+    useEffect(() => {
+        if (!clinic.clinicId) return;
+
+        // Benzersiz bir kanal ismi oluşturarak "after subscribe" hatasını önlüyoruz
+        const channelName = `checklist_items_${clinic.clinicId}_${Math.random().toString(36).substring(7)}`;
+        const channel = supabase
+            .channel(channelName)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "checklist_items",
+                    filter: `clinic_id=eq.${clinic.clinicId}`,
+                },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ["checklistItems", viewDate, clinic.clinicId] });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [clinic.clinicId, viewDate, queryClient]);
 
     const controlItems = useMemo(() => {
         const userRole = clinic.userRole || UserRole.SEKRETER;

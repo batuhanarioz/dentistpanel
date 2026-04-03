@@ -97,7 +97,7 @@ export function useAppointmentManagement(initialData?: {
         queryFn: () => getAppointmentsForDate(selectedDate, effectiveClinicId || ""),
         initialData: (selectedDate === today && initialData?.appointments?.length) ? initialData.appointments : undefined,
         enabled: !!effectiveClinicId,
-        staleTime: 60 * 1000, // 1 dakika
+        staleTime: 5 * 60 * 1000, // 5 dakika
     });
 
     // React Query for Doctors
@@ -215,7 +215,7 @@ export function useAppointmentManagement(initialData?: {
             return (data || []) as PatientSearchResult[];
         },
         enabled: !!effectiveClinicId && debouncedPatientSearch.length >= 2,
-        staleTime: 30 * 1000,
+        staleTime: 2 * 60 * 1000,
     });
 
     const patientSearchResults = debouncedPatientSearch.length >= 2 ? (patientSearchData ?? []) : [];
@@ -247,7 +247,7 @@ export function useAppointmentManagement(initialData?: {
         queryKey: ["appointments", formDate, effectiveClinicId],
         queryFn: () => getAppointmentsForDate(formDate, effectiveClinicId!),
         enabled: !!formDate && !!effectiveClinicId && formDate !== selectedDate,
-        staleTime: 60 * 1000,
+        staleTime: 5 * 60 * 1000,
     });
     // For formDate === selectedDate the main `appointments` query is already loaded
     const apptPoolForConflict = formDate === selectedDate ? appointments : conflictDateAppts;
@@ -424,6 +424,15 @@ export function useAppointmentManagement(initialData?: {
                     setSubmitError("Güncelleme hatası: " + error.message);
                     return;
                 }
+
+                // Ekleme: Durum iptal veya gelmediye çekildiyse online talebi de 'iptal' yap
+                if (payload.status === "cancelled" || payload.status === "no_show") {
+                    await supabase
+                        .from("online_booking_requests")
+                        .update({ status: "cancelled", appointment_id: null })
+                        .eq("appointment_id", editing.id)
+                        .eq("clinic_id", effectiveClinicId);
+                }
             } else {
                 const { error } = await supabase.from("appointments").insert(payload);
                 if (error) {
@@ -469,13 +478,25 @@ export function useAppointmentManagement(initialData?: {
 
     const handleDelete = async () => {
         if (!editing || !effectiveClinicId) return;
+
+        // 1. Eğer bu randevu online portaldan geldiyse, talebi 'iptal' durumuna çek
+        await supabase
+            .from("online_booking_requests")
+            .update({ status: "cancelled", appointment_id: null })
+            .eq("appointment_id", editing.id)
+            .eq("clinic_id", effectiveClinicId);
+
+        // 2. Randevuyu sil
         const { error } = await supabase.from("appointments").delete().eq("id", editing.id).eq("clinic_id", effectiveClinicId);
+        
         if (error) {
             Sentry.captureException(error, { tags: { section: "appointments", action: "delete" } });
             throw new Error("Silme hatası: " + error.message);
         }
         closeModal();
         queryClient.invalidateQueries({ queryKey: ["appointments"] });
+        // Online taleplerin de güncellenmesi için (eğer o sayfa açıksa)
+        queryClient.invalidateQueries({ queryKey: ["bookingRequests"] });
     };
 
     const handleUseDuplicate = () => {

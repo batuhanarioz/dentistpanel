@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
         ?? req.headers.get("x-real-ip")
         ?? "unknown";
 
-    const { allowed } = rateLimit(
+    const { allowed } = await rateLimit(
         `checkin_search:${ip}`,
         RATE_LIMIT,
         RATE_WINDOW_MS

@@ -12,6 +12,7 @@ export enum UserRole {
 export const USER_ROLES = Object.values(UserRole);
 
 export type AppointmentStatus =
+  | "pending"
   | "confirmed"
   | "scheduled"
   | "arrived"
@@ -46,6 +47,8 @@ export interface DaySchedule {
   open: string;    // "09:00"
   close: string;   // "19:00"
   enabled: boolean;
+  lunch_start?: string;
+  lunch_end?: string;
 }
 
 export type WorkingHours = Record<DayOfWeek, DaySchedule>;
@@ -105,6 +108,21 @@ export interface ClinicSettings {
     payment_due_days: number;
     invoice_footer: string;
   };
+  treatment_definitions?: TreatmentDefinition[];
+  /** Online randevu sistemi aktif mi? */
+  is_online_booking_enabled?: boolean;
+  online_booking_config?: {
+    is_auto_approve: boolean;
+    use_service_duration: boolean;
+    slot_duration: number;
+    buffer_time: number;
+    min_lead_time_hours: number;
+    pending_expiry_hours?: number;
+    max_days_ahead: number;
+    slot_display_interval?: number;
+    allowed_services: string[];
+    required_fields: string[];
+  };
   /** Modül bazlı yetki ayarları — hangi roller hangi modüle erişebilir */
   feature_permissions?: {
     /** Gün sonu kasa kapatma yetkisi olan roller. Boş = herkes kapatabilir */
@@ -124,6 +142,8 @@ export interface Clinic {
   city: string | null;
   district: string | null;
   logo_url: string | null;
+  theme_color_from?: string | null;
+  theme_color_to?: string | null;
   is_active: boolean;
   working_hours: WorkingHours;
   working_hours_overrides?: { date: string; open: string; close: string; is_closed: boolean; note?: string }[];
@@ -155,6 +175,8 @@ export interface User {
   theme_color_from?: string | null;
   theme_color_to?: string | null;
   phone: string | null;
+  working_hours?: WorkingHours | null;
+  allowed_treatments?: string[] | null;
   created_at: string;
 }
 

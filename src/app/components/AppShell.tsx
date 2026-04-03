@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AuthGuard } from "./AuthGuard";
-import { useClinic, UIContext, useUI } from "../context/ClinicContext";
+import { useClinic, useUI } from "../context/ClinicContext";
 import { supabase } from "@/lib/supabaseClient";
 import { NotificationDropdown } from "./dashboard/NotificationDropdown";
 import { GlobalPatientSearch } from "./GlobalPatientSearch";
@@ -13,6 +13,8 @@ import { PastDueBanner } from "./subscription/PastDueBanner";
 import { SupportModal } from "./dashboard/SupportModal";
 import { ThemeSettingsModal } from "./ThemeSettingsModal";
 import { Toaster } from "react-hot-toast";
+import { AnnouncementProvider } from "../context/AnnouncementContext";
+import { ConfirmProvider } from "../context/ConfirmContext";
 
 type Props = {
   children: React.ReactNode;
@@ -115,10 +117,10 @@ function ClinicNav({
   const clinic = useClinic();
   const pathname = usePathname();
   const base = `/${slug}`;
-  
-  const isActive = (href: string) => {
+
+  const isActive = useCallback((href: string) => {
     return pathname === href || pathname === href + "/";
-  };
+  }, [pathname]);
 
   const canSeeFinance = isAdmin || userRole === "FINANS" || userRole === "DOKTOR" || clinic.is_clinical_provider;
   const handleClick = () => {
@@ -184,6 +186,11 @@ function ClinicNav({
         <div>
           <NavHeader>İletişim ve Süreçler</NavHeader>
           <div className="space-y-1 mt-1">
+            <Link href={`${base}/online-bookings`} className={linkClass(`${base}/online-bookings`)} style={isActive(`${base}/online-bookings`) ? { backgroundColor: 'var(--brand-from)', color: '#fff', boxShadow: `0 10px 20px -5px ${clinic.themeColorFrom}40` } : {}} onClick={handleClick}>
+              {isActive(`${base}/online-bookings`) && <div className="absolute left-0 top-3 bottom-3 w-1.5 rounded-r-full bg-white/40" />}
+              <svg className={`h-4 w-4 shrink-0 transition-colors ${isActive(`${base}/online-bookings`) ? "text-white" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3" /></svg>
+              <span>Online Randevu</span>
+            </Link>
             <Link href={`${base}/communication`} className={linkClass(`${base}/communication`)} style={isActive(`${base}/communication`) ? { backgroundColor: 'var(--brand-from)', color: '#fff', boxShadow: `0 10px 20px -5px ${clinic.themeColorFrom}40` } : {}} onClick={handleClick}>
               {isActive(`${base}/communication`) && <div className="absolute left-0 top-3 bottom-3 w-1.5 rounded-r-full bg-white/40" />}
               <svg className={`h-4 w-4 shrink-0 transition-colors ${isActive(`${base}/communication`) ? "text-white" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.213c-.079-.335.215-.632.557-.59 1.094.135 2.212.217 3.34.246Zm0-9.18c.253-.962.584-1.892.985-2.783.247-.55.06-1.21-.463-1.511l-.657-.38c-.551-.318-1.26-.117-1.527.461a20.845 20.845 0 0 0-1.44 4.213c-.079.335.215.632.557.59 1.094-.135 2.212-.217 3.34-.246Zm0 9.18c.954.025 1.914.037 2.88.037 1.477 0 2.927-.03 4.35-.088m-7.23-.013V6.66m7.23 9.18c.551.021 1.103.03 1.656.028a.75.75 0 0 0 .736-.827 45.046 45.046 0 0 0-1.123-7.514.75.75 0 0 0-.736-.827c-.553-.002-1.105.007-1.656.028m0 9.18V6.674" /></svg>
@@ -423,6 +430,10 @@ function ShellInner({ children }: Props) {
         setHeaderTitle("Klinik Kılavuzu");
         setHeaderIconPath("M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25");
         break;
+      case subPath === "/online-bookings":
+        setHeaderTitle("Onlıne Randevu Yönetimi");
+        setHeaderIconPath("M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3");
+        break;
       case subPath === "/reports":
         setHeaderTitle("Raporlar");
         setHeaderIconPath("M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z");
@@ -464,9 +475,9 @@ function ShellInner({ children }: Props) {
     }
   }, [pathname, clinic.clinicSlug]);
 
-  const isActive = (href: string) => {
+  const isActive = useCallback((href: string) => {
     return pathname === href || pathname === href + "/";
-  };
+  }, [pathname]);
 
   const themeFrom = clinic.themeColorFrom || "#0d9488";
   const themeTo = clinic.themeColorTo || "#10b981";
@@ -536,7 +547,7 @@ function ShellInner({ children }: Props) {
               }`}
           >
             <div className="flex items-center gap-3">
-              <div 
+              <div
                 className={`h-10 w-10 rounded-xl flex items-center justify-center text-[13px] font-[900] text-white shadow-lg transition-transform group-hover:scale-105 ${isPlatform && clinic.isSuperAdmin ? "bg-white/10" : ""}`}
                 style={!(isPlatform && clinic.isSuperAdmin) ? { background: `linear-gradient(to bottom right, var(--brand-from), var(--brand-to))` } : {}}
               >
@@ -570,7 +581,7 @@ function ShellInner({ children }: Props) {
                   <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.098 19.903a9.2 9.2 0 0 1 2.34-5.23L17.117 4.01a3.003 3.003 0 0 1 4.246 4.246L10.686 18.913a9.2 9.2 0 0 1-5.23 2.34l-2.072.31a.301.301 0 0 1-.343-.343l.31-2.072ZM4.098 19.903a9.2 9.2 0 0 0 1.636 1.637m0 0a9.2 9.2 0 0 1-2.312-5.467M16.14 6.39l3.473 3.473" />
                   </svg>
-                  <span>Görünüm</span>
+                  <span>Tema</span>
                 </button>
                 {canSwitchClinics && (
                   <button
@@ -583,7 +594,7 @@ function ShellInner({ children }: Props) {
                   </button>
                 )}
               </div>
-              
+
               <button
                 type="button"
                 onClick={handleLogout}
@@ -745,7 +756,7 @@ function ShellInner({ children }: Props) {
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0-2.25h.008v.008H12v-.008ZM14.25 10.5h.008v.008h-.008V10.5Zm2.25-2.25h.008v.008H16.5V8.25ZM18.75 6h.008v.008H18.75V6Zm2.25-2.25h.008v.008H21V3.75Z" />
                           </svg>
-                          Görünüm Ayarları
+                          Tema
                         </button>
                         <button
                           onClick={async () => { await handleLogout(); closeMobileNav(); }}
@@ -786,7 +797,7 @@ function ShellInner({ children }: Props) {
           clinicId={clinic.clinicId}
         />
       )}
-      <ThemeSettingsModal 
+      <ThemeSettingsModal
         isOpen={themeSettingsOpen}
         onClose={() => setThemeSettingsOpen(false)}
       />
@@ -804,7 +815,11 @@ export function AppShell({ children }: Props) {
 
   return (
     <AuthGuard>
-      <ShellInner>{children}</ShellInner>
+      <AnnouncementProvider>
+        <ConfirmProvider>
+          <ShellInner>{children}</ShellInner>
+        </ConfirmProvider>
+      </AnnouncementProvider>
     </AuthGuard>
   );
 }

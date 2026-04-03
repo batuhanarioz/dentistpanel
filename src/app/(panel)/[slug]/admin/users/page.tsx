@@ -14,10 +14,10 @@ import { ClinicSettingsTab } from "@/app/components/admin/ClinicSettingsTab";
 import { AuditLogTab } from "@/app/components/admin/AuditLogTab";
 import { useState, useEffect } from "react";
 
-type SubSection = "profile" | "general" | "checklist" | "assistant" | "treatments" | "channels" | "doctor-hours" | "check-in";
+type SubSection = "profile" | "general" | "checklist" | "assistant" | "treatments" | "channels" | "doctor-hours" | "check-in" | "booking" | "whatsapp";
 type NavId = "team" | SubSection | "audit" | "enabiz" | "new-branch";
 
-const SETTINGS_SECTIONS: SubSection[] = ["profile", "assistant", "checklist", "general", "doctor-hours", "treatments", "channels", "check-in"];
+const SETTINGS_SECTIONS: SubSection[] = ["profile", "assistant", "checklist", "general", "doctor-hours", "treatments", "channels", "check-in", "booking", "whatsapp"];
 const isSettingsSection = (id: NavId): id is SubSection => SETTINGS_SECTIONS.includes(id as SubSection);
 
 interface NavItem {
@@ -56,6 +56,8 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "treatments", label: "Tedavi Türleri", icon: "🦷" },
       { id: "channels", label: "Kanallar", icon: "📱" },
       { id: "check-in", label: "QR Giriş", icon: "🔲" },
+      { id: "booking", label: "Online Randevu", icon: "📅" },
+      { id: "whatsapp", label: "Online Taslak", icon: "📲" },
     ],
   },
   {
@@ -111,7 +113,15 @@ export default function AdminUsersPage() {
   const adminCount = users.filter(u => u.role === UserRole.ADMIN || u.role === UserRole.SUPER_ADMIN).length;
   const doctorCount = users.filter(u => u.role === UserRole.DOKTOR || (u.is_clinical_provider && u.role !== UserRole.DOKTOR)).length;
 
-  const visibleGroups = NAV_GROUPS.filter(g => !g.adminOnly || isAdmin);
+    const isOnlineBookingEnabled = clinic.clinicSettings?.is_online_booking_enabled ?? false;
+
+    const visibleGroups = NAV_GROUPS.filter(g => !g.adminOnly || isAdmin).map(group => ({
+        ...group,
+        items: group.items.filter(item => {
+            if (item.id === "whatsapp") return isOnlineBookingEnabled;
+            return true;
+        })
+    }));
 
   function NavButton({ item, mobile = false }: { item: NavItem; mobile?: boolean }) {
     const active = activeNav === item.id;

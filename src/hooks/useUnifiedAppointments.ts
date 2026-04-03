@@ -19,7 +19,7 @@ function appEventToCalendarAppt(event: AppEvent): CalendarAppointment {
         email: event.patientEmail,
         doctor: event.doctorName,
         doctorId: event.doctorId,
-        channel: event.channel || "web",
+        channel: event.channel || "",
         treatmentType: event.treatmentType,
         status,
         dbStatus: status,

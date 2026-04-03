@@ -36,6 +36,7 @@ export interface ClinicIdentityContextValue {
     n8nWorkflows: Array<{ id: string; name: string; visible?: boolean; enabled: boolean; time?: string; day?: string }>;
     clinicSettings: ClinicSettings | null;
     clinicAddons: ClinicAddon[];
+    refreshClinicData: () => Promise<void>;
   }
   
   // ─── UI Context (manages global UI state: overlays, blurs) ─────────────────────
@@ -76,6 +77,7 @@ export interface ClinicIdentityContextValue {
     n8nWorkflows: [],
     clinicSettings: null,
     clinicAddons: [],
+    refreshClinicData: async () => {},
   };
   
   const defaultUI: UIContextValue = {

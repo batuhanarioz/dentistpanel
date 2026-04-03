@@ -277,7 +277,7 @@ export function AppointmentModal(props: AppointmentModalProps) {
 
             {/* Anamnez Modalı */}
             {showAnamnesisModal && activePatientId && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-xl p-4" onClick={() => setShowAnamnesisModal(false)}>
+                <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/50 backdrop-blur-xl p-4" onClick={() => setShowAnamnesisModal(false)}>
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">

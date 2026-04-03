@@ -14,6 +14,7 @@ interface SupportModalProps {
 export function SupportModal({ isOpen, onClose, clinicId }: SupportModalProps) {
     const [subject, setSubject] = useState("");
     const [message, setMessage] = useState("");
+    const [priority, setPriority] = useState("normal");
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
     const { setOverlayActive } = useUI();
