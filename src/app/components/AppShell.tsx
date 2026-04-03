@@ -285,11 +285,14 @@ function ShellInner({ children }: Props) {
   const [supportModalOpen, setSupportModalOpen] = useState(false);
   const [themeSettingsOpen, setThemeSettingsOpen] = useState(false);
 
-  // Update last_active_at only once per session
   useEffect(() => {
     if (clinic.clinicId) {
       const updateActivity = async () => {
-        await supabase.from("clinics").update({ last_active_at: new Date().toISOString() }).eq("id", clinic.clinicId);
+        try {
+          await supabase.from("clinics").update({ last_active_at: new Date().toISOString() }).eq("id", clinic.clinicId);
+        } catch (e) {
+          // Ignore background activity update errors
+        }
       };
       updateActivity();
     }

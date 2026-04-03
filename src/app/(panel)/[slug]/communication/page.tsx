@@ -400,7 +400,7 @@ export default function CommunicationHubPage() {
                                                         className="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-3 rounded-2xl text-[10px] uppercase flex items-center justify-center gap-1.5 shadow-sm transition-colors"
                                                     >
                                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25V16.72a2.25 2.25 0 0 0-1.509-2.129l-4.14-1.38a2.25 2.25 0 0 0-2.31.543l-2.002 2.002a15.021 15.021 0 0 1-6.6a6.6 6.6 0 0 1-2.002-2.002l2.002-2.002a2.25 2.25 0 0 0 .543-2.31l-1.38-4.14A2.25 2.25 0 0 0 7.63 2.25H5.25a2.25 2.25 0 0 0-2.25 2.25v2.25Z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-6 18.75h9" />
                                                         </svg>
                                                         ARA
                                                     </a>
@@ -522,7 +522,7 @@ export default function CommunicationHubPage() {
                                                 className="bg-blue-500 text-white font-black py-2.5 rounded-xl text-[10px] text-center flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
                                             >
                                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25V16.72a2.25 2.25 0 0 0-1.509-2.129l-4.14-1.38a2.25 2.25 0 0 0-2.31.543l-2.002 2.002a15.021 15.021 0 0 1-6.6a6.6 6.6 0 0 1-2.002-2.002l2.002-2.002a2.25 2.25 0 0 0 .543-2.31l-1.38-4.14A2.25 2.25 0 0 0 7.63 2.25H5.25a2.25 2.25 0 0 0-2.25 2.25v2.25Z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-6 18.75h9" />
                                                 </svg>
                                                 ARA
                                             </a>

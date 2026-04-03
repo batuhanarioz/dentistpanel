@@ -30,6 +30,11 @@ interface CustomTooltipProps {
 }
 
 export function DashboardAnalytics() {
+    const [mounted, setMounted] = React.useState(false);
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const { clinicId, themeColorFrom } = useClinic();
     const gradientPrefix = useId().replace(/:/g, "");
 
@@ -155,8 +160,9 @@ export function DashboardAnalytics() {
                         <span className="text-3xl font-black text-slate-900 leading-none">{totalAppointmentsCount}</span>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">TAMAMLANAN</span>
                     </div>
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
+                    {mounted && (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
                             <defs>
                                 {statusData.map((d, i) => (
                                     <linearGradient key={d.gradientId} id={d.gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -179,9 +185,9 @@ export function DashboardAnalytics() {
                                     <Cell key={`cell-${index}`} fill={`url(#${entry.gradientId})`} />
                                 ))}
                             </Pie>
-                            <Tooltip content={<CustomTooltip />} />
-                        </PieChart>
-                    </ResponsiveContainer>
+                            </PieChart>
+                        </ResponsiveContainer>
+                    )}
                 </div>
 
                 <div className="mt-6 max-h-[120px] overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-slate-200 relative z-10">
@@ -219,8 +225,9 @@ export function DashboardAnalytics() {
                 </div>
 
                 <div className="flex-1 h-[200px] mt-2 relative z-10">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={weeklyVolume} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                    {mounted && (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={weeklyVolume} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="var(--brand-from)" stopOpacity={1} />
@@ -246,10 +253,10 @@ export function DashboardAnalytics() {
                                 radius={[12, 12, 12, 12]}
                                 barSize={28}
                                 animationDuration={2000}
-                                minPointSize={5}
                             />
                         </BarChart>
                     </ResponsiveContainer>
+                    )}
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between relative z-10">

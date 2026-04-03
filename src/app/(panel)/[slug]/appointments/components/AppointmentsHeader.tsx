@@ -28,9 +28,9 @@ interface AppointmentsHeaderProps {
 }
 
 const ZOOM_OPTIONS: { value: ZoomLevel; label: string }[] = [
-    { value: 15, label: "15m" },
-    { value: 30, label: "30m" },
-    { value: 60, label: "60m" },
+    { value: 15, label: "15dk" },
+    { value: 30, label: "30dk" },
+    { value: 60, label: "60dk" },
 ];
 
 export function AppointmentsHeader({
@@ -109,8 +109,8 @@ export function AppointmentsHeader({
                     <button
                         onClick={onToday}
                         className={`h-9 px-4 text-[11px] font-bold transition-all border-r border-slate-100`}
-                        style={isToday 
-                            ? { backgroundColor: `${themeColorFrom}10`, color: 'var(--brand-from)' } 
+                        style={isToday
+                            ? { backgroundColor: `${themeColorFrom}10`, color: 'var(--brand-from)' }
                             : { color: '#475569' }}
                     >
                         Bugün
@@ -136,8 +136,8 @@ export function AppointmentsHeader({
                         type="button"
                         onClick={() => setDatePickerOpen((v) => !v)}
                         className={`flex items-center gap-1.5 h-9 px-2.5 w-full rounded-lg border shadow-sm transition-all group`}
-                        style={datePickerOpen 
-                            ? { borderColor: 'var(--brand-from)', backgroundColor: `${themeColorFrom}10` } 
+                        style={datePickerOpen
+                            ? { borderColor: 'var(--brand-from)', backgroundColor: `${themeColorFrom}10` }
                             : { borderColor: '#e2e8f0', backgroundColor: '#ffffff' }}
                     >
                         <svg className="h-3.5 w-3.5 shrink-0 transition-colors" style={{ color: 'var(--brand-from)' }} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -250,7 +250,7 @@ export function AppointmentsHeader({
                         <span className="truncate max-w-[100px] sm:max-w-[140px] uppercase">{selectedDoctorsText}</span>
 
                         {/* Appointment Count Badge */}
-                        <div 
+                        <div
                             className="flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-black border min-w-[20px]"
                             style={{ backgroundColor: `${themeColorFrom}10`, color: 'var(--brand-from)', borderColor: `${themeColorFrom}20` }}
                         >
@@ -280,7 +280,7 @@ export function AppointmentsHeader({
                                             onClick={() => toggleDoctor(d.id)}
                                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors group"
                                         >
-                                            <div 
+                                            <div
                                                 className={`h-4.5 w-4.5 rounded-md border flex items-center justify-center transition-all ${selectedDoctorIds.includes(d.id) ? 'text-white shadow-sm' : 'border-slate-300 bg-white group-hover:border-slate-400'}`}
                                                 style={selectedDoctorIds.includes(d.id) ? { backgroundColor: 'var(--brand-from)', borderColor: 'var(--brand-from)' } : {}}
                                             >
@@ -289,7 +289,7 @@ export function AppointmentsHeader({
                                             <span className={`text-xs font-bold truncate flex-1 text-left uppercase ${selectedDoctorIds.includes(d.id) ? 'text-slate-900' : 'text-slate-500'}`}>
                                                 {d.full_name}
                                             </span>
-                                            <span 
+                                            <span
                                                 className="text-[10px] font-black border px-1.5 py-0.5 rounded-md tabular-nums min-w-[24px] text-center"
                                                 style={{ backgroundColor: `${themeColorFrom}05`, color: 'var(--brand-from)', borderColor: `${themeColorFrom}10` }}
                                             >

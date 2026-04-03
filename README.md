@@ -1,6 +1,6 @@
-# Dentist Panel | Modern Diş Polikliniği Yönetim Platformu
+# NextGency OS | Modern Diş Polikliniği Yönetim Platformu
 
-Dentist Panel, diş kliniklerinin ve polikliniklerin tüm işleyişini dijitalleştiren, modern ve verimli bir yönetim çözümüdür.
+NextGency OS, diş kliniklerinin ve polikliniklerin tüm işleyişini dijitalleştiren, modern ve verimli bir yönetim çözümüdür.
 
 ## 🚀 Temel Özellikler
 
@@ -21,4 +21,7 @@ Dentist Panel, diş kliniklerinin ve polikliniklerin tüm işleyişini dijitalle
 Bu proje veritabanı şeması ve iş akışları dahil olmak üzere ticari bir üründür. Fikri mülkiyet haklarını korumak amacıyla detaylı algoritma ve özel konfigürasyonlar bu repository üzerinde açık paylaşılmamaktadır.
 
 ---
-© 2026 Dentist Panel - Tüm Hakları Saklıdır.
+© 2026 NextGency OS - Tüm Hakları Saklıdır.
+
+https://clinic.nextgency360.com/
+https://nextgency360.com/

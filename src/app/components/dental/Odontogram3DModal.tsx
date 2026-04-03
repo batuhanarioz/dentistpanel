@@ -25,24 +25,24 @@ const Odontogram3DCanvas = dynamic(() => import("./Odontogram3DCanvas"), {
 const FDI_NAMES: Record<string, string> = {
     // Üst sağ
     "11": "Sağ Üst Santral Kesici", "12": "Sağ Üst Lateral Kesici",
-    "13": "Sağ Üst Kanin",         "14": "Sağ Üst 1. Küçük Azı",
-    "15": "Sağ Üst 2. Küçük Azı",  "16": "Sağ Üst 1. Büyük Azı",
-    "17": "Sağ Üst 2. Büyük Azı",  "18": "Sağ Üst Yirmilik",
+    "13": "Sağ Üst Kanin", "14": "Sağ Üst 1. Küçük Azı",
+    "15": "Sağ Üst 2. Küçük Azı", "16": "Sağ Üst 1. Büyük Azı",
+    "17": "Sağ Üst 2. Büyük Azı", "18": "Sağ Üst Yirmilik",
     // Üst sol
     "21": "Sol Üst Santral Kesici", "22": "Sol Üst Lateral Kesici",
-    "23": "Sol Üst Kanin",          "24": "Sol Üst 1. Küçük Azı",
-    "25": "Sol Üst 2. Küçük Azı",   "26": "Sol Üst 1. Büyük Azı",
-    "27": "Sol Üst 2. Büyük Azı",   "28": "Sol Üst Yirmilik",
+    "23": "Sol Üst Kanin", "24": "Sol Üst 1. Küçük Azı",
+    "25": "Sol Üst 2. Küçük Azı", "26": "Sol Üst 1. Büyük Azı",
+    "27": "Sol Üst 2. Büyük Azı", "28": "Sol Üst Yirmilik",
     // Alt sol
     "31": "Sol Alt Santral Kesici", "32": "Sol Alt Lateral Kesici",
-    "33": "Sol Alt Kanin",          "34": "Sol Alt 1. Küçük Azı",
-    "35": "Sol Alt 2. Küçük Azı",   "36": "Sol Alt 1. Büyük Azı",
-    "37": "Sol Alt 2. Büyük Azı",   "38": "Sol Alt Yirmilik",
+    "33": "Sol Alt Kanin", "34": "Sol Alt 1. Küçük Azı",
+    "35": "Sol Alt 2. Küçük Azı", "36": "Sol Alt 1. Büyük Azı",
+    "37": "Sol Alt 2. Büyük Azı", "38": "Sol Alt Yirmilik",
     // Alt sağ
     "41": "Sağ Alt Santral Kesici", "42": "Sağ Alt Lateral Kesici",
-    "43": "Sağ Alt Kanin",          "44": "Sağ Alt 1. Küçük Azı",
-    "45": "Sağ Alt 2. Küçük Azı",   "46": "Sağ Alt 1. Büyük Azı",
-    "47": "Sağ Alt 2. Büyük Azı",   "48": "Sağ Alt Yirmilik",
+    "43": "Sağ Alt Kanin", "44": "Sağ Alt 1. Küçük Azı",
+    "45": "Sağ Alt 2. Küçük Azı", "46": "Sağ Alt 1. Büyük Azı",
+    "47": "Sağ Alt 2. Büyük Azı", "48": "Sağ Alt Yirmilik",
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -146,11 +146,11 @@ export default function Odontogram3DModal({ open, onClose, patientId, patientNam
                         <div className="flex items-center gap-0.5 bg-white/10 rounded-xl p-1">
                             <button onClick={() => zoomRef.current?.zoomIn()}
                                 className="w-8 h-8 flex items-center justify-center rounded-lg text-white/80 hover:bg-white/20 hover:text-white transition-all text-lg font-black"
-                                title="Yaklaştır">+</button>
+                                title="Uzaklaştır">-</button>
                             <div className="w-px h-5 bg-white/20" />
                             <button onClick={() => zoomRef.current?.zoomOut()}
                                 className="w-8 h-8 flex items-center justify-center rounded-lg text-white/80 hover:bg-white/20 hover:text-white transition-all text-lg font-black"
-                                title="Uzaklaştır">−</button>
+                                title="Yaklaştır">+</button>
                         </div>
                         {/* Kapat — sadece mobilde üstte göster */}
                         <button onClick={onClose}
